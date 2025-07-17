@@ -69,7 +69,6 @@ def compare_annotations_by_label(gt_lines, model_lines):
             if gt_annotation == model_annotation:
                 results[gt_annotation]['tp'] += 1
             else:
-                # 如果标签不匹配，不计算为FP或FN
                 continue
         else:
             results[gt_annotation]['fn'] += 1

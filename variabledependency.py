@@ -22,7 +22,7 @@ def load_config(field: str, value: str) -> str:
         print(f"Error: Config file encoding issue. Please save config.ini as UTF-8")
         sys.exit(1)
 
-# OpenAI 的相关 key
+
 os.environ["OPENAI_API_BASE"] = load_config('LLM', 'api_base')
 os.environ["OPENAI_API_KEY"] = load_config('LLM', 'api_key')
 
@@ -145,35 +145,35 @@ def format_prompt(all_dependencies):
 
 # Function to call the OpenAI LLM (ChatGPT)
 def call_llm(prompt):
-    llm = ChatOpenAI(model='gpt-4o-2024-08-06', temperature=0.5)  # You can adjust the model and temperature
+    llm = ChatOpenAI(model='gpt-4o', temperature=0.5)  
     response = llm([HumanMessage(content=prompt)])
     return response.content
 
 def generate_and_query_llm(c_code):
     """
-    提供代码，生成变量依赖，并将其发送给LLM，返回模型的响应
+
     """
     pdg, lines = generate_pdg(c_code)
 
-    # 提取所有变量名
+
     all_vars = set(extract_variable_definitions(c_code))
 
-    # 累积所有依赖关系
+
     all_dependencies = []
     for var in sorted(all_vars):
         dependencies = find_variable_dependencies(pdg, var, lines)
         if dependencies:
             all_dependencies.append(f"\nDependencies for variable '{var}':\n" + "\n".join(dependencies))
 
-    # 生成一个包含所有依赖关系的Prompt
+
     if all_dependencies:
         prompt = format_prompt(all_dependencies)
         # print("\nGenerated Prompt:\n", prompt)
 
-        # 调用LLM并返回响应
+
         response = call_llm(prompt)
         return response
 
-# 如果文件作为脚本直接运行则执行main()
+
 if __name__ == "__main__":
     main()

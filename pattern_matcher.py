@@ -13,7 +13,7 @@ def analyze_fidelity_file(file_path):
         print(f"Warning: Cannot find file {file_path}, using default weights")
         return get_default_weights()
 
-    # 按行分割并移除注释
+
     lines = []
     for line in content.split('\n'):
 
@@ -79,12 +79,6 @@ def analyze_fidelity_file(file_path):
         weight = max(10, min(50, int(ratio * 100 + 10)))
         weights[type_name] = weight
 
-    # print(f"The weights obtained from the analysis of {file_path}: ")
-    # print(f"Total lines: {total_count}")
-    # for type_name, weight in weights.items():
-    #     count = type_counts[type_name]
-    #     ratio = count / total_count if total_count > 0 else 0
-    #     print(f"  {type_name}: {count} lines ({ratio:.2%}) -> weight: {weight}")
 
     return weights
 
@@ -148,17 +142,12 @@ def match_patterns(query_lines, fidelity_file_path='fidelity_new.c'):
 
     line_strengths = [(line, *calculate_max_semantic_strength(line, weights)) for line in relevant_lines]
 
-    #
-    # print("\nThe semantic values and strengths of each line: ")
-    # for line, line_type, strength in line_strengths:
-    #     print(f"Line: {line}")
-    #     print(f"Type: {line_type}")
-    #     print(f"Strength: {strength}\n")
+
 
 
     line_strengths.sort(key=lambda x: x[2], reverse=True)
 
-    # 确定输出行数
+
     total_lines = len(relevant_lines)
     if total_lines <= 5:
         output_lines = total_lines
