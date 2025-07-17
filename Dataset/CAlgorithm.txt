@@ -1,0 +1,2387 @@
+__fastcall adaline_get_weights_str(__int64 a1)
+{
+  int i;
+  sprintf(out_4164, "<");
+  for ( i = 0; i < *(_DWORD *)(a1 + 16); ++i )
+  {
+    sprintf(out_4164, "%s%.4g", out_4164, *(double *)(8LL * i + *(_QWORD *)(a1 + 8)));
+    if ( i < *(_DWORD *)(a1 + 16) - 1 )
+      sprintf(out_4164, "%s, ", out_4164);
+  }
+  sprintf(out_4164, "%s>", out_4164);
+  return out_4164;
+}
+/////
+__fastcall adaline_fit_sample(__int64 a1, __int64 a2, int a3)
+{
+  int i;
+  double v5;
+  v5 = (double)(int)(a3 - adaline_predict(a1, a2, 0LL)) * *(double *)a1;
+  for ( i = 0; i < *(_DWORD *)(a1 + 16) - 1; ++i )
+    *(double *)(8LL * i + *(_QWORD *)(a1 + 8)) = *(double *)(8LL * i + a2) * v5
+                                               + *(double *)(8LL * i + *(_QWORD *)(a1 + 8));
+  *(double *)(*(_QWORD *)(a1 + 8) + 8LL * *(int *)(a1 + 16) - 8) = *(double *)(*(_QWORD *)(a1 + 8)
+                                                                             + 8LL * *(int *)(a1 + 16)
+                                                                             - 8)
+                                                                 + v5;
+  return v5;
+}
+/////
+__fastcall adaline_fit(__int64 a1, __int64 a2, __int64 a3, int a4)
+{
+  char *v4;
+  int result;
+  int i;
+  int j;
+  double v10;
+  double v11;
+  v10 = 1.0;
+  for ( i = 0; i <= 499 && v10 > 0.00001; ++i )
+  {
+    v11 = 0.0;
+    for ( j = 0; j < a4; ++j )
+      v11 = fabs(adaline_fit_sample(a1, *(_QWORD *)(8LL * j + a2), *(_DWORD *)(4LL * j + a3))) + v11;
+    v10 = v11 / (double)a4;
+    v4 = adaline_get_weights_str(a1);
+    printf("\tIter %3d: Training weights: %s\tAvg error: %.4f\n", (unsigned int)i, v4, v10);
+  }
+  if ( i > 499 )
+    result = printf("Did not converged after %d iterations.\n", (unsigned int)i);
+  else
+    result = printf("Converged after %d iterations.\n", (unsigned int)i);
+  return result;
+}
+/////
+__fastcall new_adaline(__int64 a1, int a2, double a3)
+{
+  int i;
+  _QWORD *v5;
+  __int64 v6;
+  if ( a3 <= 0.0 || a3 >= 1.0 )
+  {
+    fwrite("learning rate should be > 0 and < 1\n", 1uLL, 0x24uLL, stderr);
+    exit(1);
+  }
+  LODWORD(v6) = a2 + 1;
+  v5 = malloc(8LL * (a2 + 1));
+  if ( v5 )
+  {
+    for ( i = 0; i < a2 + 1; ++i )
+      v5[i] = 0x3FF0000000000000LL;
+    *(double *)a1 = a3;
+    *(_QWORD *)(a1 + 8) = v5;
+    *(_QWORD *)(a1 + 16) = v6;
+  }
+  else
+  {
+    perror("Unable to allocate error for weights!");
+    *(double *)a1 = a3;
+    *(_QWORD *)(a1 + 8) = 0LL;
+    *(_QWORD *)(a1 + 16) = v6;
+  }
+  return a1;
+}
+/////
+__fastcall adaline_predict(__int64 a1, __int64 a2, double *a3)
+{
+  int i;
+  double v5;
+  v5 = *(double *)(*(_QWORD *)(a1 + 8) + 8LL * *(int *)(a1 + 16) - 8);
+  for ( i = 0; i < *(_DWORD *)(a1 + 16) - 1; ++i )
+    v5 = *(double *)(8LL * i + *(_QWORD *)(a1 + 8)) * *(double *)(8LL * i + a2) + v5;
+  if ( a3 )
+    *a3 = v5;
+  return adaline_activation(v5);
+}
+/////
+__fastcall delete_adaline(__int64 a1)
+{
+  if ( a1 )
+    free(*(void **)(a1 + 8));
+}
+/////
+__fastcall adaline_activation(double a1)
+{
+  __int64 result;
+  if ( a1 <= 0.0 )
+    result = 0xFFFFFFFFLL;
+  else
+    result = 1LL;
+  return result;
+}
+/////
+__fastcall affine_encrypt(__int64 a1, __int64 a2)
+{
+  __int64 result;
+  int i;
+  for ( i = 0; ; ++i )
+  {
+    result = *(unsigned __int8 *)(i + a1);
+    if ( !(_BYTE)result )
+      break;
+    *(_BYTE *)(i + a1) = (HIDWORD(a2) + (*(char *)(i + a1) - 32) * (int)a2) % 95 + 32;
+  }
+  return result;
+}
+/////
+__fastcall affine_decrypt(__int64 a1, __int64 a2)
+{
+  __int64 result;
+  int i;
+  __int64 v4;
+  v4 = inverse_key(a2);
+  for ( i = 0; ; ++i )
+  {
+    result = *(unsigned __int8 *)(i + a1);
+    if ( !(_BYTE)result )
+      break;
+    *(_BYTE *)(i + a1) = (HIDWORD(v4) + *(char *)(i + a1) - 32) * (int)v4 % 95 + 32;
+  }
+  return result;
+}
+/////
+__fastcall modular_multiplicative_inverse(unsigned int a1, unsigned int a2)
+{
+  int numer;
+  int denom;
+  int v5;
+  div_t v6;
+  int v7;
+  unsigned int v8;
+  numer = a2;
+  v7 = 1;
+  v8 = 0;
+  if ( !a2 )
+    return 0LL;
+  denom = a1 % a2;
+  if ( !(a1 % a2) )
+    return 0LL;
+  v6.rem = a1 % a2;
+  while ( v6.rem > 0 )
+  {
+    v6 = div(numer, denom);
+    numer = denom;
+    denom = v6.rem;
+    v5 = v8 - v7 * v6.quot;
+    v8 = v7;
+    v7 = v5;
+  }
+  return v8;
+}
+/////
+__fastcall decode(_WORD *a1, _BYTE *a2, unsigned __int64 a3)
+{
+  _BYTE *v3;
+  int v4;
+  char v5;
+  int v6;
+  _WORD *v7;
+  unsigned __int64 result;
+  unsigned __int8 v11;
+  int v12;
+  int v13;
+  unsigned __int64 i;
+  for ( i = 0LL; ; ++i )
+  {
+    result = i;
+    if ( i >= a3 )
+      break;
+    v3 = a2++;
+    v11 = *v3 ^ 0xD5;
+    if ( (((int)v11 >> 4) & 7) != 0 )
+      v4 = 256;
+    else
+      v4 = 0;
+    v12 = v4 + ((unsigned __int8)(16 * v11) | 8);
+    v5 = 1;
+    if ( (((int)v11 >> 4) & 7) != 0 )
+      v5 = ((int)v11 >> 4) & 7;
+    v13 = v12 << (v5 - 1);
+    if ( (v11 & 0x80) != 0 )
+      v6 = -v13;
+    else
+      LOWORD(v6) = v13;
+    v7 = a1++;
+    *v7 = v6;
+  }
+  return result;
+}
+/////
+__fastcall encode(_BYTE *a1, __int16 *a2, unsigned __int64 a3)
+{
+  __int16 *v3;
+  __int16 v4;
+  char v5;
+  _BYTE *v6;
+  unsigned __int64 result;
+  char v10;
+  __int16 v11;
+  int v12;
+  int v13;
+  int v14;
+  unsigned __int64 i;
+  for ( i = 0LL; ; ++i )
+  {
+    result = i;
+    if ( i >= a3 )
+      break;
+    v3 = a2++;
+    v12 = 7;
+    v13 = 0x4000;
+    v14 = (*v3 >> 8) & 0x80;
+    if ( v14 )
+      v4 = ~*v3;
+    else
+      v4 = *v3;
+    v11 = v4;
+    while ( (v13 & v4) == 0 && v12 > 0 )
+    {
+      --v12;
+      v13 >>= 1;
+    }
+    if ( v12 )
+      v5 = v12 + 3;
+    else
+      v5 = 4;
+    v10 = (16 * v12) | v14 | (v11 >> v5) & 0xF;
+    v6 = a1++;
+    *v6 = v10 ^ 0xD5;
+  }
+  return result;
+}
+/////
+__fastcall order(int a1)
+{
+  unsigned int v3;
+  v3 = 0;
+  while ( a1 )
+  {
+    ++v3;
+    a1 /= 10;
+  }
+  return v3;
+}
+/////
+__fastcall isArmstrong(int a1)
+{
+  int v2;
+  int v3;
+  unsigned int v4;
+  v4 = order(a1);
+  v2 = a1;
+  v3 = 0;
+  while ( v2 )
+  {
+    v3 += power(v2 % 10, v4);
+    v2 /= 10;
+  }
+  return v3 == a1;
+}
+/////
+__fastcall power(unsigned int a1, unsigned int a2)
+{
+  int v3;
+  if ( !a2 )
+    return 1LL;
+  if ( (a2 & 1) != 0 )
+    v3 = a1 * power(a1, a2 >> 1);
+  else
+    v3 = power(a1, a2 >> 1);
+  return v3 * (unsigned int)power(a1, a2 >> 1);
+}
+/////
+__fastcall display(__int64 a1, int a2)
+{
+  int i;
+  for ( i = 0; i < a2; ++i )
+    printf("%d ", *(unsigned int *)(4LL * i + a1));
+  return putchar(10);
+}
+/////
+__fastcall bead_sort(int *a1, unsigned __int64 a2)
+{
+  int v2;
+  int i;
+  int v4;
+  int l;
+  int m;
+  int j;
+  int k;
+  int n;
+  int v10;
+  int v11;
+  _BYTE *ptr;
+  v2 = 1;
+  v10 = *a1;
+  while ( a2 > v2 )
+  {
+    if ( v10 < a1[v2] )
+      v10 = a1[v2];
+    ++v2;
+  }
+  ptr = calloc(1uLL, a2 * v10);
+  for ( i = 0; a2 > i; ++i )
+  {
+    for ( j = 0; j < a1[i]; ++j )
+      ptr[v10 * i + j] = 1;
+  }
+  for ( k = 0; k < v10; ++k )
+  {
+    v4 = 0;
+    v11 = 0;
+    while ( a2 > v4 )
+    {
+      v11 += (unsigned __int8)ptr[v10 * v4 + k];
+      ptr[v10 * v4++ + k] = 0;
+    }
+    for ( l = a2 - v11; a2 > l; ++l )
+      ptr[v10 * l + k] = 1;
+  }
+  for ( m = 0; a2 > m; ++m )
+  {
+    for ( n = 0; n < v10 && ptr[v10 * m + n]; ++n )
+      ;
+    a1[m] = n;
+  }
+  free(ptr);
+}
+/////
+__fastcall insertionSort(__int64 a1, int a2)
+{
+  __int64 result;
+  unsigned int i;
+  int v4;
+  unsigned int v5;
+  int v6;
+  for ( i = 0; ; ++i )
+  {
+    result = i;
+    if ( (int)i >= a2 )
+      break;
+    v4 = i - 1;
+    v5 = *(_DWORD *)(4LL * (int)i + a1);
+    v6 = binarySearch(a1, v5, 0, i - 1);
+    while ( v4 >= v6 )
+    {
+      *(_DWORD *)(4 * (v4 + 1LL) + a1) = *(_DWORD *)(4LL * v4 + a1);
+      --v4;
+    }
+    *(_DWORD *)(a1 + 4 * (v4 + 1LL)) = v5;
+  }
+  return result;
+}
+/////
+__fastcall binarySearch(__int64 a1, unsigned int a2, unsigned int a3, unsigned int a4)
+{
+  __int64 result;
+  unsigned int v5;
+  if ( (int)a3 < (int)a4 )
+  {
+    v5 = (int)(a4 - 1) / 2 + a3;
+    if ( a2 == *(_DWORD *)(4LL * (int)v5 + a1) )
+    {
+      result = v5 + 1;
+    }
+    else if ( (signed int)a2 >= *(_DWORD *)(4LL * (int)v5 + a1) )
+    {
+      result = binarySearch(a1, a2, v5 + 1, a4);
+    }
+    else
+    {
+      result = binarySearch(a1, a2, a3, v5 - 1);
+    }
+  }
+  else if ( (signed int)a2 <= *(_DWORD *)(4LL * (int)a3 + a1) )
+  {
+    result = a3;
+  }
+  else
+  {
+    result = a3 + 1;
+  }
+  return result;
+}
+/////
+__fastcall display(__int64 a1, int a2)
+{
+  int i;
+  for ( i = 0; i < a2; ++i )
+    printf("%d ", *(unsigned int *)(4LL * i + a1));
+  return putchar(10);
+}
+/////
+__fastcall binarysearch2(__int64 a1, int a2, int a3, int a4)
+{
+  int v5;
+  int v6;
+  unsigned int i;
+  v6 = a2;
+  v5 = a3;
+  for ( i = (a3 - a2) / 2 + a2; a4 != *(_DWORD *)(4LL * (int)i + a1); i = (v5 - v6) / 2 + v6 )
+  {
+    if ( v5 <= v6 || v5 < 0 )
+      return 0xFFFFFFFFLL;
+    if ( a4 >= *(_DWORD *)(4LL * (int)i + a1) )
+      v6 = i + 1;
+    else
+      v5 = i - 1;
+  }
+  return i;
+}
+/////
+__fastcall convert_to_decimal(unsigned __int64 a1)
+{
+  unsigned __int64 v1;
+  double v3;
+  int v5;
+  int v6;
+  v5 = 0;
+  v6 = 0;
+  while ( a1 )
+  {
+    v1 = a1 % 0xA;
+    if ( ((a1 % 0xA) & 0x8000000000000000LL) != 0LL )
+      v3 = (double)(int)((a1 % 0xA) & 1 | (v1 >> 1)) + (double)(int)((a1 % 0xA) & 1 | (v1 >> 1));
+    else
+      v3 = (double)(int)v1;
+    v5 = (int)((double)v5 + v3 * pow(2.0, (double)v6));
+    a1 /= 0xAuLL;
+    ++v6;
+  }
+  return (unsigned int)v5;
+}
+/////
+__fastcall three_digits(int a1)
+{
+  unsigned int v3;
+  int v4;
+  int i;
+  v3 = 0;
+  v4 = 1;
+  for ( i = 0; i <= 2; ++i )
+  {
+    v3 += v4 * (a1 % 10);
+    v4 *= 10;
+    a1 /= 10;
+  }
+  return v3;
+}
+/////
+__fastcall bisection(double a1, double a2, double a3)
+{
+  double v4;
+  double v5;
+  int i;
+  for ( i = 1; i <= 50; ++i )
+  {
+    if ( fabs(func((a1 + a2) / 2.0)) < 0.0001 || a3 > (a1 + a2) / 2.0 - a1 )
+      return (a1 + a2) / 2.0;
+    v5 = func(a1);
+    v4 = func((a1 + a2) / 2.0);
+    if ( sign(v4, v5) <= 0.0 )
+      a2 = (a1 + a2) / 2.0;
+    else
+      a1 = (a1 + a2) / 2.0;
+  }
+  return -1.0;
+}
+/////
+__fastcall sign(double a1, double a2)
+{
+  _BOOL4 v2;
+  _BOOL4 v3;
+  int v4;
+  _BOOL4 v5;
+  int v6;
+  _BOOL4 v7;
+  v2 = a1 > 0.0 && a2 > 0.0;
+  v3 = a1 < 0.0 && a2 < 0.0;
+  v4 = v2 + v3;
+  v5 = a1 > 0.0 && a2 < 0.0;
+  v6 = v4 - v5;
+  v7 = a1 < 0.0 && a2 > 0.0;
+  return (double)(v6 - v7);
+}
+/////
+__fastcall func(double a1)
+{
+  return a1 + a1 + a1 * a1 * a1 - 10.0;
+}
+/////
+__fastcall sort(__int64 a1, int a2)
+{
+  int i;
+  __int64 result;
+  for ( i = check_sorted(a1, a2); ; i = check_sorted(a1, a2) )
+  {
+    result = i ^ 1u;
+    if ( !(_BYTE)result )
+      break;
+    shuffle(a1, a2);
+  }
+  return result;
+}
+/////
+__fastcall shuffle(__int64 a1, int a2)
+{
+  __int64 result;
+  unsigned int i;
+  int v4;
+  int v5;
+  for ( i = 0; ; ++i )
+  {
+    result = i;
+    if ( (int)i >= a2 )
+      break;
+    v4 = *(_DWORD *)(4LL * (int)i + a1);
+    v5 = rand() % a2;
+    *(_DWORD *)(4LL * (int)i + a1) = *(_DWORD *)(4LL * v5 + a1);
+    *(_DWORD *)(a1 + 4LL * v5) = v4;
+  }
+  return result;
+}
+/////
+__fastcall swap(int *a1, int *a2)
+{
+  int *result;
+  int v3;
+  v3 = *a1;
+  *a1 = *a2;
+  result = a2;
+  *a2 = v3;
+  return result;
+}
+/////
+__fastcall display(__int64 a1, int a2)
+{
+  int i;
+  for ( i = 0; i < a2; ++i )
+    printf("%d ", *(unsigned int *)(4LL * i + a1));
+  return putchar(10);
+}
+/////
+__fastcall bubbleSort(__int64 a1, int a2)
+{
+  __int64 result;
+  unsigned __int8 v3;
+  int i;
+  int j;
+  for ( i = 0; ; ++i )
+  {
+    result = (unsigned int)(a2 - 1);
+    if ( i >= (int)result )
+      break;
+    v3 = 0;
+    for ( j = 0; j < a2 - 1 - i; ++j )
+    {
+      if ( *(_DWORD *)(4LL * j + a1) > *(_DWORD *)(4 * (j + 1LL) + a1) )
+      {
+        swap((int *)(4LL * j + a1), (int *)(a1 + 4 * (j + 1LL)));
+        v3 = 1;
+      }
+    }
+    result = v3 ^ 1u;
+    if ( v3 != 1 )
+      break;
+  }
+  return result;
+}
+/////
+__fastcall bubble_sort(__int64 a1)
+{
+  __int64 result;
+  unsigned __int8 v2;
+  int i;
+  int v4;
+  v2 = 0;
+  while ( 1 )
+  {
+    result = v2 ^ 1u;
+    if ( v2 == 1 )
+      break;
+    v2 = 1;
+    for ( i = 0; i <= 18; ++i )
+    {
+      if ( *(_DWORD *)(4LL * i + a1) > *(_DWORD *)(4 * (i + 1LL) + a1) )
+      {
+        v4 = *(_DWORD *)(4LL * i + a1);
+        *(_DWORD *)(4LL * i + a1) = *(_DWORD *)(4 * (i + 1LL) + a1);
+        *(_DWORD *)(a1 + 4 * (i + 1LL)) = v4;
+        v2 = 0;
+      }
+    }
+  }
+  return result;
+}
+/////
+__fastcall swap(int *a1, int *a2)
+{
+  int *result;
+  int v3;
+  v3 = *a1;
+  *a1 = *a2;
+  result = a2;
+  *a2 = v3;
+  return result;
+}
+/////
+__fastcall bubbleSort(__int64 a1, int a2)
+{
+  __int64 result;
+  char v3;
+  int i;
+  if ( a2 != 1 )
+  {
+    v3 = 0;
+    for ( i = 0; ; ++i )
+    {
+      result = (unsigned int)(a2 - 1);
+      if ( i >= (int)result )
+        break;
+      if ( *(_DWORD *)(4LL * i + a1) > *(_DWORD *)(4 * (i + 1LL) + a1) )
+      {
+        swap((int *)(4LL * i + a1), (int *)(a1 + 4 * (i + 1LL)));
+        v3 = 1;
+      }
+    }
+    if ( v3 )
+      result = bubbleSort(a1, (unsigned int)(a2 - 1));
+  }
+  return result;
+}
+/////
+__fastcall BucketSort(__int64 a1)
+{
+  int v1;
+  int i;
+  int j;
+  int k;
+  int l;
+  int m;
+  int n;
+  int jj;
+  int v9;
+  int v10;
+  __int64 ii;
+  _QWORD *v12;
+  _QWORD *v13;
+  void *ptr;
+  _QWORD *v15;
+  v13 = malloc(0x28uLL);
+  for ( i = 0; i <= 4; ++i )
+    v13[i] = 0LL;
+  for ( j = 0; j <= 7; ++j )
+  {
+    v10 = getBucketIndex(*(_DWORD *)(4LL * j + a1));
+    v15 = malloc(0x10uLL);
+    *(_DWORD *)v15 = *(_DWORD *)(4LL * j + a1);
+    v15[1] = v13[v10];
+    v13[v10] = v15;
+  }
+  for ( k = 0; k <= 4; ++k )
+  {
+    printf("Bucket[\"%d\"] : ", (unsigned int)k);
+    printBuckets((unsigned int *)v13[k]);
+    putchar(10);
+  }
+  for ( l = 0; l <= 4; ++l )
+    v13[l] = InsertionSort(v13[l]);
+  puts("--------------");
+  puts("Buckets after sorted");
+  for ( m = 0; m <= 4; ++m )
+  {
+    printf("Bucket[\"%d\"] : ", (unsigned int)m);
+    printBuckets((unsigned int *)v13[m]);
+    putchar(10);
+  }
+  v9 = 0;
+  for ( n = 0; n <= 4; ++n )
+  {
+    for ( ii = v13[n]; ii; ii = *(_QWORD *)(ii + 8) )
+    {
+      if ( v9 > 7 )
+        __assert_fail("j < NARRAY", "github/C-master/sorting/bucket_sort", 0x53u, "BucketSort");
+      v1 = v9++;
+      *(_DWORD *)(a1 + 4LL * v1) = *(_DWORD *)ii;
+    }
+  }
+  for ( jj = 0; jj <= 4; ++jj )
+  {
+    v12 = (_QWORD *)v13[jj];
+    while ( v12 )
+    {
+      ptr = v12;
+      v12 = (_QWORD *)v12[1];
+      free(ptr);
+    }
+  }
+  free(v13);
+}
+/////
+__fastcall InsertionSort(__int64 a1)
+{
+  __int64 v2;
+  _DWORD *v3;
+  _DWORD *i;
+  __int64 v5;
+  __int64 v6;
+  if ( !a1 || !*(_QWORD *)(a1 + 8) )
+    return (_DWORD *)a1;
+  v3 = (_DWORD *)a1;
+  v2 = *(_QWORD *)(a1 + 8);
+  *(_QWORD *)(a1 + 8) = 0LL;
+  while ( v2 )
+  {
+    if ( *v3 <= *(_DWORD *)v2 )
+    {
+      for ( i = v3; *((_QWORD *)i + 1) && **((_DWORD **)i + 1) <= *(_DWORD *)v2; i = (_DWORD *)*((_QWORD *)i + 1) )
+        ;
+      if ( *((_QWORD *)i + 1) )
+      {
+        v5 = v2;
+        v2 = *(_QWORD *)(v2 + 8);
+        *(_QWORD *)(v5 + 8) = *((_QWORD *)i + 1);
+        *((_QWORD *)i + 1) = v5;
+      }
+      else
+      {
+        *((_QWORD *)i + 1) = v2;
+        v2 = *(_QWORD *)(v2 + 8);
+        *(_QWORD *)(*((_QWORD *)i + 1) + 8LL) = 0LL;
+      }
+    }
+    else
+    {
+      v6 = v2;
+      v2 = *(_QWORD *)(v2 + 8);
+      *(_QWORD *)(v6 + 8) = v3;
+      v3 = (_DWORD *)v6;
+    }
+  }
+  return v3;
+}
+/////
+__fastcall print(__int64 a1)
+{
+  int i;
+  for ( i = 0; i <= 7; ++i )
+    printf("%d ", *(unsigned int *)(4LL * i + a1));
+  return putchar(10);
+}
+/////
+__fastcall getBucketIndex(int a1)
+{
+  return (unsigned int)(a1 / 10);
+}
+/////
+__fastcall printBuckets(unsigned int *a1)
+{
+  unsigned int *result;
+  unsigned int *i;
+  result = a1;
+  for ( i = a1; i; i = result )
+  {
+    printf("%d ", *i);
+    result = (unsigned int *)*((_QWORD *)i + 1);
+  }
+  return result;
+}
+/////
+__fastcall print(__int64 a1)
+{
+  while ( a1 )
+  {
+    putchar(9);
+    printf("[%lf] -- ", *(double *)a1);
+    printf("[%lf]", *(double *)(a1 + 8));
+    a1 = *(_QWORD *)(a1 + 16);
+  }
+  return putchar(10);
+}
+/////
+__fastcall propagate(double *a1)
+{
+  double *v1;
+  double v2;
+  if ( a1 )
+  {
+    v1 = (double *)malloc(0x18uLL);
+    v2 = (a1[1] - *a1) / 3.0;
+    v1[1] = a1[1];
+    a1[1] = *a1 + v2;
+    *v1 = v1[1] - v2;
+    v1[2] = a1[2];
+    *((_QWORD *)a1 + 2) = v1;
+    propagate(*(_QWORD *)(*((_QWORD *)a1 + 2) + 16LL));
+  }
+}
+/////
+__fastcall free_memory(_QWORD *a1)
+{
+  if ( a1 )
+  {
+    if ( a1[2] )
+      free_memory(a1[2]);
+    free(a1);
+  }
+}
+/////
+__fastcall to_polar(double *a1, double *a2, double a3, double a4)
+{
+  double *result;
+  double v6;
+  v6 = 0.0;
+  *a1 = sqrt(a4 * a4 + a3 * a3);
+  if ( a3 == 0.0 )
+  {
+    if ( a4 <= 0.0 )
+      v6 = -1.570796326794897;
+    else
+      v6 = 1.570796326794897;
+  }
+  else if ( a4 != 0.0 )
+  {
+    *a2 = atan(a4 / a3);
+    if ( a3 > 0.0 && a4 > 0.0 || -a4 == a3 )
+    {
+      v6 = *a2;
+    }
+    else if ( a3 >= 0.0 || a4 <= 0.0 )
+    {
+      if ( a3 >= 0.0 || a4 >= 0.0 )
+      {
+        if ( a3 <= 0.0 || a4 >= 0.0 )
+          fwrite("Should not reach here!\n", 1uLL, 0x17uLL, stderr);
+        else
+          v6 = 6.283185307179586 - *a2;
+      }
+      else
+      {
+        v6 = *a2 - 3.141592653589793;
+      }
+    }
+    else
+    {
+      v6 = *a2 + 3.141592653589793;
+    }
+  }
+  if ( a4 == 0.0 )
+  {
+    if ( a3 <= 0.0 )
+      v6 = -3.141592653589793;
+    else
+      v6 = 0.0;
+  }
+  result = a2;
+  *a2 = v6;
+  return result;
+}
+/////
+__fastcall get_rand(double a1, double a2)
+{
+  return (a2 - a1) * ((double)rand() / 2147483647.0) + a1;
+}
+/////
+__fastcall celcius_to_fahrenheit(double a1)
+{
+  return 9.0 * a1 / 5.0 + 32.0;
+}
+/////
+__fastcall cocktailSort(__int64 a1, int a2)
+{
+  __int64 result;
+  unsigned int i;
+  unsigned int j;
+  int v5;
+  int v6;
+  int v7;
+  int v8;
+  int v9;
+  int v10;
+  v5 = 1;
+  v7 = 0;
+  result = (unsigned int)(a2 - 1);
+  v8 = a2 - 1;
+  while ( v5 )
+  {
+    v6 = 0;
+    for ( i = v7; ; ++i )
+    {
+      result = i;
+      if ( (int)i >= v8 )
+        break;
+      if ( *(_DWORD *)(4LL * (int)i + a1) > *(_DWORD *)(4 * ((int)i + 1LL) + a1) )
+      {
+        v9 = *(_DWORD *)(4LL * (int)i + a1);
+        *(_DWORD *)(4LL * (int)i + a1) = *(_DWORD *)(4 * ((int)i + 1LL) + a1);
+        *(_DWORD *)(a1 + 4 * ((int)i + 1LL)) = v9;
+        v6 = 1;
+      }
+    }
+    --v8;
+    if ( !v6 )
+      break;
+    v5 = 0;
+    for ( j = v8 - 1; ; --j )
+    {
+      result = j;
+      if ( (int)j < v7 )
+        break;
+      if ( *(_DWORD *)(4 * ((int)j + 1LL) + a1) < *(_DWORD *)(4LL * (int)j + a1) )
+      {
+        v10 = *(_DWORD *)(4 * ((int)j + 1LL) + a1);
+        *(_DWORD *)(4 * ((int)j + 1LL) + a1) = *(_DWORD *)(4LL * (int)j + a1);
+        *(_DWORD *)(a1 + 4LL * (int)j) = v10;
+        v5 = 1;
+      }
+    }
+    ++v7;
+  }
+  return result;
+}
+/////
+__fastcall sort(__int64 a1, int a2)
+{
+  __int64 result;
+  int v3;
+  int i;
+  int v5;
+  result = (unsigned int)a2;
+  v3 = a2;
+  while ( v3 > 1 )
+  {
+    v3 = (int)((double)v3 / 1.3);
+    for ( i = 0; ; ++i )
+    {
+      result = (unsigned int)(i + v3);
+      if ( a2 <= (int)result )
+        break;
+      if ( *(_DWORD *)(4LL * i + a1) > *(_DWORD *)(4LL * (i + v3) + a1) )
+      {
+        v5 = *(_DWORD *)(4LL * i + a1);
+        *(_DWORD *)(4LL * i + a1) = *(_DWORD *)(4LL * (i + v3) + a1);
+        *(_DWORD *)(a1 + 4LL * (i + v3)) = v5;
+      }
+    }
+  }
+  return result;
+}
+/////
+__fastcall cycleSort(__int64 a1, int a2)
+{
+  int v3;
+  int v4;
+  int i;
+  int v6;
+  int j;
+  int k;
+  unsigned __int64 v9;
+  v9 = __readfsqword(0x28u);
+  v4 = 0;
+  for ( i = 0; i < a2 - 1; ++i )
+  {
+    v3 = *(_DWORD *)(4LL * i + a1);
+    v6 = i;
+    for ( j = i + 1; j < a2; ++j )
+    {
+      if ( *(_DWORD *)(4LL * j + a1) < v3 )
+        ++v6;
+    }
+    if ( v6 != i )
+    {
+      while ( *(_DWORD *)(4LL * v6 + a1) == v3 )
+        ++v6;
+      if ( v6 == i )
+        goto LABEL_22;
+      while ( 1 )
+      {
+        swap(&v3, (int *)(a1 + 4LL * v6));
+        ++v4;
+LABEL_22:
+        if ( v6 == i )
+          break;
+        v6 = i;
+        for ( k = i + 1; k < a2; ++k )
+        {
+          if ( *(_DWORD *)(4LL * k + a1) < v3 )
+            ++v6;
+        }
+        while ( *(_DWORD *)(4LL * v6 + a1) == v3 )
+          ++v6;
+      }
+    }
+  }
+  return __readfsqword(0x28u) ^ v9;
+}
+/////
+__fastcall c_atoi(__int64 a1)
+{
+  int v2;
+  int v3;
+  __int64 v4;
+  __int64 v5;
+  v2 = 0;
+  v3 = 1;
+  v4 = 0LL;
+  while ( (*(char *)(v2 + a1) <= 13 && *(char *)(v2 + a1) > 8 || *(_BYTE *)(v2 + a1) == 32) && *(_BYTE *)(v2 + a1) )
+    ++v2;
+  if ( *(_BYTE *)(v2 + a1) == 45 )
+  {
+    v3 = -1;
+    ++v2;
+  }
+  else if ( *(_BYTE *)(v2 + a1) == 43 )
+  {
+    v3 = 1;
+    ++v2;
+  }
+  while ( *(char *)(v2 + a1) > 47 && *(char *)(v2 + a1) <= 57 && *(_BYTE *)(v2 + a1) )
+  {
+    v5 = v4;
+    v4 = 10 * v4 + v3 * (*(char *)(v2 + a1) - 48);
+    if ( v3 == 1 && v5 > v4 )
+      return 0xFFFFFFFFLL;
+    if ( v3 == -1 && v5 < v4 )
+      return 0LL;
+    ++v2;
+  }
+  return v4;
+}
+/////
+__fastcall convertion(unsigned __int64 a1, __int64 a2, __int16 a3, _BYTE *a4)
+{
+  unsigned __int64 result;
+  *a4 = *(_BYTE *)(a1 % a3 + a2);
+  result = a3 - 1;
+  if ( a1 > result )
+    result = convertion(a1 / a3, a2, (unsigned int)a3, a4 - 1);
+  return result;
+}
+/////
+__fastcall decimal_to_binary(unsigned int a1)
+{
+  __int64 result;
+  if ( a1 )
+    result = (a1 & 1) + 10 * (unsigned int)decimal_to_binary(a1 >> 1);
+  else
+    result = 0LL;
+  return result;
+}
+/////
+__fastcall decimal2Hexadecimal(__int64 a1)
+{
+  int v1;
+  int i;
+  int v4;
+  __int64 v6;
+  char v7[104];
+  unsigned __int64 v8;
+  v8 = __readfsqword(0x28u);
+  v4 = 0;
+  while ( a1 )
+  {
+    v6 = a1 % 16;
+    v1 = v4++;
+    if ( a1 % 16 > 9 )
+      v7[v1] = v6 + 55;
+    else
+      v7[v1] = v6 + 48;
+    a1 /= 16LL;
+  }
+  for ( i = v4; i >= 0; --i )
+    putchar(v7[i]);
+  putchar(10);
+  return __readfsqword(0x28u) ^ v8;
+}
+/////
+__fastcall decimal2Octal(__int64 a1)
+{
+  int v1;
+  int v3;
+  __int64 i;
+  int v6[102];
+  unsigned __int64 v7;
+  v7 = __readfsqword(0x28u);
+  v3 = 1;
+  while ( a1 )
+  {
+    v1 = v3++;
+    v6[v1] = a1 % 8;
+    a1 /= 8LL;
+  }
+  for ( i = (unsigned int)(v3 - 1); (int)i > 0; LODWORD(i) = i - 1 )
+    printf("%d", (unsigned int)v6[(int)i]);
+  putchar(10);
+  return __readfsqword(0x28u) ^ v7;
+}
+/////
+__fastcall decimal_to_octal(int a1)
+{
+  if ( a1 <= 7 && a1 > 0 )
+    return (unsigned int)a1;
+  if ( a1 )
+    return 10 * (unsigned int)decimal_to_octal((unsigned int)(a1 / 8)) + a1 % 8;
+  return 0LL;
+}
+/////
+__fastcall ways(int a1, __int64 a2, int a3)
+{
+  int v4;
+  if ( a1 < 0 || a3 < 0 )
+    return 0LL;
+  if ( !a1 )
+    return 1LL;
+  if ( !a3 )
+    return 0LL;
+  v4 = ways((unsigned int)a1, a2, (unsigned int)(a3 - 1));
+  return v4 + (unsigned int)ways((unsigned int)(a1 - *(_DWORD *)(4LL * a3 - 4 + a2)), a2, (unsigned int)a3);
+}
+/////
+__fastcall check_termination(long double a1)
+{
+  if ( fabs(*(long double *)&past_delta_4587 - a1) <= 1.0000000000000000364e-10 || a1 < 1.0000000000000000364e-10 )
+    return 1LL;
+  *(long double *)&past_delta_4587 = a1;
+  return 0LL;
+}
+/////
+__fastcall poly_function(__int64 a1, unsigned int a2, long double a3, long double a4)
+{
+  __int64 result;
+  long double v9;
+  unsigned int v10;
+  long double v11;
+  long double v12;
+  v10 = 0;
+  v12 = 0.0;
+  v11 = 0.0;
+  while ( 1 )
+  {
+    result = v10;
+    if ( v10 >= a2 )
+      break;
+    v9 = *(long double *)(16LL * v10 + a1);
+    v11 = cpow(a3, a4, (double)(int)(a2 - v10 - 1), 0.0) * v9 + v11;
+    v12 = (double)a4 * v9 + v12;
+    ++v10;
+  }
+  return result;
+}
+/////
+__fastcall complex_str(long double a1, long double a2)
+{
+  sprintf(msg_4581, "% 7.04g%+7.04gj", (double)a1, (double)a2);
+  return msg_4581;
+}
+/////
+__fastcall calculate_next_xy(int a1, _DWORD *a2)
+{
+  return xy_push(a2, a2[1] - a1 * *a2);
+}
+/////
+__fastcall xy_push(_DWORD *a1, int a2)
+{
+  _DWORD *result;
+  a1[1] = *a1;
+  result = a1;
+  *a1 = a2;
+  return result;
+}
+/////
+__fastcall add_digit(__int64 a1, unsigned int a2)
+{
+  _BYTE *result;
+  if ( a2 > 9 )
+  {
+    fwrite("digit > 9!!\n", 1uLL, 0xCuLL, stderr);
+    delete_number((void **)a1);
+    exit(1);
+  }
+  *(_QWORD *)a1 = realloc(*(void **)a1, (unsigned int)++*(_DWORD *)(a1 + 8));
+  result = (_BYTE *)(*(_QWORD *)a1 + (unsigned int)(*(_DWORD *)(a1 + 8) - 1));
+  *result = a2;
+  return result;
+}
+/////
+__fastcall multiply(__int64 a1, __int64 a2)
+{
+  unsigned __int64 result;
+  unsigned int i;
+  unsigned __int64 v4;
+  unsigned __int64 v5;
+  v4 = 0LL;
+  for ( i = 0; ; ++i )
+  {
+    result = i;
+    if ( *(_DWORD *)(a1 + 8) <= i )
+      break;
+    v5 = v4 + a2 * *(char *)(*(_QWORD *)a1 + (int)i);
+    if ( v5 > 9 )
+    {
+      v4 = v5 / 0xA;
+      v5 %= 0xAuLL;
+    }
+    else
+    {
+      v4 = 0LL;
+    }
+    *(_BYTE *)(*(_QWORD *)a1 + (int)i) = v5;
+  }
+  while ( v4 )
+  {
+    add_digit(a1, v4 % 0xA);
+    result = v4 / 0xA;
+    v4 /= 0xAuLL;
+  }
+  return result;
+}
+/////
+__fastcall delete_number(void **a1)
+{
+  free(*a1);
+  free(a1);
+}
+/////
+__fastcall fib(int a1)
+{
+  int v2;
+  if ( a1 <= 0 )
+  {
+    fwrite("Illegal Argument Is Passed!\n", 1uLL, 0x1CuLL, stderr);
+    exit(1);
+  }
+  if ( a1 == 1 )
+    return 0LL;
+  if ( a1 == 2 )
+    return 1LL;
+  v2 = fib((unsigned int)(a1 - 1));
+  return v2 + (unsigned int)fib((unsigned int)(a1 - 2));
+}
+/////
+__int64 getInput()
+{
+  int v1;
+  int v2;
+  char *endptr;
+  char s[3];
+  unsigned __int64 v5;
+  v5 = __readfsqword(0x28u);
+  do
+  {
+    printf("Please enter a valid number:");
+    fgets(s, 3, stdin);
+    v1 = 0;
+    if ( s[0] != 10 && s[1] != 10 && s[2] != 10 )
+    {
+      while ( getchar() != 10 )
+        ++v1;
+    }
+    v2 = strtol(s, &endptr, 10);
+  }
+  while ( v1 > 0 || v2 > 48 || *endptr && *endptr != 10 || endptr == s );
+  printf("\nEntered digit: %d (it might take sometime)\n", (unsigned int)v2);
+  return (unsigned int)v2;
+}
+/////
+__fastcall fib(int a1)
+{
+  int i;
+  unsigned int v3;
+  _DWORD *ptr;
+  if ( a1 < 0 )
+  {
+    puts("\nNo Such term !");
+    exit(0);
+  }
+  ptr = malloc(4LL * (a1 + 2));
+  *ptr = 0;
+  ptr[1] = 1;
+  for ( i = 2; i <= a1; ++i )
+    ptr[i] = ptr[i - 1] + ptr[i - 2];
+  v3 = ptr[a1];
+  free(ptr);
+  return v3;
+}
+/////
+__fastcall fibMonaccianSearch(__int64 a1, int a2, int a3)
+{
+  __int64 result;
+  int v4;
+  int v5;
+  int i;
+  int v7;
+  v4 = 0;
+  v5 = 1;
+  for ( i = 1; i < a3; i += v4 )
+  {
+    v4 = v5;
+    v5 = i;
+  }
+  v7 = -1;
+  while ( i > 1 )
+  {
+    LODWORD(result) = v7 + v4;
+    if ( a3 - 1 <= v7 + v4 )
+      LODWORD(result) = a3 - 1;
+    if ( a2 <= *(_DWORD *)(4LL * (int)result + a1) )
+    {
+      if ( a2 >= *(_DWORD *)(4LL * (int)result + a1) )
+        return (unsigned int)result;
+      i = v4;
+      v5 -= v4;
+      v4 -= v5;
+    }
+    else
+    {
+      i = v5;
+      v5 = v4;
+      v4 = i - v4;
+      v7 = result;
+    }
+  }
+  if ( v5 && a2 == *(_DWORD *)(4 * (v7 + 1LL) + a1) )
+    result = (unsigned int)(v7 + 1);
+  else
+    result = 0xFFFFFFFFLL;
+  return result;
+}
+/////
+__fastcall interchange(__int64 a1, int a2, int a3)
+{
+  float v4;
+  int i;
+  int j;
+  int v7;
+  int v8[402];
+  unsigned __int64 v9;
+  v9 = __readfsqword(0x28u);
+  v4 = fabs(*(float *)(a1 + 80LL * a2 + 4LL * a2));
+  v7 = a2;
+  for ( i = a2; i < a3; ++i )
+  {
+    if ( fabs(*(float *)(a1 + 80LL * i + 4LL * a2)) > v4 )
+    {
+      v4 = fabs(*(float *)(a1 + 80LL * i + 4LL * a2));
+      v7 = i;
+    }
+  }
+  for ( j = 0; j <= a3; ++j )
+  {
+    v8[20 * a2 + j] = *(_DWORD *)(a1 + 80LL * a2 + 4LL * j);
+    *(_DWORD *)(a1 + 80LL * a2 + 4LL * j) = *(_DWORD *)(80LL * v7 + a1 + 4LL * j);
+    *(_DWORD *)(80LL * v7 + a1 + 4LL * j) = v8[20 * a2 + j];
+  }
+  return __readfsqword(0x28u) ^ v9;
+}
+/////
+__fastcall eliminate(__int64 a1, int a2, int a3)
+{
+  int v4;
+  int j;
+  int i;
+  float v7;
+  v4 = 1;
+  for ( i = a2; i < a3 - 1; ++i )
+  {
+    v7 = -(float)(*(float *)(a1 + 80LL * (a2 + v4) + 4LL * a2) / *(float *)(a1 + 80LL * a2 + 4LL * a2));
+    for ( j = 0; j <= a3; ++j )
+      *(float *)(a1 + 80LL * (a2 + v4) + 4LL * j) = (float)(*(float *)(a1 + 80LL * a2 + 4LL * j) * v7)
+                                                  + *(float *)(a1 + 80LL * (a2 + v4) + 4LL * j);
+    ++v4;
+  }
+  return *(float *)(a1 + 1596);
+}
+/////
+__fastcall GCD(unsigned int a1, unsigned int a2)
+{
+  __int64 result;
+  if ( a2 )
+    result = GCD(a2, (unsigned int)((int)a1 % (int)a2));
+  else
+    result = a1;
+  return result;
+}
+/////
+__fastcall sort(__int64 a1, int a2)
+{
+  __int64 result;
+  int v3;
+  int v4;
+  v3 = 0;
+  while ( 1 )
+  {
+    result = (unsigned int)v3;
+    if ( v3 >= a2 )
+      break;
+    if ( *(_DWORD *)(4LL * v3 + a1) < *(_DWORD *)(4LL * v3 - 4 + a1) )
+    {
+      v4 = *(_DWORD *)(4LL * v3 - 4 + a1);
+      *(_DWORD *)(4LL * v3 - 4 + a1) = *(_DWORD *)(4LL * v3 + a1);
+      *(_DWORD *)(a1 + 4LL * v3--) = v4;
+      if ( !v3 )
+        v3 = 1;
+    }
+    else
+    {
+      ++v3;
+    }
+  }
+  return result;
+}
+/////
+__fastcall save_2d_data(const char *a1, __int64 a2, int a3, int a4)
+{
+  __int64 result;
+  int i;
+  int j;
+  FILE *stream;
+  char s[120];
+  unsigned __int64 v11;
+  v11 = __readfsqword(0x28u);
+  stream = fopen(a1, "wt");
+  if ( stream )
+  {
+    for ( i = 0; i < a3; ++i )
+    {
+      for ( j = 0; j < a4; ++j )
+      {
+        fprintf(stream, "%.4g", *(double *)(8LL * j + *(_QWORD *)(8LL * i + a2)));
+        if ( j < a4 - 1 )
+          fputc(44, stream);
+      }
+      if ( i < a3 - 1 )
+        fputc(10, stream);
+    }
+    fclose(stream);
+    result = 0LL;
+  }
+  else
+  {
+    sprintf(s, "File error (%s): ", a1);
+    perror(s);
+    result = 0xFFFFFFFFLL;
+  }
+  return result;
+}
+/////
+__fastcall kohonen_som(__int64 a1, __int64 a2, int a3, int a4, int a5, double a6)
+{
+  int v9;
+  unsigned int v10;
+  int i;
+  int j;
+  int k;
+  double v14;
+  double v15;
+  double v16;
+  _QWORD *ptr;
+  v9 = a5 >> 2;
+  v10 = 0;
+  ptr = malloc(8LL * a5);
+  for ( i = 0; i < a5; ++i )
+    ptr[i] = malloc(8LL * a5);
+  v14 = 1.0;
+  v16 = 1.0;
+  while ( v16 > a6 && v14 > 0.001 )
+  {
+    v15 = 0.0;
+    for ( j = 0; j < a3; ++j )
+    {
+      kohonen_update_weights(*(_QWORD *)(8LL * j + a1), a2, (__int64)ptr, a5, a4, v9, v16);
+      v15 = v16 + v15;
+    }
+    if ( !((int)v10 % 100) && v9 > 1 )
+      --v9;
+    v14 = v15 / (double)a3;
+    printf("iter: %5d\t alpha: %.4g\t R: %d\td_min: %.4g\r", v10, v16, (unsigned int)v9, v14);
+    v16 = v16 - 0.001;
+    ++v10;
+  }
+  putchar(10);
+  for ( k = 0; k < a5; ++k )
+    free((void *)ptr[k]);
+  free(ptr);
+}
+/////
+__fastcall kohonen_data_3d(__int64 a1, int a2, int a3, int a4)
+{
+  return 8LL * (a3 * *(_DWORD *)(a1 + 8) + *(_DWORD *)(a1 + 8) * a2 * *(_DWORD *)(a1 + 4) + a4) + *(_QWORD *)(a1 + 16);
+}
+/////
+__fastcall get_min_2d(__int64 a1, int a2, double *a3, unsigned int *a4, _DWORD *a5)
+{
+  __int64 result;
+  unsigned int i;
+  int j;
+  *a3 = INFINITY;
+  for ( i = 0; ; ++i )
+  {
+    result = i;
+    if ( (int)i >= a2 )
+      break;
+    for ( j = 0; j < a2; ++j )
+    {
+      if ( *a3 > *(double *)(8LL * j + *(_QWORD *)(8LL * (int)i + a1)) )
+      {
+        *a4 = i;
+        *a5 = j;
+        *a3 = *(double *)(8LL * j + *(_QWORD *)(8LL * (int)i + a1));
+      }
+    }
+  }
+  return result;
+}
+/////
+__fastcall get_clock_diff(int a1, int a2)
+{
+  return (double)(a2 - a1) / 1000000.0;
+}
+/////
+__fastcall save_nd_data(const char *a1, __int64 a2, int a3, int a4)
+{
+  __int64 result;
+  int i;
+  int j;
+  FILE *stream;
+  char s[120];
+  unsigned __int64 v11;
+  v11 = __readfsqword(0x28u);
+  stream = fopen(a1, "wt");
+  if ( stream )
+  {
+    for ( i = 0; i < a3; ++i )
+    {
+      for ( j = 0; j < a4; ++j )
+      {
+        fprintf(stream, "%.4g", *(double *)(8LL * j + *(_QWORD *)(8LL * i + a2)));
+        if ( j < a4 - 1 )
+          fputc(44, stream);
+      }
+      if ( i < a3 - 1 )
+        fputc(10, stream);
+    }
+    fclose(stream);
+    result = 0LL;
+  }
+  else
+  {
+    sprintf(s, "File error (%s): ", a1);
+    perror(s);
+    result = 0xFFFFFFFFLL;
+  }
+  return result;
+}
+/////
+__fastcall kohonen_get_min_1d(__int64 a1, int a2, double *a3, unsigned int *a4)
+{
+  __int64 result;
+  unsigned int i;
+  *a3 = INFINITY;
+  for ( i = 0; ; ++i )
+  {
+    result = i;
+    if ( (int)i >= a2 )
+      break;
+    if ( *a3 > *(double *)(8LL * (int)i + a1) )
+    {
+      *a4 = i;
+      *a3 = *(double *)(8LL * (int)i + a1);
+    }
+  }
+  return result;
+}
+/////
+__fastcall get_clock_diff(int a1, int a2)
+{
+  return (double)(a2 - a1) / 1000000.0;
+}
+/////
+__fastcall kohonen_som_tracer(__int64 a1, __int64 a2, int a3, int a4, int a5, double a6)
+{
+  int v9;
+  int v10;
+  int i;
+  double v12;
+  void *ptr;
+  v9 = a5 >> 2;
+  v10 = 0;
+  v12 = 1.0;
+  ptr = malloc(8LL * a5);
+  while ( v12 > a6 )
+  {
+    for ( i = 0; i < a3; ++i )
+      kohonen_update_weights(*(_QWORD *)(8LL * i + a1), a2, (__int64)ptr, a5, a4, v9, v12);
+    if ( !(v10 % 10) && v9 > 1 )
+      --v9;
+    v12 = v12 - 0.01;
+    ++v10;
+  }
+  free(ptr);
+}
+/////
+__fastcall printEPS(__int64 a1, unsigned __int64 a2, __int64 a3, int a4)
+{
+  int i;
+  int k;
+  double v8;
+  double v9;
+  double v10;
+  double v11;
+  double v12;
+  unsigned __int64 j;
+  unsigned __int64 l;
+  double v15;
+  double v16;
+  double *ptr;
+  double v18;
+  v8 = 1.797693134862316e308;
+  v9 = 2.225073858507201e-308;
+  v10 = 1.797693134862316e308;
+  v11 = 2.225073858507201e-308;
+  ptr = (double *)malloc(24LL * a4);
+  v18 = (double)a4;
+  for ( i = 0; i < a4; ++i )
+  {
+    ptr[3 * i] = (double)(3 * (i + 1) % a4) / v18;
+    ptr[3 * i + 1] = (double)(7 * i % a4) / v18;
+    ptr[3 * i + 2] = (double)(9 * i % a4) / v18;
+  }
+  for ( j = 0LL; j < a2; ++j )
+  {
+    if ( *(double *)(24 * j + a1) > v9 )
+      v9 = *(double *)(24 * j + a1);
+    if ( v8 > *(double *)(24 * j + a1) )
+      v8 = *(double *)(24 * j + a1);
+    if ( *(double *)(24 * j + a1 + 8) > v11 )
+      v11 = *(double *)(24 * j + a1 + 8);
+    if ( v10 > *(double *)(24 * j + a1 + 8) )
+      v10 = *(double *)(24 * j + a1 + 8);
+  }
+  v12 = (double)400 / (v9 - v8);
+  if ( v12 > (double)400 / (v11 - v10) )
+    v12 = (double)400 / (v11 - v10);
+  v15 = (v9 + v8) / 2.0;
+  v16 = (v11 + v10) / 2.0;
+  printf("%%!PS-Adobe-3.0 EPSF-3.0\n%%%%BoundingBox: -5 -5 %d %d\n", 410LL, 410LL);
+  puts(
+    "/l {rlineto} def /m {rmoveto} def\n"
+    "/c { .25 sub exch .25 sub exch .5 0 360 arc fill } def\n"
+    "/s { moveto -2 0 m 2 2 l 2 -2 l -2 -2 l closepath \tgsave 1 setgray fill grestore gsave 3 setlinewidth 1 setgray str"
+    "oke grestore 0 setgray stroke }def");
+  for ( k = 0; k < a4; ++k )
+  {
+    printf("%g %g %g setrgbcolor\n", ptr[3 * k], ptr[3 * k + 1], ptr[3 * k + 2]);
+    for ( l = 0LL; l < a2; ++l )
+    {
+      if ( k == *(_DWORD *)(24 * l + a1 + 16) )
+        printf(
+          "%.3f %.3f c\n",
+          (double)200 + (*(double *)(24 * l + a1) - v15) * v12,
+          (*(double *)(24 * l + a1 + 8) - v16) * v12 + (double)200);
+    }
+    printf(
+      "\n0 setgray %g %g s\n",
+      (double)200 + (*(double *)(24LL * k + a3) - v15) * v12,
+      (*(double *)(24LL * k + a3 + 8) - v16) * v12 + (double)200);
+  }
+  printf("\n%%%%EOF");
+  free(ptr);
+  }
+/////
+__fastcall calculateNearst(double *a1, __int64 a2, signed int a3)
+{
+  unsigned int v4;
+  signed int i;
+  double v6;
+  v6 = 1.797693134862316e308;
+  v4 = -1;
+  for ( i = 0; i < a3; ++i )
+  {
+    if ( v6 > (*(double *)(24LL * i + a2 + 8) - a1[1]) * (*(double *)(24LL * i + a2 + 8) - a1[1])
+            + (*(double *)(24LL * i + a2) - *a1) * (*(double *)(24LL * i + a2) - *a1) )
+    {
+      v6 = (*(double *)(24LL * i + a2 + 8) - a1[1]) * (*(double *)(24LL * i + a2 + 8) - a1[1])
+         + (*(double *)(24LL * i + a2) - *a1) * (*(double *)(24LL * i + a2) - *a1);
+      v4 = i;
+    }
+  }
+  return v4;
+}
+/////
+__fastcall calculateCentroid(__int64 a1, unsigned __int64 a2, double *a3)
+{
+  double v3;
+  __int64 v4;
+  double v5;
+  __int64 v6;
+  __int64 v7;
+  double v8;
+  __int64 v9;
+  double *result;
+  unsigned __int64 v12;
+  v12 = 0LL;
+  *a3 = 0.0;
+  a3[1] = 0.0;
+  *((_QWORD *)a3 + 2) = a2;
+  while ( v12 < a2 )
+  {
+    *a3 = *(double *)(24 * v12 + a1) + *a3;
+    a3[1] = *(double *)(24 * v12 + a1 + 8) + a3[1];
+    *(_DWORD *)(24 * v12++ + a1 + 16) = 0;
+  }
+  v3 = *a3;
+  v4 = *((_QWORD *)a3 + 2);
+  if ( v4 < 0 )
+  {
+    v6 = (_QWORD)a3[2] & 1LL | ((unsigned __int64)v4 >> 1);
+    v5 = (double)(int)v6 + (double)(int)v6;
+  }
+  else
+  {
+    v5 = (double)(int)v4;
+  }
+  *a3 = v3 / v5;
+  v7 = *((_QWORD *)a3 + 2);
+  if ( v7 < 0 )
+  {
+    v9 = (_QWORD)a3[2] & 1LL | ((unsigned __int64)v7 >> 1);
+    v8 = (double)(int)v9 + (double)(int)v9;
+  }
+  else
+  {
+    v8 = (double)(int)v7;
+  }
+  result = a3;
+  a3[1] = a3[1] / v8;
+  return result;
+}
+/////
+__fastcall linearsearch(__int64 a1, int a2, int a3)
+{
+  int i;
+  for ( i = 0; i < a2; ++i )
+  {
+    if ( a3 == *(_DWORD *)(4LL * i + a1) )
+      return 1LL;
+  }
+  return 0LL;
+}
+/////
+__fastcall print_arr(unsigned int **a1)
+{
+  int v2;
+  if ( !a1 )
+    __assert_fail("pStr", "github/C-master/math/prime_factoriziation", 0x8Au, "print_arr");
+  v2 = 0;
+  putchar(10);
+  while ( v2 < *((_DWORD *)a1 + 2) )
+  {
+    if ( v2 )
+      printf("-%d", (*a1)[v2]);
+    else
+      printf("%d", **a1);
+    ++v2;
+  }
+  return putchar(10);
+}
+/////
+__fastcall increase(void *a1, int a2)
+{
+  void *v3;
+  if ( !a1 )
+    __assert_fail("arr", "github/C-master/math/prime_factoriziation", 0x99u, "increase");
+  v3 = realloc(a1, 4LL * (a2 + 5));
+  if ( !v3 )
+    __assert_fail("tmp", "github/C-master/math/prime_factoriziation", 0x9Bu, "increase");
+  return v3;
+}
+/////
+__fastcall destroy(void **a1)
+{
+  free(*a1);
+  free(a1);
+}
+/////
+__fastcall count(__int64 a1, int a2)
+{
+  unsigned int v3;
+  int i;
+  v3 = 0;
+  for ( i = 0; i <= a2; ++i )
+  {
+    if ( *(_DWORD *)(4LL * i + a1) == 1 )
+      ++v3;
+  }
+  return v3;
+}
+/////
+__fastcall prime(_DWORD *a1)
+{
+  _DWORD *result;
+  unsigned __int64 i;
+  unsigned __int64 j;
+  unsigned __int64 k;
+  for ( i = 3LL; i <= 0xF4240; i += 2LL )
+    a1[i] = 1;
+  for ( j = 3LL; j <= 0xF4240; j += 2LL )
+  {
+    if ( a1[j] == 1 )
+    {
+      for ( k = j * j; k <= 0xF4240; k += j )
+        a1[k] = 0;
+    }
+  }
+  a1[2] = 1;
+  a1[1] = 0;
+  result = a1;
+  *a1 = a1[1];
+  return result;
+}
+/////
+__fastcall largest(unsigned int *a1, int a2)
+{
+  unsigned int v3;
+  int i;
+  v3 = *a1;
+  for ( i = 1; i < a2; ++i )
+  {
+    if ( (int)v3 < (int)a1[i] )
+      v3 = a1[i];
+  }
+  return v3;
+}
+/////
+__fastcall RadixSort(unsigned int *a1, int a2)
+{
+  int j;
+  int k;
+  int v5;
+  int n;
+  int m;
+  int l;
+  int v9;
+  int v10;
+  int v11;
+  int i;
+  int v13;
+  int v14[114];
+  unsigned __int64 v15;
+  v15 = __readfsqword(0x28u);
+  v9 = 0;
+  v10 = 1;
+  v11 = largest(a1, a2);
+  printf("The large element %d\n", (unsigned int)v11);
+  while ( v11 > 0 )
+  {
+    ++v9;
+    v11 /= 10;
+  }
+  for ( i = 0; i < v9; ++i )
+  {
+    for ( j = 0; j <= 9; ++j )
+      v14[j] = 0;
+    for ( k = 0; k < a2; ++k )
+    {
+      v13 = (int)a1[k] / v10 % 10;
+      v14[10 * v13 + 12 + v14[v13]++] = a1[k];
+    }
+    v5 = 0;
+    for ( l = 0; l <= 9; ++l )
+    {
+      for ( m = 0; m < v14[l]; ++m )
+        a1[v5++] = v14[10 * l + 12 + m];
+    }
+    v10 *= 10;
+    for ( n = 0; n < a2; ++n )
+      printf("%d  ", a1[n]);
+    putchar(10);
+  }
+  return __readfsqword(0x28u) ^ v15;
+}
+/////
+__fastcall getBig(__int64 a1, unsigned int a2, int a3, int a4)
+{
+  while ( (int)a2 <= a3 )
+  {
+    if ( a4 < *(_DWORD *)(4LL * (int)a2 + a1) )
+      return a2;
+    ++a2;
+  }
+  return (unsigned int)(a3 + 1);
+}
+/////
+__fastcall random_quick(__int64 a1, unsigned int a2, unsigned int a3)
+{
+  __int64 result;
+  signed int v5;
+  signed int i;
+  signed int v7;
+  int v8;
+  result = a2;
+  if ( (int)a2 < (int)a3 )
+  {
+    v7 = rand() % (int)(a3 - a2) + a2;
+    v8 = *(_DWORD *)(4LL * v7 + a1);
+    v5 = getBig(a1, a2, a3, v8);
+    for ( i = getSmall(a1, a3, a2, v8); v5 <= i; i = getSmall(a1, i, a2, v8) )
+    {
+      swap((int *)(4LL * v5 + a1), (int *)(a1 + 4LL * i));
+      v5 = getBig(a1, v5, a3, v8);
+    }
+    if ( v7 <= i || v7 <= v5 )
+    {
+      if ( v7 >= i || v7 >= v5 )
+      {
+        random_quick(a1, a2, (unsigned int)(v7 - 1));
+        result = random_quick(a1, (unsigned int)(v7 + 1), a3);
+      }
+      else
+      {
+        swap((int *)(4LL * i + a1), (int *)(a1 + 4LL * v7));
+        random_quick(a1, a2, (unsigned int)(i - 1));
+        result = random_quick(a1, (unsigned int)(i + 1), a3);
+      }
+    }
+    else
+    {
+      swap((int *)(4LL * v5 + a1), (int *)(a1 + 4LL * v7));
+      random_quick(a1, a2, (unsigned int)(v5 - 1));
+      result = random_quick(a1, (unsigned int)(v5 + 1), a3);
+    }
+  }
+  return result;
+}
+/////
+__fastcall getSmall(__int64 a1, unsigned int a2, int a3, int a4)
+{
+  while ( (int)a2 >= a3 )
+  {
+    if ( a4 > *(_DWORD *)(4LL * (int)a2 + a1) )
+      return a2;
+    --a2;
+  }
+  return 0xFFFFFFFFLL;
+}
+/////
+__fastcall selectionSort(__int64 a1, int a2)
+{
+  __int64 result;
+  int i;
+  int v4;
+  int j;
+  for ( i = 0; ; ++i )
+  {
+    result = (unsigned int)(a2 - 1);
+    if ( i >= (int)result )
+      break;
+    v4 = i;
+    for ( j = i + 1; j < a2; ++j )
+    {
+      if ( *(_DWORD *)(4LL * v4 + a1) > *(_DWORD *)(4LL * j + a1) )
+        v4 = j;
+    }
+    if ( v4 != i )
+      swap((int *)(4LL * i + a1), (int *)(a1 + 4LL * v4));
+  }
+  return result;
+}
+/////
+__fastcall sentinel_linear_search(__int64 a1, int a2, int a3)
+{
+  __int64 result;
+  unsigned int i;
+  int v5;
+  if ( a3 == *(_DWORD *)(4LL * a2 - 4 + a1) )
+    return (unsigned int)(a2 - 1);
+  v5 = *(_DWORD *)(4LL * a2 - 4 + a1);
+  *(_DWORD *)(a1 + 4LL * a2 - 4) = a3;
+  for ( i = 0; *(_DWORD *)(4LL * a2 - 4 + a1) != *(_DWORD *)(4LL * (int)i + a1); ++i )
+    ;
+  *(_DWORD *)(a1 + 4LL * a2 - 4) = v5;
+  if ( i == a2 - 1 )
+    result = 0xFFFFFFFFLL;
+  else
+    result = i;
+  return result;
+}
+/////
+__fastcall stoogesort(__int64 a1, unsigned int a2, int a3)
+{
+  __int64 result;
+  int v5;
+  int v6;
+  if ( *(_DWORD *)(4LL * (int)a2 + a1) > *(_DWORD *)(4LL * a3 + a1) )
+  {
+    v5 = *(_DWORD *)(4LL * (int)a2 + a1);
+    *(_DWORD *)(4LL * (int)a2 + a1) = *(_DWORD *)(4LL * a3 + a1);
+    *(_DWORD *)(a1 + 4LL * a3) = v5;
+  }
+  result = a2 + 1;
+  if ( a3 > (int)result )
+  {
+    v6 = (int)(a3 - a2 + 1) / 3;
+    stoogesort(a1, a2, (unsigned int)(a3 - v6));
+    stoogesort(a1, a2 + v6, (unsigned int)a3);
+    result = stoogesort(a1, a2, (unsigned int)(a3 - v6));
+  }
+  return result;
+}
+/////
+__noreturn error()
+{
+  perror("Socket Creation Failed");
+  exit(1);
+}
+/////
+__fastcall find(__int64 a1, int a2)
+{
+  if ( a2 > 999 )
+  {
+    fwrite("Out-of bounds value\n", 1uLL, 0x14uLL, stderr);
+    exit(1);
+  }
+  if ( a2 == *(_DWORD *)(4LL * a2 + a1) )
+    return (unsigned int)a2;
+  *(_DWORD *)(4LL * a2 + a1) = find(a1, *(unsigned int *)(4LL * a2 + a1));
+  return *(unsigned int *)(4LL * a2 + a1);
+}
+/////
+__fastcall join(__int64 a1, int a2, int a3)
+{
+  _DWORD *v3;
+  __int64 result;
+  v3 = (_DWORD *)(4LL * (int)find(a1, a2) + a1);
+  result = find(a1, a3);
+  *v3 = result;
+  return result;
+}
+/////
+__fastcall kohonen_update_weights(__int64 a1, __int64 a2, __int64 a3, int a4, int a5, int a6, double a7)
+{
+  int v8;
+  int v9;
+  int v10;
+  int v11;
+  int v12;
+  int v13;
+  double *v14;
+  int v15;
+  unsigned int v16;
+  int v17;
+  int v18;
+  int v19;
+  int v20;
+  int v21;
+  int v22;
+  int v23;
+  int v24;
+  int v25;
+  int v26;
+  int v31;
+  unsigned int v35;
+  int v36;
+  int i;
+  int j;
+  int v39;
+  int v40;
+  int v41;
+  int v42;
+  int v43;
+  int v44;
+  __int64 v45;
+  double *v46;
+  double v47;
+  double v48;
+  double *v49;
+  unsigned __int64 v50;
+  v31 = a4;
+  v50 = __readfsqword(0x28u);
+  v45 = 0LL;
+  v8 = omp_get_num_threads();
+  v9 = omp_get_thread_num();
+  v10 = a4 / v8;
+  v11 = a4 % v8;
+  if ( v9 < a4 % v8 )
+  {
+    v11 = 0;
+    ++v10;
+  }
+  v12 = v10 * v9 + v11;
+  v13 = v12 + v10;
+  if ( v12 < v12 + v10 )
+  {
+    v39 = v12;
+    do
+    {
+      for ( i = 0; i < v31; ++i )
+      {
+        *(_QWORD *)(8LL * i + *(_QWORD *)(8LL * v39 + a3)) = 0LL;
+        for ( j = 0; j < a5; ++j )
+        {
+          v46 = (double *)kohonen_data_3d(a2, v39, i, j);
+          *(double *)(8LL * i + *(_QWORD *)(8LL * v39 + a3)) = (*v46 - *(double *)(8LL * j + a1))
+                                                             * (*v46 - *(double *)(8LL * j + a1))
+                                                             + *(double *)(8LL * i + *(_QWORD *)(8LL * v39 + a3));
+        }
+        v14 = (double *)(*(_QWORD *)(8LL * v39 + a3) + 8LL * i);
+        *v14 = sqrt(*v14);
+      }
+      ++v39;
+    }
+    while ( v39 < v13 );
+  }
+  GOMP_barrier();
+  get_min_2d(a3, v31, (double *)&v45, &v35, &v36);
+  v15 = v35 - a6;
+  if ( (int)(v35 - a6) < 0 )
+    v15 = 0;
+  v41 = v15;
+  if ( v31 <= (int)(v35 + a6) )
+    v16 = v31;
+  else
+    v16 = v35 + a6 + 1;
+  v42 = v16;
+  v17 = v36 - a6;
+  if ( v36 - a6 < 0 )
+    v17 = 0;
+  v43 = v17;
+  if ( v31 <= v36 + a6 )
+    v18 = v31;
+  else
+    v18 = v36 + a6 + 1;
+  v44 = v18;
+  v19 = v41;
+  v20 = v42;
+  v21 = omp_get_num_threads();
+  v22 = omp_get_thread_num();
+  v23 = (v20 - v19) / v21;
+  v24 = (v20 - v19) % v21;
+  if ( v22 < v24 )
+  {
+    v24 = 0;
+    ++v23;
+  }
+  v25 = v23 * v22 + v24;
+  if ( v25 < v25 + v23 )
+  {
+    v40 = v19 + v25;
+    v26 = v25 + v23 + v19;
+    do
+    {
+      for ( i = v43; i < v44; ++i )
+      {
+        v47 = (double)(int)((v35 - v40) * (v35 - v40) + (v36 - i) * (v36 - i));
+        v48 = exp(-v47 / ((a7 + a7) * a7));
+        for ( j = 0; j < a5; ++j )
+        {
+          v49 = (double *)kohonen_data_3d(a2, v40, i, j);
+          *v49 = (*(double *)(8LL * j + a1) - *v49) * (a7 * v48) + *v49;
+        }
+      }
+      ++v40;
+    }
+    while ( v40 < v26 );
+  }
+  GOMP_barrier();
+  return __readfsqword(0x28u) ^ v50;
+}
+/////
+__cdecl main(int argc, const char **argv, const char **envp)
+{
+  int result;
+  unsigned int v4;
+  long double v5;
+  long double *v6;
+  char *v7;
+  __int64 v8;
+  long double v9;
+  long double v10;
+  long double *v11;
+  __int64 v12;
+  __int64 v13;
+  __int64 v14;
+  __int64 v15;
+  __int64 v16;
+  __int64 v17;
+  __int64 v18;
+  long double *v19;
+  long double v20;
+  long double v21;
+  __int64 v22;
+  long double *v23;
+  long double y;
+  char *v25;
+  char *v26;
+  char *v27;
+  long double v28;
+  unsigned int i;
+  unsigned int j;
+  unsigned int k;
+  unsigned int l;
+  unsigned int m;
+  unsigned int v34;
+  unsigned int v35;
+  double v36;
+  double v37;
+  unsigned __int64 v38;
+  long double *ptr;
+  long double *v40;
+  FILE *s;
+  int v42;
+  int v43;
+  long double v44;
+  long double v45;
+  if ( argc > 1 )
+  {
+    v35 = argc - 1;
+    ptr = (long double *)malloc(16LL * (unsigned int)(argc - 1));
+    v40 = (long double *)malloc(32LL * (unsigned int)(argc - 2));
+    v4 = time(0LL);
+    srand(v4);
+    if ( ptr && v40 )
+    {
+      s = fopen("durand_kerner.log.csv", "wt");
+      if ( s )
+      {
+        fwrite("iter#,", 1uLL, 6uLL, s);
+        printf("Computing the roots for:\n\t");
+        for ( i = 0; i < v35; ++i )
+        {
+          ptr[i] = strtod(argv[i + 1], 0LL);
+          if ( i >= argc - 2 || 0.0 == ptr[i] )
+          {
+            if ( 0.0 != ptr[i] )
+              printf("(%Lg) x^%d = 0\n", ptr[i], v35 - i - 1);
+          }
+          else
+          {
+            printf("(%Lg) x^%d + ", ptr[i], v35 - i - 1);
+          }
+          if ( i )
+          {
+            ptr[i] = ptr[i] / v36;
+          }
+          else
+          {
+            v36 = *ptr;
+            *ptr = 1.0;
+          }
+          if ( i < argc - 2 )
+          {
+            v28 = (long double)rand();
+            v5 = (long double)rand() + 0.0 * v28;
+            v6 = &v40[2 * i];
+            *v6 = v5;
+            v6[1] = v28;
+            fprintf(s, "root_%d,", i);
+          }
+        }
+        fwrite("avg. correction", 1uLL, 0xFuLL, s);
+        fwrite("\n0,", 1uLL, 3uLL, s);
+        for ( j = 0; j < argc - 2; ++j )
+        {
+          v7 = complex_str(v40[2 * j], v40[2 * j + 1]);
+          fprintf(s, "%s,", v7);
+        }
+        v37 = 1.0;
+        v38 = 0LL;
+        v42 = clock();
+        while ( !(unsigned __int8)check_termination(v37) && v38 <= 0x7FFFFFFE )
+        {
+          v37 = 0.0;
+          fprintf(s, "\n%ld,", ++v38);
+          for ( k = 0; k < argc - 2; ++k )
+          {
+            v8 = 2LL * k;
+            v9 = v40[v8 + 1];
+            poly_function((__int64)ptr, v35, v40[v8], v9);
+            v34 = 0;
+            v10 = 1.0;
+            while ( v34 < argc - 2 )
+            {
+              if ( v34 != k )
+              {
+                v11 = &v40[2 * k];
+                v12 = 2LL * v34;
+                v10 = *v11 - v40[v12];
+                v9 = v11[1] - v40[v12 + 1];
+                _mulxc3();
+              }
+              ++v34;
+            }
+            _divxc3();
+            v44 = v9;
+            v45 = v10;
+            cabsl(ptr, v35, v13, v14);
+            cabsl(ptr, v35, v15, v16);
+            if ( v10 > 1.189731495357231765e4932 )
+            {
+              cabsl(ptr, v35, v17, v18);
+              printf("\n\nOverflow/underrun error - got value = %Lg", 1.189731495357231765e4932);
+              goto LABEL_47;
+            }
+            v19 = &v40[2 * k];
+            v20 = *v19;
+            v21 = v19[1];
+            v22 = 2LL * k;
+            v23 = &v40[v22];
+            y = v21 - v45;
+            *v23 = v20 - v44;
+            v23[1] = y;
+            cabsl(ptr, v35, v22 * 16, v18);
+            v37 = fmaxl(v37, y);
+            v25 = complex_str(v40[2 * k], v40[2 * k + 1]);
+            fprintf(s, "%s,", v25);
+          }
+          if ( !(v38 % 0x1F4) )
+          {
+            printf("Iter: %lu\t", v38);
+            for ( l = 0; l < argc - 2; ++l )
+            {
+              v26 = complex_str(v40[2 * l], v40[2 * l + 1]);
+              printf("\t%s", v26);
+            }
+            printf("\t\tabsolute average change: %.4g\n", v37);
+          }
+          fprintf(s, "%.4g", v37);
+        }
+LABEL_47:
+        v43 = clock();
+        fclose(s);
+        printf("\nIterations: %lu\n", v38);
+        for ( m = 0; m < argc - 2; ++m )
+        {
+          v27 = complex_str(v40[2 * m], v40[2 * m + 1]);
+          printf("\t%s\n", v27);
+        }
+        printf("absolute average change: %.4g\n", v37);
+        printf("Time taken: %.4g sec\n", (double)(v43 - v42) / 1000000.0);
+        free(ptr);
+        free(v40);
+        result = 0;
+      }
+      else
+      {
+        perror("Unable to create a storage log file!");
+        free(ptr);
+        free(v40);
+        result = 1;
+      }
+    }
+    else
+    {
+      perror("Unable to allocate memory!");
+      if ( ptr )
+        free(ptr);
+      if ( v40 )
+        free(v40);
+      result = 1;
+    }
+  }
+  else
+  {
+    puts("Please pass the coefficients of the polynomial as commandline arguments.");
+    result = 0;
+  }
+  return result;
+}

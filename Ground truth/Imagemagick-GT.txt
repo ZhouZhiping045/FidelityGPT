@@ -1,0 +1,3264 @@
+__fastcall ReadAAIImage(int a1, int a2)
+{
+  int v2; // I4
+  unsigned __int8 *v3; // I4
+  int v4;
+  int j;
+  int v6; // I4
+  int v7; // I4
+  unsigned __int8 *v8; // I4
+  unsigned __int8 *v9;
+  int v10; // I4
+  unsigned __int8 *v11; // I4
+  int v12; // I4
+  int *v13; // I4
+  __int64 v14; // I4
+  __int64 v15; // I4
+  char *v19;
+  int v20;
+  int v21;
+  int v22;
+  int i;
+  unsigned __int8 *v24;
+  size_t v25;
+  const char *v26; // I4
+  if ( !a1 )
+    _assert_fail("image_info != (const ImageInfo *) NULL", "coders/aai.c", 0x80u, "ReadAAIImage");
+  if ( *(_DWORD *)(a1 + 12820) != -1414746709 ) // I1
+    _assert_fail("image_info->signature == MagickCoreSignature", "coders/aai.c", 0x81u, "ReadAAIImage");
+  if ( *(_DWORD *)(a1 + 12816) ) // I1
+    j_LogMagickEvent((char *)&stru_7FF4.st_info, "coders/aai.c", "ReadAAIImage", 131, "%s", (const char *)(a1 + 8720));
+  if ( !a2 )
+    _assert_fail("exception != (ExceptionInfo *) NULL", "coders/aai.c", 0x85u, "ReadAAIImage");
+  if ( *(_DWORD *)(a2 + 28) != -1414746709 ) // I1
+    _assert_fail("exception->signature == MagickCoreSignature", "coders/aai.c", 0x86u, "ReadAAIImage");
+  v19 = (char *)j_AcquireImage(a1, a2);
+  v20 = j_OpenBlob(a1, (int)v19, 2, a2);
+  if ( v20 )
+  {
+    v22 = j_ReadBlobLSBLong((int)v19);
+    v21 = j_ReadBlobLSBLong((int)v19);
+    if ( j_EOFBlob(v19) )
+    {
+      j_ThrowMagickException(
+        a2,
+        "coders/aai.c",
+        (int)"ReadAAIImage",
+        148,
+        0x1A9u,
+        (int)"ImproperImageHeader",
+        "`%s'",
+        (const char *)(a1 + 8720));
+      if ( v19 )
+      {
+        j_CloseBlob((int)v19);
+        j_DestroyImageList((int)v19);
+      }
+      v2 = 0;
+    }
+    else if ( v22 && v21 )
+    {
+      do
+      {
+        *((_DWORD *)v19 + 6) = v22; // I1
+        *((_DWORD *)v19 + 7) = v21; // I1
+        *((_DWORD *)v19 + 8) = 8; // I1
+        if ( *(_DWORD *)(a1 + 476) // I1
+          && *(_DWORD *)(a1 + 44) // I1
+          && *((_DWORD *)v19 + 155) >= (unsigned int)(*(_DWORD *)(a1 + 40) + *(_DWORD *)(a1 + 44) - 1) ) // I1
+        {
+          break;
+        }
+        v20 = j_SetImageExtent((int)v19, *((_DWORD *)v19 + 6), *((_DWORD *)v19 + 7), a2); // I1
+        if ( !v20 )
+          return j_DestroyImageList((int)v19);
+        v24 = (unsigned __int8 *)j_AcquireQuantumMemory(*((_DWORD *)v19 + 6), 4); // I1
+        if ( !v24 )
+        {
+          j_ThrowMagickException(
+            a2,
+            "coders/aai.c",
+            (int)"ReadAAIImage",
+            168,
+            0x190u,
+            (int)"MemoryAllocationFailed",
+            "`%s'",
+            (const char *)(a1 + 8720));
+          if ( v19 )
+          {
+            j_CloseBlob((int)v19);
+            j_DestroyImageList((int)v19);
+          }
+          return 0;
+        }
+        v25 = 4 * *((_DWORD *)v19 + 6); // I1
+        for ( i = 0; i < *((_DWORD *)v19 + 7); ++i ) // I1
+        {
+          if ( j_ReadBlob((int)v19, v25, v24) != v25 )
+          {
+            j_RelinquishMagickMemory((int)v24);
+            j_ThrowMagickException(
+              a2,
+              "coders/aai.c",
+              (int)"ReadAAIImage",
+              176,
+              0x1A9u,
+              (int)"UnableToReadImageData",
+              "`%s'",
+              (const char *)(a1 + 8720));
+            if ( v19 )
+            {
+              j_CloseBlob((int)v19);
+              j_DestroyImageList((int)v19);
+            }
+            return 0;
+          }
+          v3 = v24;
+          v4 = j_QueueAuthenticPixels((int)v19, 0, i, *((_DWORD *)v19 + 6), 1u, a2); // I1
+          if ( !v4 )
+            break;
+          for ( j = 0; j < *((_DWORD *)v19 + 6); ++j ) // I1
+          {
+            *(float *)&v6 = ScaleCharToQuantum_6(*v3); // I1
+            SetPixelBlue_12((int)v19, v6, v4);
+            *(float *)&v7 = ScaleCharToQuantum_6(v3[1]); // I1
+            SetPixelGreen_13((int)v19, v7, v4);
+            v8 = v3 + 2;
+            v9 = v3 + 3;
+            *(float *)&v10 = ScaleCharToQuantum_6(*v8);
+            SetPixelRed_13((int)v19, v10, v4);
+            if ( *v9 == 254 )
+              *v9 = -1;
+            v11 = v9;
+            v3 = v9 + 1;
+            *(float *)&v12 = ScaleCharToQuantum_6(*v11);
+            SetPixelAlpha_14((int)v19, v12, v4);
+            if ( COERCE_FLOAT(GetPixelAlpha_24((int)v19, v4)) != 65535.0 )
+              *((_DWORD *)v19 + 175) = 4; // I1
+            v4 += 4 * GetPixelChannels_40((int)v19);
+          }
+          if ( !j_SyncAuthenticPixels((int)v19, a2) )
+            break;
+          if ( !*((_DWORD *)v19 + 3289) ) // I1
+          {
+            v20 = j_SetImageProgress((int)v19, (int)"Load/Image", i, i >> 31, *((_DWORD *)v19 + 7), 0); // I1
+            if ( !v20 )
+              break;
+          }
+        }
+        j_RelinquishMagickMemory((int)v24);
+        if ( j_EOFBlob(v19) )
+        {
+          v13 = _errno_location();
+          v26 = j_GetExceptionMessage(*v13);
+          j_ThrowMagickException(
+            a2,
+            "coders/aai.c",
+            (int)"ReadAAIImage",
+            208,
+            0x1A9u,
+            (int)"UnexpectedEndOfFile",
+            "'%s': %s",
+            v19 + 832,
+            v26);
+          j_DestroyString((int)v26);
+          break;
+        }
+        if ( *(_DWORD *)(a1 + 44) // I1
+          && *((_DWORD *)v19 + 155) >= (unsigned int)(*(_DWORD *)(a1 + 40) + *(_DWORD *)(a1 + 44) - 1) ) // I1
+        {
+          break;
+        }
+        v22 = j_ReadBlobLSBLong((int)v19);
+        v21 = j_ReadBlobLSBLong((int)v19);
+        if ( v22 )
+        {
+          if ( v21 )
+          {
+            j_AcquireNextImage(a1, (int)v19, a2);
+            if ( !j_GetNextImageInList((int)v19) )
+            {
+              v20 = 0;
+              break;
+            }
+            v19 = (char *)j_SyncNextImageInList((int)v19);
+            v14 = j_TellBlob((int)v19);
+            v15 = j_GetBlobSize((int)v19);
+            v20 = j_SetImageProgress((int)v19, (int)"Load/Images", v14, SHIDWORD(v14), v15, SHIDWORD(v15));
+            if ( !v20 )
+              break;
+          }
+        }
+      }
+      while ( v22 && v21 );
+      j_CloseBlob((int)v19);
+      if ( !v20 )
+        return j_DestroyImageList((int)v19);
+      v2 = j_GetFirstImageInList((int)v19);
+    }
+    else
+    {
+      j_ThrowMagickException(
+        a2,
+        "coders/aai.c",
+        (int)"ReadAAIImage",
+        150,
+        0x1A9u,
+        (int)"ImproperImageHeader",
+        "`%s'",
+        (const char *)(a1 + 8720));
+      if ( v19 )
+      {
+        j_CloseBlob((int)v19);
+        j_DestroyImageList((int)v19);
+      }
+      v2 = 0;
+    }
+  }
+  else
+  {
+    j_DestroyImageList((int)v19);
+    v2 = 0;
+  }
+  return v2;
+}
+/////
+int AnnotateComponentTerminus()
+{
+  if ( !annotate_semaphore )
+    j_ActivateSemaphoreInfo(&annotate_semaphore);
+  return j_RelinquishSemaphoreInfo((void **)&annotate_semaphore); // I5
+}
+/////
+__fastcall RenderFreetype(_DWORD *a1, int a2, int a3, double *a4, int a5, int *a6)
+{
+  const char *v6; // I4
+  if ( *(_DWORD *)(a2 + 612) ) // I1
+    v6 = *(const char **)(a2 + 612); // I1
+  else
+    v6 = "none";
+  j_ThrowMagickException(
+    (int)a6,
+    "MagickCore/annotate.c",
+    (int)"RenderFreetype",
+    1834,
+    0x140u,
+    (int)"DelegateLibrarySupportNotBuiltIn",
+    "'%s' (Freetype)",
+    v6);
+  return RenderPostscript(a1, a2, a4, a5, a6);
+}
+/////
+__fastcall EscapeParenthesis(_BYTE *a1)
+{
+  _BYTE *i;
+  int *v2; // I4
+  int *v3; // I4
+  _BYTE *v4;
+  _BYTE *j; // I4
+  _BYTE *v6;
+  _BYTE *v7; // I4
+  _BYTE *v9; // I4
+  _BYTE *v10; // I4
+  unsigned int v11;
+  int *v12; // I4
+  const char *v13; // I4
+  int *v14; // I4
+  const char *v15; // I4
+  v9 = a1;
+  if ( !a1 )
+    _assert_fail("source != (const char *) NULL", "MagickCore/annotate.c", 0x760u, "EscapeParenthesis");
+  v11 = 0;
+  for ( i = a1; *i; ++i )
+  {
+    if ( *i == 92 || *i == 40 || *i == 41 ) // I2
+    {
+      if ( v11 == -1 )
+      {
+        v14 = j_AcquireExceptionInfo();
+        v2 = _errno_location();
+        v15 = j_GetExceptionMessage(*v2);
+        j_ThrowMagickException(
+          (int)v14,
+          "MagickCore/annotate.c",
+          (int)"EscapeParenthesis",
+          1895,
+          0x2BCu,
+          (int)"UnableToEscapeString",
+          "`%s'",
+          v15);
+        j_DestroyString((int)v15);
+        j_CatchException(v14);
+        j_DestroyExceptionInfo((int)v14);
+        j_MagickCoreTerminus();
+        exit(1);
+      }
+      ++v11;
+    }
+    ++v11;
+  }
+  v10 = 0;
+  if ( v11 <= 0xFFFFF000 ) // I2
+    v10 = (_BYTE *)j_AcquireQuantumMemory(v11 + 4096, 1); // I1
+  if ( !v10 )
+  {
+    v12 = j_AcquireExceptionInfo();
+    v3 = _errno_location();
+    v13 = j_GetExceptionMessage(*v3);
+    j_ThrowMagickException(
+      (int)v12,
+      "MagickCore/annotate.c",
+      (int)"EscapeParenthesis",
+      1905,
+      0x2BCu,
+      (int)"UnableToEscapeString",
+      "`%s'",
+      v13);
+    j_DestroyString((int)v13);
+    j_CatchException(v12);
+    j_DestroyExceptionInfo((int)v12);
+    j_MagickCoreTerminus();
+    exit(1);
+  }
+  *v10 = 0; // I2
+  v4 = v10;
+  for ( j = v9; *j; ++j )
+  {
+    if ( *j == 92 || *j == 40 || *j == 41 ) // I2
+    {
+      v6 = v4++;
+      *v6 = 92; // I2
+    }
+    v7 = v4++;
+    *v7 = *j;
+  }
+  *v4 = 0; // I2
+  return v10;
+}
+/////
+__fastcall RenderX11(int a1, int a2, int a3, int a4, int a5)
+{
+  int v10;
+  if ( !annotate_semaphore )
+    j_ActivateSemaphoreInfo(&annotate_semaphore);
+  j_LockSemaphoreInfo(annotate_semaphore);
+  v10 = XRenderImage(a1, a2, a3, a4, a5);
+  j_UnlockSemaphoreInfo(annotate_semaphore);
+  return v10;
+}
+/////
+__fastcall WriteARTImage(int a1, int a2, int a3)
+{
+  int v6; // I4
+  int v8;
+  int i;
+  int *v10;
+  unsigned __int8 *v11;
+  unsigned int v12;
+  v6 = a2; // I4
+  if ( !a1 )
+    _assert_fail("image_info != (const ImageInfo *) NULL", "coders/art.c", 0x134u, "WriteARTImage"); // I6
+  if ( *(_DWORD *)(a1 + 12820) != -1414746709 ) // I1
+    _assert_fail("image_info->signature == MagickCoreSignature", "coders/art.c", 0x135u, "WriteARTImage"); // I6
+  if ( !a2 )
+    _assert_fail("image != (Image *) NULL", "coders/art.c", 0x136u, "WriteARTImage"); // I6
+  if ( *(_DWORD *)(a2 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "coders/art.c", 0x137u, "WriteARTImage"); // I6
+  if ( *(_DWORD *)(a2 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "coders/art.c",
+      "WriteARTImage",
+      (int)&elf_gnu_hash_nbuckets + 1,
+      "%s",
+      (const char *)(a2 + 832));
+  if ( !a3 )
+    _assert_fail("exception != (ExceptionInfo *) NULL", "coders/art.c", 0x13Au, "WriteARTImage"); // I6
+  if ( *(_DWORD *)(a3 + 28) != -1414746709 ) // I4
+    _assert_fail("exception->signature == MagickCoreSignature", "coders/art.c", 0x13Bu, "WriteARTImage"); // I6
+  v8 = j_OpenBlob(a1, v6, 4, a3);
+  if ( !v8 )
+    return 0;
+  if ( *(_DWORD *)(v6 + 24) < 0x10000u && *(_DWORD *)(v6 + 28) < 0x10000u ) // I4
+  {
+    j_TransformImageColorspace(v6, 23, a3);
+    j_SetImageType((_DWORD *)v6, 1, a3); // I1
+    *(_DWORD *)(v6 + 604) = 2; // I1
+    *(_DWORD *)(v6 + 32) = 1; // I1
+    j_WriteBlobLSBShort(v6, 0);
+    j_WriteBlobLSBShort(v6, *(_DWORD *)(v6 + 24)); // I1
+    j_WriteBlobLSBShort(v6, 0);
+    j_WriteBlobLSBShort(v6, *(_DWORD *)(v6 + 28)); // I1
+    v10 = j_AcquireQuantumInfo(a1, v6);
+    if ( v10 )
+    {
+      v11 = (unsigned __int8 *)j_GetQuantumPixels((int)v10);
+      for ( i = 0; i < *(_DWORD *)(v6 + 28); ++i ) // I1
+      {
+        if ( !j_GetVirtualPixels(v6, 0, i, *(_DWORD *)(v6 + 24), 1, a3) ) // I1
+          break;
+        v12 = j_ExportQuantumPixels(v6, 0, (int)v10, 15, v11, a3);
+        if ( j_WriteBlob(v6, v12, v11) != v12 )
+          break;
+        j_WriteBlob(v6, -v12 & 1, v11);
+        v8 = j_SetImageProgress(v6, (int)"Save/Image", i, i >> 31, *(_DWORD *)(v6 + 28), 0); // I1
+        if ( !v8 )
+          break;
+      }
+      j_DestroyQuantumInfo((int)v10);
+      if ( i >= *(_DWORD *)(v6 + 28) ) // I1
+      {
+        j_CloseBlob(v6);
+        return v8;
+      }
+      j_ThrowMagickException(
+        a3,
+        "coders/art.c",
+        (int)"WriteARTImage",
+        351,
+        0x1A9u,
+        (int)"UnableToWriteImageData",
+        "`%s'",
+        (const char *)(v6 + 832));
+      if ( *(_DWORD *)(a1 + 12) ) // I1
+      {
+        while ( *(_DWORD *)(v6 + 13156) ) // I1
+          v6 = *(_DWORD *)(v6 + 13156); // I1
+      }
+    }
+    else
+    {
+      j_ThrowMagickException(
+        a3,
+        "coders/art.c",
+        (int)"WriteARTImage",
+        331,
+        0x1D1u,
+        (int)"MemoryAllocationFailed",
+        "`%s'",
+        (const char *)(v6 + 832));
+      if ( *(_DWORD *)(a1 + 12) ) // I1
+      {
+        while ( *(_DWORD *)(v6 + 13156) ) // I1
+          v6 = *(_DWORD *)(v6 + 13156); // I1
+      }
+    }
+  }
+  else
+  {
+    j_ThrowMagickException(
+      a3,
+      "coders/art.c",
+      (int)"WriteARTImage",
+      320,
+      0x1D1u,
+      (int)"WidthOrHeightExceedsLimit",
+      "`%s'",
+      (const char *)(v6 + 832)); // I1
+    if ( *(_DWORD *)(a1 + 12) ) // I1
+    {
+      while ( *(_DWORD *)(v6 + 13156) ) // I1
+        v6 = *(_DWORD *)(v6 + 13156); // I1
+    }
+  }
+  j_CloseBlob(v6);
+  return 0;
+}
+/////
+__fastcall DestroyImageArtifacts(int result)
+{
+  int v1; // I4
+  v1 = result; // I4
+  if ( !result )
+    _assert_fail("image != (Image *) NULL", "MagickCore/artifact.c", 0xEBu, "DestroyImageArtifacts"); // I6
+  if ( *(_DWORD *)(result + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/artifact.c", 0xECu, "DestroyImageArtifacts"); // I6
+  if ( *(_DWORD *)(result + 13136) ) // I1
+    result = j_LogMagickEvent(
+               (char *)&stru_7FF4.st_info,
+               "MagickCore/artifact.c",
+               "DestroyImageArtifacts",
+               238,
+               "%s",
+               (const char *)(result + 832));
+  if ( *(_DWORD *)(v1 + 828) ) // I1
+  {
+    result = j_DestroySplayTree(*(_DWORD *)(v1 + 828)); // I1
+    *(_DWORD *)(v1 + 828) = result; // I1
+  }
+  return result; // I5
+}
+/////
+__fastcall GetNextImageArtifact(int a1)
+{
+  int v1; // I4
+  if ( !a1 )
+    _assert_fail( // I6
+      "image != (Image *) NULL",
+      "MagickCore/artifact.c",
+      (unsigned int)&elf_gnu_hash_shift + 1,
+      "GetNextImageArtifact");
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/artifact.c", 0x146u, "GetNextImageArtifact"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/artifact.c",
+      "GetNextImageArtifact",
+      328,
+      "%s",
+      (const char *)(a1 + 832));
+  if ( *(_DWORD *)(a1 + 828) ) // I1
+    v1 = j_GetNextKeyInSplayTree(*(unsigned int **)(a1 + 828));
+  else
+    v1 = 0;
+  return v1;
+}
+/////
+__fastcall RemoveImageArtifact(int a1, unsigned int a2)
+{
+  int v2;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/artifact.c", 0x170u, "RemoveImageArtifact"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/artifact.c", 0x171u, "RemoveImageArtifact"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/artifact.c",
+      "RemoveImageArtifact",
+      371,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  if ( *(_DWORD *)(a1 + 828) ) // I1
+    v2 = j_RemoveNodeFromSplayTree(*(int **)(a1 + 828), a2); // I1
+  else
+    v2 = 0;
+  return v2;
+}
+/////
+__fastcall ResetImageArtifactIterator(int result)
+{
+  int v1; // I4
+  v1 = result; // I4
+  if ( !result )
+    _assert_fail("image != (Image *) NULL", "MagickCore/artifact.c", 0x198u, "ResetImageArtifactIterator"); // I6
+  if ( *(_DWORD *)(result + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/artifact.c",
+      0x199u,
+      "ResetImageArtifactIterator");
+  if ( *(_DWORD *)(result + 13136) ) // I1
+    result = j_LogMagickEvent(
+               (char *)&stru_7FF4.st_info,
+               "MagickCore/artifact.c",
+               "ResetImageArtifactIterator",
+               411,
+               "%s",
+               (const char *)(result + 832)); // I1
+  if ( *(_DWORD *)(v1 + 828) ) // I1
+    result = j_ResetSplayTreeIterator(*(_DWORD **)(v1 + 828)); // I1
+  return result; // I5
+}
+/////
+int UnregisterASHLARImage()
+{
+  return j_UnregisterMagickInfo("ASHLAR"); // I5
+}
+/////
+__fastcall FindMinimumTileLocation(int a1, int a2, unsigned int a3, _DWORD *a4)
+{
+  int v6;
+  int v7;
+  int v8;
+  *a4 = 0;
+  v7 = 0;
+  v6 = 0;
+  while ( *(_DWORD *)a1 < a2 + a3 ) // I1
+  {
+    if ( v7 >= *(_DWORD *)(a1 + 4) ) // I1
+    {
+      v8 = **(_DWORD **)(a1 + 8) - *(_DWORD *)a1; // I1
+      if ( a3 < v6 + v8 )
+        v8 = a3 - v6;
+      *a4 += (v7 - *(_DWORD *)(a1 + 4)) * v8; // I1
+      v6 += v8;
+    }
+    else
+    {
+      *a4 += v6 * (*(_DWORD *)(a1 + 4) - v7); // I1
+      v7 = *(_DWORD *)(a1 + 4); // I1
+      if ( a2 <= *(_DWORD *)a1 ) // I1
+        v6 += **(_DWORD **)(a1 + 8) - *(_DWORD *)a1; // I1
+      else
+        v6 += **(_DWORD **)(a1 + 8) - a2; // I1
+    }
+    a1 = *(_DWORD *)(a1 + 8); // I1
+  }
+  return v7;
+}
+/////
+__fastcall AssignBestTileLocation(_DWORD *a1, unsigned int *a2, int a3, unsigned int a4)
+{
+  int **v4;
+  int v5;
+  int v6; // I4
+  int **v7; // I4
+  unsigned int v10;
+  int v13;
+  int *v14;
+  int **v15;
+  _DWORD *v16;
+  int v17;
+  int v18;
+  int v19;
+  int v20; // I4
+  int v21; // I4
+  int v22; // I4
+  int **v23; // I4
+  v23 = 0;
+  v10 = a2[2] + a3 - 1 - (a2[2] + a3 - 1) % a2[2]; // I1
+  if ( v10 <= *a2 && a4 <= a2[1] ) // I1
+  {
+    v21 = 0x7FFFFFFF;
+    v22 = 0x7FFFFFFF;
+    v17 = 0x7FFFFFFF;
+    v14 = (int *)a2[5]; // I1
+    v15 = (int **)(a2 + 5); // I1
+    while ( *v14 + v10 <= *a2 ) // I1
+    {
+      v20 = FindMinimumTileLocation((int)v14, *v14, v10, &v13); // I1
+      if ( a2[4] )
+      {
+        if ( v20 + a4 <= a2[1] && (v20 < v22 || v20 == v22 && v17 > v13) ) // I1
+        {
+          v22 = v20;
+          v23 = v15;
+          v17 = v13;
+        }
+      }
+      else if ( v20 < v22 )
+      {
+        v22 = v20;
+        v23 = v15;
+      }
+      v15 = (int **)(v14 + 2); // I1
+      v14 = (int *)v14[2]; // I1
+    }
+    if ( v23 )
+      v5 = **v23;
+    else
+      v5 = 0;
+    v21 = v5;
+    if ( a2[4] ) // I1
+    {
+      v16 = (_DWORD *)a2[5]; // I1
+      v14 = (int *)a2[5]; // I1
+      v15 = (int **)(a2 + 5); // I1
+      while ( *v16 < (signed int)v10 ) // I1
+        v16 = (_DWORD *)v16[2]; // I1
+      while ( v16 )
+      {
+        v18 = *v16 - v10;
+        while ( v18 >= *(_DWORD *)v14[2] ) // I1
+        {
+          v15 = (int **)(v14 + 2); // I1
+          v14 = (int *)v14[2]; // I1
+        }
+        v19 = FindMinimumTileLocation((int)v14, v18, v10, &v13);
+        if ( v19 + a4 <= a2[1] && v19 <= v22 && (v19 < v22 || v17 > v13 || v17 == v13 && v18 < v21) ) // I1
+        {
+          v21 = v18;
+          v22 = v19;
+          v17 = v13;
+          v23 = v15;
+        }
+        v16 = (_DWORD *)v16[2]; // I1
+      }
+    }
+    v6 = v22;
+    v7 = v23;
+    *a1 = v21;
+    a1[1] = v6; // I1
+    a1[2] = v7; // I1
+  }
+  else
+  {
+    v21 = 0;
+    v22 = 0;
+    v4 = v23;
+    *a1 = 0;
+    a1[1] = 0; // I1
+    a1[2] = v4; // I1
+  }
+  return a1;
+}
+/////
+__fastcall CompareTileHeight(int a1, int a2)
+{
+  if ( *(_DWORD *)(a1 + 8) > *(_DWORD *)(a2 + 8) ) // I1
+    return -1;
+  if ( *(_DWORD *)(a1 + 8) < *(_DWORD *)(a2 + 8) ) // I1
+    return 1;
+  if ( *(_DWORD *)(a1 + 4) > *(_DWORD *)(a2 + 4) ) // I1
+    return -1;
+  return *(_DWORD *)(a1 + 4) < *(_DWORD *)(a2 + 4); // I1
+}
+/////
+__fastcall PackAshlarTiles(unsigned int *a1, _DWORD *a2, signed int a3)
+{
+  signed int i;
+  signed int j; // I4
+  signed int k; // I4
+  _BOOL4 v6; // I4
+  int v11;
+  int v12[3];
+  for ( i = 0; i < a3; ++i )
+    a2[6 * i + 5] = i; // I1
+  qsort(a2, a3, 0x18u, (__compar_fn_t)CompareTileHeight);
+  for ( j = 0; j < a3; ++j )
+  {
+    a2[6 * j + 3] = 0; // I1
+    a2[6 * j + 4] = 0; // I1
+    if ( a2[6 * j + 1] )
+    {
+      if ( a2[6 * j + 2] ) // I1
+      {
+        AssignTileLocation(v12, a1, a2[6 * j + 1], a2[6 * j + 2]); // I1
+        a2[6 * j + 3] = v12[0]; // I1
+        a2[6 * j + 4] = v12[1]; // I1
+        if ( !v12[2] ) // I1
+        {
+          a2[6 * j + 3] = 0x7FFFFFFF; // I1
+          a2[6 * j + 4] = 0x7FFFFFFF; // I1
+        }
+      }
+    }
+  }
+  qsort(a2, a3, 0x18u, (__compar_fn_t)RestoreTileOrder);
+  v11 = 1;
+  for ( k = 0; k < a3; ++k )
+  {
+    v6 = a2[6 * k + 3] != 0x7FFFFFFF || a2[6 * k + 4] != 0x7FFFFFFF; // I1
+    a2[6 * k + 5] = v6; // I1
+    if ( !a2[6 * k + 5] ) // I1
+      v11 = 0;
+  }
+  return v11;
+}
+/////
+__fastcall GetEdgeBackgroundCensus(_DWORD *a1, int *a2, int a3, int a4, int a5, int a6, int a7, int a8)
+{
+  int v8;
+  int v10; // I4
+  int j;
+  int i;
+  const char *v17;
+  const char *v18; // I4
+  int *v19;
+  int *v20;
+  double v21;
+  double v22; // I4
+  int v23[4];
+  _DWORD v24[22];
+  _DWORD v25[23];
+  switch ( a3 )
+  {
+    case 3:
+    case 6:
+      v8 = j_GetCacheViewVirtualPixels(a2, a1[6] - 1, 0, 1, 1, a8);
+      break;
+    case 4:
+    case 7:
+      v8 = j_GetCacheViewVirtualPixels(a2, 0, a1[7] - 1, 1, 1, a8);
+      break;
+    case 8:
+    case 9:
+      v8 = j_GetCacheViewVirtualPixels(a2, a1[6] - 1, a1[7] - 1, 1, 1, a8);
+      break;
+    default:
+      v8 = j_GetCacheViewVirtualPixels(a2, 0, 0, 1, 1, a8);
+      break;
+  }
+  GetPixelInfoPixel(a1, v8, v24);
+  v17 = (const char *)j_GetImageArtifact((int)a1, (unsigned int)"background"); // I1
+  if ( v17 )
+    j_QueryColorCompliance(v17, 0x7FFFFFFF, (int)v24, a8);
+  v18 = (const char *)j_GetImageArtifact((int)a1, (unsigned int)"trim:background-color"); // I1
+  if ( v18 )
+    j_QueryColorCompliance(v18, 0x7FFFFFFF, (int)v24, a8);
+  v23[0] = a4;
+  v23[1] = a5;
+  v23[2] = a6;
+  v23[3] = a7;
+  j_GravityAdjustGeometry(a1[6], a1[7], a3, (unsigned int *)v23); // I1
+  v19 = j_CropImage((int)a1, v23, a8);
+  if ( !v19 )
+    return 0;
+  v21 = 0.0;
+  v20 = j_AcquireVirtualCacheView((int)v19);
+  for ( i = 0; i < v19[7]; ++i ) // I1
+  {
+    v10 = j_GetCacheViewVirtualPixels(v20, 0, i, v19[6], 1, a8); // I1
+    if ( !v10 )
+      break;
+    for ( j = 0; j < v19[6]; ++j ) // I1
+    {
+      GetPixelInfoPixel(v19, v10, v25);
+      if ( !j_IsFuzzyEquivalencePixelInfo((int)v25, (int)v24) )
+        v21 = v21 + 1.0;
+      v10 += 4 * GetPixelChannels_0((int)v19);
+    }
+  }
+  v22 = v21 / ((double)(unsigned int)v19[6] * (double)(unsigned int)v19[7]); // I1
+  j_DestroyCacheView(v20);
+  j_DestroyImage((int)v19);
+  return LODWORD(v22);
+}
+/////
+__fastcall TraceConvexHull(_BOOL4 result, int a2, int *a3, unsigned int *a4)
+{
+  int i;
+  unsigned int v5;
+  int j; // I4
+  unsigned int v7; // I4
+  _BOOL4 v10; // I4
+  unsigned int v11;
+  int v12;
+  unsigned int v13;
+  v10 = result;
+  v12 = *a3;
+  v11 = 0;
+  for ( i = 0; i < a2; ++i )
+  {
+    while ( v11 > 1 )
+    {
+      result = LexicographicalOrder(
+                 (double *)*(_DWORD *)(v12 + 4 * (v11 + 1073741822)), // I1
+                 (double *)*(_DWORD *)(v12 + 4 * (v11 + 0x3FFFFFFF)), // I1
+                 (double *)(v10 + 16 * i)) <= 0.0; // I1
+      if ( !result )
+        break;
+      --v11;
+    }
+    v5 = v11++;
+    *(_DWORD *)(v12 + 4 * v5) = v10 + 16 * i;
+  }
+  v13 = v11 + 1;
+  for ( j = a2 - 2; j >= 0; --j )
+  {
+    while ( v11 >= v13 )
+    {
+      result = LexicographicalOrder(
+                 (double *)*(_DWORD *)(v12 + 4 * (v11 + 1073741822)), // I1
+                 (double *)*(_DWORD *)(v12 + 4 * (v11 + 0x3FFFFFFF)), // I1
+                 (double *)(v10 + 16 * j)) <= 0.0; // I1
+      if ( !result )
+        break;
+      --v11;
+    }
+    v7 = v11++;
+    *(_DWORD *)(v12 + 4 * v7) = v10 + 16 * j; // I1
+  }
+  *a4 = v11;
+  return result; // I5
+}
+/////
+__fastcall getProjection(double *a1, double *a2, double *a3)
+{
+  double v4;
+  double v5;
+  double v10;
+  v10 = getDistance(a1, a2);
+  if ( v10 < 1.0e-12 )
+    return 0;
+  v4 = (*a2 - *a1) * (*a3 - *a1) + (a3[1] - a1[1]) * (a2[1] - a1[1]); // I1
+  v5 = v4 / sqrt(v10);
+  return LODWORD(v5);
+}
+/////
+__fastcall getFeretDiameter(double *a1, double *a2, double *a3)
+{
+  double v4; // I4
+  double v5; // I4
+  double v10;
+  v10 = getDistance(a1, a2);
+  if ( v10 < 1.0e-12 )
+    return 0;
+  v4 = (*a2 - *a1) * (a3[1] - a1[1]) - (*a3 - *a1) * (a2[1] - a1[1]); // I1
+  v5 = v4 / sqrt(v10);
+  return LODWORD(v5);
+}
+/////
+__fastcall AttachBlob(int result, int a2, int a3)
+{
+  _DWORD *v5; // I4
+  v5 = (_DWORD *)result; // I1 I4
+  if ( !result )
+    _assert_fail("blob_info != (BlobInfo *) NULL", "MagickCore/blob.c", 0x10Bu, "AttachBlob"); // I6
+  if ( *(_DWORD *)(result + 188) ) // I1
+    result = j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/blob.c", "AttachBlob", (int)&dword_10C + 1, "..."); // I6
+  *v5 = a3;
+  v5[1] = a3; // I1
+  v5[2] = 0x10000; // I1
+  v5[8] = 0; // I1
+  v5[9] = 0; // I1
+  v5[16] = 7; // I1
+  v5[17] = 0; // I1
+  v5[46] = a2; // I1
+  v5[4] = 0; // I1
+  return result; // I5
+}
+/////
+__fastcall AttachCustomStream(int result, int a2)
+{
+  int v3;
+  v3 = result; // I4
+  if ( !result )
+    _assert_fail("blob_info != (BlobInfo *) NULL", "MagickCore/blob.c", 0x134u, "AttachCustomStream"); // I6
+  if ( !a2 )
+    _assert_fail("custom_stream != (CustomStreamInfo *) NULL", "MagickCore/blob.c", 0x135u, "AttachCustomStream"); // I6
+  if ( *(_DWORD *)(a2 + 20) != -1414746709 ) // I1
+    _assert_fail("custom_stream->signature == MagickCoreSignature", "MagickCore/blob.c", 0x136u, "AttachCustomStream"); // I6
+  if ( *(_DWORD *)(result + 188) ) // I1
+    result = j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/blob.c", "AttachCustomStream", 312, "...");
+  *(_DWORD *)(v3 + 64) = 8; // I1
+  *(_DWORD *)(v3 + 180) = a2; // I1
+  return result; // I5
+}
+/////
+__fastcall ThrowBlobException(int *result)
+{
+  int *v1; // I4
+  v1 = result; // I4
+  if ( !result[14] ) // I1
+  {
+    result = _errno_location(); // I6
+    if ( *result )
+    {
+      result = _errno_location(); // I6
+      v1[7] = *result; // I1
+    }
+  }
+  v1[14] = 1; // I1
+  return result; // I5
+}
+/////
+__fastcall DestroyBlob(int a1)
+{
+  int result; // I4
+  int v3;
+  void **v4;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x3ADu, "DestroyBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/blob.c", 0x3AEu, "DestroyBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/blob.c",
+      "DestroyBlob",
+      944,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  if ( !*(_DWORD *)(a1 + 13128) ) // I1
+    _assert_fail("image->blob != (BlobInfo *) NULL", "MagickCore/blob.c", 0x3B1u, "DestroyBlob");
+  if ( *(_DWORD *)(*(_DWORD *)(a1 + 13128) + 200) != -1414746709 ) // I1
+    _assert_fail("image->blob->signature == MagickCoreSignature", "MagickCore/blob.c", 0x3B2u, "DestroyBlob");
+  v4 = *(void ***)(a1 + 13128); // I1
+  v3 = 0;
+  j_LockSemaphoreInfo((int)v4[48]); // I1
+  v4[49] = (char *)v4[49] - 1; // I1
+  if ( (int)v4[49] < 0 ) // I1
+    _assert_fail("blob_info->reference_count >= 0", "MagickCore/blob.c", 0x3B7u, "DestroyBlob");
+  if ( !v4[49] ) // I1
+    v3 = 1;
+  result = j_UnlockSemaphoreInfo((int)v4[48]); // I1
+  if ( v3 )
+  {
+    j_CloseBlob(a1);
+    if ( v4[4] ) // I1
+    {
+      j_UnmapBlob();
+      j_RelinquishMagickResource(&byte_5, (unsigned int)*v4);
+    }
+    if ( v4[48] ) // I1
+      j_RelinquishSemaphoreInfo(v4 + 48); // I1
+    v4[50] = (void *)1414746708; // I1
+    result = j_RelinquishMagickMemory((int)v4);
+    *(_DWORD *)(a1 + 13128) = result; // I1
+  }
+  else
+  {
+    *(_DWORD *)(a1 + 13128) = 0; // I1
+  }
+  return result; // I5
+}
+/////
+__fastcall DetachBlob(unsigned int *a1)
+{
+  unsigned int v3;
+  if ( !a1 )
+    _assert_fail("blob_info != (BlobInfo *) NULL", "MagickCore/blob.c", 0x409u, "DetachBlob"); // I6
+  if ( a1[47] ) // I1
+    j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/blob.c", "DetachBlob", 1035, "..."); // I6
+  if ( a1[4] ) // I1
+  {
+    j_UnmapBlob();
+    a1[46] = 0; // I1
+    j_RelinquishMagickResource(&byte_5, *a1); // I1
+  }
+  a1[4] = 0; // I1
+  *a1 = 0; // I1
+  a1[8] = 0; // I1
+  a1[9] = 0; // I1
+  a1[5] = 0; // I1
+  a1[6] = 0; // I1
+  a1[12] = 0; // I1
+  a1[16] = 0; // I1
+  a1[17] = 0; // I1
+  v3 = a1[46]; // I1
+  a1[46] = 0; // I1
+  a1[44] = 0; // I1
+  a1[45] = 0; // I1
+  return v3;
+}
+/////
+__fastcall DisassociateBlob(int a1)
+{
+  int result; // I4
+  int v3;
+  int v4;
+  _DWORD *v5;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x442u, "DisassociateBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/blob.c", 0x443u, "DisassociateBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/blob.c",
+      "DisassociateBlob",
+      1093,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  if ( !*(_DWORD *)(a1 + 13128) ) // I1
+    _assert_fail("image->blob != (BlobInfo *) NULL", "MagickCore/blob.c", 0x446u, "DisassociateBlob"); // I6
+  if ( *(_DWORD *)(*(_DWORD *)(a1 + 13128) + 200) != -1414746709 ) // I1
+    _assert_fail("image->blob->signature == MagickCoreSignature", "MagickCore/blob.c", 0x447u, "DisassociateBlob"); // I6
+  v4 = *(_DWORD *)(a1 + 13128); // I1
+  v3 = 0;
+  j_LockSemaphoreInfo(*(_DWORD *)(v4 + 192)); // I1
+  if ( *(int *)(v4 + 196) < 0 ) // I1
+    _assert_fail("blob_info->reference_count >= 0", "MagickCore/blob.c", 0x44Bu, "DisassociateBlob"); // I6
+  if ( *(int *)(v4 + 196) > 1 ) // I1
+    v3 = 1;
+  result = j_UnlockSemaphoreInfo(*(_DWORD *)(v4 + 192)); // I1
+  if ( v3 )
+  {
+    v5 = j_CloneBlobInfo((unsigned int *)v4);
+    result = j_DestroyBlob(a1);
+    *(_DWORD *)(a1 + 13128) = v5; // I1
+  }
+  return result; // I5
+}
+/////
+__fastcall DuplicateBlob(int a1, int a2)
+{
+  _DWORD *result; // I4
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x4ABu, "DuplicateBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_indexes[217],
+      "DuplicateBlob");
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/blob.c",
+      "DuplicateBlob",
+      1198,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  if ( !a2 )
+    _assert_fail("duplicate != (Image *) NULL", "MagickCore/blob.c", 0x4AFu, "DuplicateBlob"); // I1
+  if ( *(_DWORD *)(a2 + 13164) != -1414746709 ) // I1
+    _assert_fail("duplicate->signature == MagickCoreSignature", "MagickCore/blob.c", 0x4B0u, "DuplicateBlob"); // I1
+  j_DestroyBlob(a1);
+  result = j_ReferenceBlob(*(_DWORD **)(a2 + 13128)); // I1
+  *(_DWORD *)(a1 + 13128) = result; // I1
+  return result; // I5
+}
+/////
+__fastcall WriteBlobStream(int a1, size_t a2, unsigned __int8 *a3)
+{
+  unsigned int *v7;
+  unsigned __int64 v8;
+  if ( !*(_DWORD *)(a1 + 13128) ) // I1
+    _assert_fail( // I6
+      "image->blob != (BlobInfo *) NULL",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[60],
+      "WriteBlobStream");
+  if ( !*(_DWORD *)(*(_DWORD *)(a1 + 13128) + 64) ) // I1
+    _assert_fail("image->blob->type != UndefinedStream", "MagickCore/blob.c", 0x639u, "WriteBlobStream"); // I6
+  if ( !a3 )
+    _assert_fail("data != NULL", "MagickCore/blob.c", 0x63Au, "WriteBlobStream"); // I6
+  v7 = *(unsigned int **)(a1 + 13128);
+  if ( v7[16] != 7 ) // I1
+    return j_WriteBlob(a1, a2, a3);
+  if ( *((_QWORD *)v7 + 4) + (unsigned __int64)a2 >= v7[1] ) // I1
+  {
+    v8 = v7[1] + v7[2] + a2; // I1
+    v7[2] *= 2; // I1
+    if ( !j_SetBlobExtent(a1, v8) )
+      return 0;
+  }
+  memcpy((void *)(v7[46] + v7[8]), a3, a2); // I1
+  *((_QWORD *)v7 + 4) += a2; // I1
+  if ( *((_QWORD *)v7 + 4) >= (__int64)*v7 ) // I1
+    *v7 = v7[8];
+  return a2;
+}
+/////
+__fastcall GetBlobProperties(int a1)
+{
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x716u, "GetBlobProperties"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/blob.c", 0x717u, "GetBlobProperties"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/blob.c",
+      "GetBlobProperties",
+      1817,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  return *(_DWORD *)(a1 + 13128) + 72; // I1
+}
+/////
+__fastcall ImageToBlob(int a1, int a2, size_t *a3, int a4)
+{
+  int v4; // I4
+  int *v5; // I4
+  int v11;
+  _DWORD *v12;
+  int v13;
+  int v14;
+  int v15;
+  int v16; // I4
+  const char *v17;
+  char v18[16];
+  if ( !a1 )
+    _assert_fail("image_info != (const ImageInfo *) NULL", "MagickCore/blob.c", 0x7F2u, "ImageToBlob"); // I6
+  if ( *(_DWORD *)(a1 + 12820) != -1414746709 ) // I1
+    _assert_fail("image_info->signature == MagickCoreSignature", "MagickCore/blob.c", 0x7F3u, "ImageToBlob"); // I6
+  if ( *(_DWORD *)(a1 + 12816) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/blob.c",
+      "ImageToBlob",
+      2037,
+      "%s",
+      (const char *)(a1 + 8720)); // I1
+  if ( !a2 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x7F7u, "ImageToBlob"); // I6
+  if ( *(_DWORD *)(a2 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[172], // I1
+      "ImageToBlob");
+  if ( !a4 )
+    _assert_fail("exception != (ExceptionInfo *) NULL", "MagickCore/blob.c", 0x7F9u, "ImageToBlob"); // I6
+  *a3 = 0;
+  v11 = 0;
+  v12 = j_CloneImageInfo(a1);
+  v12[3] = 0; // I1
+  j_SetImageInfo((int)v12, 1u, a4);
+  if ( *((_BYTE *)v12 + 528) ) // I1
+    j_CopyMagickString((_BYTE *)(a2 + 9024), (_BYTE *)v12 + 528, 0x1000u); // I1
+  v13 = j_GetMagickInfo((char *)(a2 + 9024), a4); // I1
+  if ( v13 )
+  {
+    j_CopyMagickString((_BYTE *)v12 + 528, (_BYTE *)(a2 + 9024), 0x1000u); // I1
+    if ( j_GetMagickBlobSupport(v13) )
+    {
+      v12[131] = 0; // I1
+      v12[130] = j_AcquireQuantumMemory(0x10000u, 1); // I1
+      if ( v12[130] ) // I1
+      {
+        j_CloseBlob(a2);
+        *(_DWORD *)(*(_DWORD *)(a2 + 13128) + 48) = 1; // I1
+        *(_BYTE *)(a2 + 832) = 0; // I1
+        v15 = j_WriteImage((int)v12, a2, a4);
+        *a3 = **(_DWORD **)(a2 + 13128); // I1
+        v11 = j_DetachBlob(*(unsigned int **)(a2 + 13128)); // I1
+        if ( v11 )
+        {
+          if ( v15 )
+            v11 = j_ResizeQuantumMemory(v11, *a3 + 1, 1);
+          else
+            v11 = j_RelinquishMagickMemory(v11);
+        }
+        else
+        {
+          v12[130] = j_RelinquishMagickMemory(v12[130]); // I1
+        }
+      }
+      else
+      {
+        j_ThrowMagickException(
+          a4,
+          "MagickCore/blob.c",
+          (int)"ImageToBlob",
+          (int)&elf_gnu_hash_bucket[179], // I1
+          0x190u,
+          (int)"MemoryAllocationFailed",
+          "`%s'",
+          (const char *)(a2 + 832)); // I1
+      }
+    }
+    else
+    {
+      v14 = j_AcquireUniqueFileResource(v18);
+      if ( v14 == -1 )
+      {
+        v5 = _errno_location();
+        v17 = j_GetExceptionMessage(*v5);
+        j_ThrowMagickException(
+          a4,
+          "MagickCore/blob.c",
+          (int)"ImageToBlob",
+          2101,
+          0x1B3u,
+          (int)"UnableToWriteBlob",
+          "'%s': %s",
+          (const char *)(a1 + 8720), // I1
+          v17);
+        j_DestroyString((int)v17);
+      }
+      else
+      {
+        v12[129] = fdopen(v14, "wb"); // I1
+        if ( v12[129] ) // I1
+        {
+          j_FormatLocaleString((char *)(a2 + 832), 0x1000u, "%s:%s");
+          v16 = j_WriteImage((int)v12, a2, a4);
+          j_CloseBlob(a2);
+          fclose((FILE *)v12[129]); // I1
+          if ( v16 )
+            v11 = (int)j_FileToBlob(v18, 0xFFFFFFFF, a3, a4);
+        }
+        j_RelinquishUniqueFileResource(v18);
+      }
+    }
+    j_DestroyImageInfo((int)v12);
+    v4 = v11;
+  }
+  else
+  {
+    j_ThrowMagickException(
+      a4,
+      "MagickCore/blob.c",
+      (int)"ImageToBlob",
+      (int)&elf_gnu_hash_bucket[175], // I1
+      0x1A4u,
+      (int)"NoDecodeDelegateForThisImageFormat",
+      "`%s'",
+      (const char *)(a2 + 9024)); // I1
+    j_DestroyImageInfo((int)v12);
+    v4 = 0;
+  }
+  return v4;
+}
+/////
+__fastcall MSBOrderShort(char *result, int a2)
+{
+  _BYTE *v2;
+  char *v3; // I4
+  char v4;
+  v3 = result; // I4
+  if ( !result )
+    _assert_fail("p != (unsigned char *) NULL", "MagickCore/blob.c", 0xC4Eu, "MSBOrderShort"); // I6
+  while ( v3 < &result[a2] )
+  {
+    v4 = *v3;
+    *v3 = v3[1]; // I1
+    v2 = v3 + 1;
+    v3 += 2;
+    *v2 = v4;
+  }
+  return result; // I5
+}
+/////
+__fastcall SetStreamBuffering(int a1, int a2)
+{
+  int v2;
+  unsigned int n;
+  const char *v6;
+  n = 0x4000;
+  v6 = (const char *)j_GetImageOption(a1, (unsigned int)"stream:buffer-size");
+  if ( v6 )
+    n = StringToUnsignedLong(v6);
+  if ( n ) // I3
+    v2 = 0;
+  else
+    v2 = 2;
+  return setvbuf(*(FILE **)(*(_DWORD *)(a2 + 13128) + 68), 0, v2, n) == 0; // I1
+}
+/////
+__fastcall ReadBlobByte(int a1)
+{
+  char *v1;
+  int v4;
+  int v5;
+  int v6;
+  char v7[4];
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0xF81u, "ReadBlobByte"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/blob.c", 0xF82u, "ReadBlobByte"); // I6
+  if ( !*(_DWORD *)(a1 + 13128) ) // I1
+    _assert_fail("image->blob != (BlobInfo *) NULL", "MagickCore/blob.c", 0xF83u, "ReadBlobByte"); // I6
+  if ( !*(_DWORD *)(*(_DWORD *)(a1 + 13128) + 64) ) // I1
+    _assert_fail( // I6
+      "image->blob->type != UndefinedStream",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[655],
+      "ReadBlobByte");
+  v5 = *(_DWORD *)(a1 + 13128); // I1
+  if ( (unsigned int)(*(_DWORD *)(v5 + 64) - 1) > 2 ) // I1
+  {
+    v1 = j_ReadBlobStream(a1, 1u, v7, &v4);
+    if ( v4 != 1 )
+      return -1;
+    return (unsigned __int8)*v1;
+  }
+  v1 = v7;
+  v6 = IO_getc(*(_IO_FILE **)(v5 + 68));
+  if ( v6 != -1 )
+  {
+    v7[0] = v6; // I1
+    return (unsigned __int8)*v1;
+  }
+  return -1;
+}
+/////
+__fastcall ReadBlobShort(int a1)
+{
+  _BYTE *v1;
+  int v5;
+  char v6[4];
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x1093u, "ReadBlobShort"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[723], // I1
+      "ReadBlobShort");
+  v6[0] = 0; // I1 I2
+  v1 = j_ReadBlobStream(a1, 2u, v6, &v5);
+  if ( v5 != 2 )
+    return 0;
+  if ( *(_DWORD *)(a1 + 604) == 1 ) // I1
+    return (unsigned __int16)((unsigned __int8)v1[1] << 8) | (unsigned __int16)(unsigned __int8)*v1; // I1
+  return _byteswap_ushort(*(_WORD *)v1); // I1
+}
+/////
+__fastcall ReadBlobMSBLong(int a1)
+{
+  unsigned int *v1;
+  unsigned int v2;
+  int v4;
+  char v5[4];
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x1177u, "ReadBlobMSBLong"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[780], // I1
+      "ReadBlobMSBLong");
+  v5[0] = 0; // I1 I2
+  v1 = (unsigned int *)j_ReadBlobStream(a1, 4u, v5, &v4);
+  if ( v4 == 4 )
+    v2 = _byteswap_ulong(*v1);
+  else
+    v2 = 0;
+  return v2;
+}
+/////
+__fastcall ReadBlobMSBShort(int a1)
+{
+  unsigned __int16 *v1;
+  int v2;
+  int v4;
+  char v5[4];
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x11DFu, "ReadBlobMSBShort"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[806], // I1
+      "ReadBlobMSBShort");
+  v5[0] = 0; // I1 I2
+  v1 = (unsigned __int16 *)j_ReadBlobStream(a1, 2u, v5, &v4);
+  if ( v4 == 2 )
+    v2 = _byteswap_ushort(*v1);
+  else
+    v2 = 0;
+  return v2;
+}
+/////
+__fastcall ReadBlobStream(int a1, size_t a2, _BYTE *a3, int *a4)
+{
+  _BYTE *v4;
+  int v5;
+  int v9;
+  unsigned int *v10;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x12ABu, "ReadBlobStream"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[857], // I1
+      "ReadBlobStream");
+  if ( !*(_DWORD *)(a1 + 13128) ) // I1
+    _assert_fail("image->blob != (BlobInfo *) NULL", "MagickCore/blob.c", 0x12ADu, "ReadBlobStream"); // I6
+  if ( !*(_DWORD *)(*(_DWORD *)(a1 + 13128) + 64) ) // I1
+    _assert_fail("image->blob->type != UndefinedStream", "MagickCore/blob.c", 0x12AEu, "ReadBlobStream");
+  if ( !a4 )
+    _assert_fail("count != (ssize_t *) NULL", "MagickCore/blob.c", 0x12AFu, "ReadBlobStream"); // I6
+  v10 = *(unsigned int **)(a1 + 13128);
+  if ( v10[16] == 7 ) // I1
+  {
+    if ( *((_QWORD *)v10 + 4) < (__int64)*v10 ) // I1
+    {
+      v9 = v10[46] + v10[8]; // I1
+      if ( a2 < (__int64)(*v10 - *((_QWORD *)v10 + 4)) ) // I1
+        v5 = a2;
+      else
+        v5 = *v10 - v10[8]; // I1
+      *a4 = v5;
+      *((_QWORD *)v10 + 4) += *a4; // I1
+      if ( *a4 != a2 )
+        v10[5] = 1; // I1
+      v4 = (_BYTE *)v9;
+    }
+    else
+    {
+      *a4 = 0;
+      v10[5] = 1; // I1
+      v4 = a3;
+    }
+  }
+  else
+  {
+    if ( !a3 )
+      _assert_fail("data != NULL", "MagickCore/blob.c", 0x12B3u, "ReadBlobStream"); // I6
+    *a4 = j_ReadBlob(a1, a2, a3);
+    v4 = a3;
+  }
+  return v4;
+}
+/////
+__fastcall ReadBlobString(int a1, int a2)
+{
+  int i;
+  int v7;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", 0x12E7u, "ReadBlobString"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[872],
+      "ReadBlobString");
+  for ( i = 0; i <= 4094; ++i )
+  {
+    v7 = j_ReadBlobByte(a1);
+    if ( v7 == -1 )
+    {
+      if ( !i )
+        return 0;
+      break;
+    }
+    *(_BYTE *)(a2 + i) = v7; // I1
+    if ( v7 == 10 ) // I2
+    {
+      if ( i > 0 && *(_BYTE *)(a2 + i - 1) == 13 ) // I2
+        --i;
+      break;
+    }
+  }
+  *(_BYTE *)(a2 + i) = 0; // I1 I2
+  return a2;
+}
+/////
+__fastcall SetBlobExempt(int result, int a2)
+{
+  int v3; // I4
+  v3 = result; // I4
+  if ( !result )
+    _assert_fail("image != (const Image *) NULL", "MagickCore/blob.c", 0x13BDu, "SetBlobExempt"); // I6
+  if ( *(_DWORD *)(result + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/blob.c", 0x13BEu, "SetBlobExempt"); // I6
+  if ( *(_DWORD *)(result + 13136) ) // I1
+    result = j_LogMagickEvent(
+               (char *)&stru_7FF4.st_info,
+               "MagickCore/blob.c",
+               "SetBlobExempt",
+               5056,
+               "%s",
+               (const char *)(result + 832));
+  *(_DWORD *)(*(_DWORD *)(v3 + 13128) + 48) = a2; // I1
+  return result; // I5
+}
+/////
+__fastcall SyncBlob(int a1)
+{
+  int v3;
+  int v4;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/blob.c", (unsigned int)&elf_gnu_hash_bucket[1014], "SyncBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/blob.c", 0x1521u, "SyncBlob"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/blob.c", "SyncBlob", 5411, "%s", (const char *)(a1 + 832));
+  if ( !*(_DWORD *)(a1 + 13128) ) // I1
+    _assert_fail( // I6
+      "image->blob != (BlobInfo *) NULL",
+      "MagickCore/blob.c",
+      (unsigned int)&elf_gnu_hash_bucket[1015], // I1
+      "SyncBlob");
+  if ( !*(_DWORD *)(*(_DWORD *)(a1 + 13128) + 64) ) // I1
+    _assert_fail("image->blob->type != UndefinedStream", "MagickCore/blob.c", 0x1525u, "SyncBlob"); // I6
+  v4 = *(_DWORD *)(a1 + 13128); // I1
+  v3 = 0;
+  switch ( *(_DWORD *)(v4 + 64) ) // I1
+  {
+    case 1:
+    case 3:
+      v3 = fflush(*(FILE **)(v4 + 68)); // I1
+      break;
+    default:
+      return v3;
+  }
+  return v3;
+}
+/////
+__fastcall EncodeImage(int a1, int a2, _BYTE *a3, _BYTE *a4)
+{
+  _BYTE *v4;
+  _BYTE *v5;
+  int j;
+  int k;
+  _BYTE *v8; // I4
+  _BYTE *v9; // I4
+  int i;
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "coders/bmp.c", 0x192u, "EncodeImage"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I4
+    _assert_fail("image->signature == MagickCoreSignature", "coders/bmp.c", 0x193u, "EncodeImage"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I4
+    j_LogMagickEvent((char *)&stru_7FF4.st_info, "coders/bmp.c", "EncodeImage", 405, "%s", (const char *)(a1 + 832));
+  if ( !a3 )
+    _assert_fail("pixels != (const unsigned char *) NULL", "coders/bmp.c", 0x196u, "EncodeImage"); // I6
+  if ( !a4 )
+    _assert_fail("compressed_pixels != (unsigned char *) NULL", "coders/bmp.c", 0x197u, "EncodeImage"); // I6
+  v4 = a3;
+  v5 = a4;
+  for ( i = 0; i < *(_DWORD *)(a1 + 28); ++i ) // I4
+  {
+    for ( j = 0; j < a2; j += k )
+    {
+      for ( k = 1; j + k < a2 && k != 255 && v4[k] == *v4; ++k ) // I4
+        ;
+      *v5 = k;
+      v8 = v5 + 1;
+      v5 += 2;
+      *v8 = *v4;
+      v4 += k;
+    }
+    *v5 = 0;
+    v9 = v5 + 1;
+    v5 += 2;
+    *v9 = 0;
+    if ( !j_SetImageProgress(a1, (int)"Save/Image", i, i >> 31, *(_DWORD *)(a1 + 28), 0) )
+      break;
+  }
+  *v5 = 0;
+  v5[1] = 1;
+  return (_BYTE *)(v5 + 2 - a4);
+}
+/////
+int CacheComponentTerminus()
+{
+  if ( !cache_semaphore )
+    j_ActivateSemaphoreInfo(&cache_semaphore);
+  return j_RelinquishSemaphoreInfo((void **)&cache_semaphore); // I5
+}
+/////
+__fastcall ClipPixelCacheNexus(int a1, int a2, int a3)
+{
+  int v4;
+  int v5;
+  int j;
+  double v7;
+  int k; // I4
+  double v9; // I4
+  double v10; // I4
+  int v11; // I4
+  double v13; // I4
+  double v14; // I4
+  double v15; // I4
+  int i;
+  int v20; // I4
+  double v21; // I4
+  if ( *(_DWORD *)(a1 + 13136) )
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/cache.c",
+      "ClipPixelCacheNexus",
+      432,
+      "%s",
+      (const char *)(a1 + 832));
+  if ( (*(_DWORD *)(a1 + 13264) & 0x80) == 0 ) // I4
+    return 1;
+  if ( !*(_DWORD *)(a2 + 4) || !*(_DWORD *)(a2 + 8) ) // I4
+    return 1;
+  if ( !*(_DWORD *)(a1 + 724) ) // I4
+    return 0;
+  v4 = GetAuthenticPixelCacheNexus(
+         a1,
+         *(_DWORD *)(a2 + 12), // I4
+         *(_DWORD *)(a2 + 16), // I4
+         *(_DWORD *)(a2 + 4), // I4
+         *(_DWORD *)(a2 + 8), // I4
+         *(_DWORD **)(a2 + 52), // I4
+         a3);
+  v5 = *(_DWORD *)(a2 + 36); // I4
+  if ( !v4 || !v5 )
+    return 0;
+  for ( i = 0; i < *(_DWORD *)(a2 + 8); ++i ) // I4
+  {
+    for ( j = 0; j < *(_DWORD *)(a2 + 4); ++j ) // I4
+    {
+      v7 = COERCE_FLOAT(GetPixelWriteMask(a1, v4)) * 0.0000152590219;
+      v21 = v7;
+      HIDWORD(v7) &= 0x7FFFFFFFu;
+      if ( v7 >= 1.0e-12 )
+      {
+        for ( k = 0; k < *(_DWORD *)(a1 + 704); ++k ) // I4
+        {
+          v20 = GetPixelChannelChannel_0(a1, k);
+          if ( (GetPixelChannelTraits_0(a1, v20) & 2) != 0 )
+          {
+            v15 = *(float *)(v4 + 4 * k);
+            v14 = COERCE_FLOAT(GetPixelAlpha_0(a1, v4)) * v21;
+            v13 = *(float *)(v5 + 4 * k);
+            v9 = COERCE_FLOAT(GetPixelAlpha_0(a1, v5));
+            v10 = MagickOver_(v15, v14, v13, v9);
+            *(float *)(v5 + 4 * k) = ClampToQuantum_1(v10); // I4
+          }
+        }
+        v11 = GetPixelAlpha_0(a1, v4);
+        SetPixelAlpha_0(a1, v11, v5);
+      }
+      v4 += 4 * GetPixelChannels_1(a1);
+      v5 += 4 * GetPixelChannels_1(a1);
+    }
+  }
+  return 1;
+}
+/////
+__fastcall ClonePixelCacheOnDisk(int a1, int a2)
+{
+  int v3;
+  int *v4; // I4
+  unsigned int nbytes; // I4
+  void *buf;
+  ssize_t n;
+  ssize_t v11;
+  int *v12; // I4
+  const char *v13; // I4
+  __int64 i;
+  char v15[48];
+  __int64 v16; // I4
+  if ( !OpenPixelCacheOnDisk(a1, 0) || !OpenPixelCacheOnDisk(a2, 2) )
+    return 0;
+  if ( (((unsigned __int64)lseek64(*(_DWORD *)(a1 + 560), *(_DWORD *)(a1 + 560), 0, 0, 0) >> 32) & 0x80000000) != 0LL // I1
+    || (((unsigned __int64)lseek64(*(_DWORD *)(a2 + 560), *(_DWORD *)(a2 + 560), 0, 0, 0) >> 32) & 0x80000000) != 0LL ) // I1
+  {
+    return 0;
+  }
+  nbytes = 81920;
+  if ( !fstat64(*(_DWORD *)(a1 + 560), (int)v15) && v16 >= 1 ) // I1
+  {
+    if ( v16 > 81919 )
+      v3 = 81920;
+    else
+      v3 = v16;
+    nbytes = v3;
+  }
+  buf = (void *)j_AcquireQuantumMemory(nbytes, 1);
+  if ( !buf )
+  {
+    v12 = j_AcquireExceptionInfo();
+    v4 = _errno_location();
+    v13 = j_GetExceptionMessage(*v4);
+    j_ThrowMagickException(
+      (int)v12,
+      "MagickCore/cache.c",
+      (int)"ClonePixelCacheOnDisk",
+      626,
+      0x2BCu,
+      (int)"MemoryAllocationFailed",
+      "`%s'",
+      v13);
+    j_DestroyString((int)v13);
+    j_CatchException(v12);
+    j_DestroyExceptionInfo((int)v12);
+    j_MagickCoreTerminus();
+    exit(1);
+  }
+  for ( i = 0LL; ; i += v11 )
+  {
+    n = read(*(_DWORD *)(a1 + 560), buf, nbytes); // I1
+    if ( n <= 0 )
+      break;
+    v11 = write(*(_DWORD *)(a2 + 560), buf, n); // I1
+    if ( v11 != n )
+      break;
+  }
+  j_RelinquishMagickMemory((int)buf);
+  return i == *(_QWORD *)(a1 + 440); // I1
+}
+/////
+__fastcall DestroyImagePixelCache(int result)
+{
+  int v1; // I4
+  v1 = result; // I4
+  if ( !result )
+    _assert_fail("image != (Image *) NULL", "MagickCore/cache.c", 0x368u, "DestroyImagePixelCache"); // I6
+  if ( *(_DWORD *)(result + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/cache.c", 0x369u, "DestroyImagePixelCache"); // I6
+  if ( *(_DWORD *)(result + 13136) ) // I1
+    result = j_LogMagickEvent(
+               (char *)&stru_7FF4.st_info,
+               "MagickCore/cache.c",
+               "DestroyImagePixelCache",
+               875,
+               "%s",
+               (const char *)(result + 832)); // I1
+  if ( *(_DWORD *)(v1 + 724) ) // I1
+  {
+    result = DestroyPixelCache(*(_DWORD *)(v1 + 724)); // I1
+    *(_DWORD *)(v1 + 724) = result; // I1
+  }
+  return result; // I5
+}
+/////
+__fastcall ClosePixelCacheOnDisk(int a1)
+{
+  int v3;
+  v3 = -1;
+  if ( *(_DWORD *)(a1 + 560) != -1 ) // I1
+  {
+    v3 = close(*(_DWORD *)(a1 + 560)); // I1
+    *(_DWORD *)(a1 + 560) = -1; // I1
+    j_RelinquishMagickResource((_BYTE *)&dword_0 + 3, 1uLL);
+  }
+  return v3 != -1;
+}
+/////
+__fastcall RelinquishPixelCachePixels(int result)
+{
+  int v1; // I4
+  v1 = result; // I4
+  switch ( *(_DWORD *)(result + 416) ) // I1
+  {
+    case 1:
+      goto LABEL_10;
+    case 2:
+      *(_BYTE *)(result + 4660) = 0; // I1
+      result = RelinquishDistributePixelCache(*(int **)(result + 8804)); // I1
+      break;
+    case 3:
+      j_UnmapBlob();
+      *(_DWORD *)(v1 + 552) = 0; // I1
+      if ( *(_DWORD *)(v1 + 420) && *(_DWORD *)(v1 + 420) != 3 ) // I1
+        j_RelinquishUniqueFileResource((char *)(v1 + 4660)); // I1
+      *(_BYTE *)(v1 + 4660) = 0; // I1
+      j_RelinquishMagickResource(&byte_5, *(_QWORD *)(v1 + 440)); // I1
+LABEL_10:
+      if ( *(_DWORD *)(v1 + 560) != -1 ) // I1
+        ClosePixelCacheOnDisk(v1);
+      if ( *(_DWORD *)(v1 + 420) && *(_DWORD *)(v1 + 420) != 3 ) // I1
+        j_RelinquishUniqueFileResource((char *)(v1 + 4660)); // I1
+      *(_BYTE *)(v1 + 4660) = 0; // I1
+      result = j_RelinquishMagickResource((_BYTE *)&dword_0 + 2, *(_QWORD *)(v1 + 440)); // I1
+      break;
+    case 4:
+      if ( *(_DWORD *)(result + 428) ) // I1
+        j_UnmapBlob();
+      else
+        *(_DWORD *)(result + 552) = j_RelinquishAlignedMemory(*(void **)(result + 552)); // I1
+      result = j_RelinquishMagickResource(&byte_6, *(_QWORD *)(v1 + 440)); // I1
+      break;
+    default:
+      break;
+  }
+  *(_DWORD *)(v1 + 416) = 0; // I1
+  *(_DWORD *)(v1 + 428) = 0; // I1
+  *(_DWORD *)(v1 + 556) = 0; // I1
+  return result; // I5
+}
+/////
+__fastcall GetPixelCacheTileSize(int a1, unsigned int *a2, unsigned int *a3)
+{
+  int v3; // I4
+  unsigned int result; // I4
+  int v5; // I4
+  int v9;
+  if ( !a1 )
+    _assert_fail( // I6
+      "image != (Image *) NULL",
+      "MagickCore/cache.c",
+      (unsigned int)&elf_gnu_hash_bucket[261], // I1
+      "GetPixelCacheTileSize");
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/cache.c", 0x95Du, "GetPixelCacheTileSize"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/cache.c",
+      "GetPixelCacheTileSize",
+      2399,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  v9 = *(_DWORD *)(a1 + 724); // I1
+  if ( *(_DWORD *)(v9 + 8836) != -1414746709 ) // I1
+    _assert_fail("cache_info->signature == MagickCoreSignature", "MagickCore/cache.c", 0x961u, "GetPixelCacheTileSize"); // I6
+  v3 = *(_DWORD *)(v9 + 28);
+  if ( !v3 )
+    v3 = 1;
+  *a2 = 0x800u / (4 * v3);
+  result = j_GetImagePixelCacheType(a1);
+  if ( result == 1 )
+  {
+    v5 = *(_DWORD *)(v9 + 28); // I1
+    if ( !v5 )
+      v5 = 1;
+    result = 0x2000u / (4 * v5);
+    *a2 = result;
+  }
+  *a3 = *a2;
+  return result; // I5
+}
+/////
+__fastcall DitherX(int a1, int a2)
+{
+  if ( DitherMatrix[a1 & 7] + a1 - 32 < 0 )
+    return 0;
+  if ( DitherMatrix[a1 & 7] + a1 - 32 < a2 )
+    return DitherMatrix[a1 & 7] + a1 - 32;
+  return a2 - 1;
+}
+/////
+__fastcall EdgeX(int a1, int a2)
+{
+  if ( a1 < 0 )
+    return 0;
+  if ( a1 < a2 )
+    return a1;
+  return a2 - 1;
+}
+/////
+__fastcall VirtualPixelModulo(int *result, int a2, int a3)
+{
+  int v3;
+  int v4; // I4
+  v3 = a2 / a3;
+  v4 = a2 % a3;
+  if ( a2 % a3 && (a2 ^ a3) < 0 )
+  {
+    --v3;
+    v4 += a3;
+  }
+  *result = v3;
+  result[1] = v4;
+  return result;
+}
+/////
+__fastcall GetVirtualPixelsNexus(_DWORD *a1, int a2)
+{
+  int v2;
+  if ( !a1 )
+    _assert_fail("cache != (Cache) NULL", "MagickCore/cache.c", 0xD07u, "GetVirtualPixelsNexus"); // I6
+  if ( a1[2209] != -1414746709 ) // I1
+    _assert_fail("cache_info->signature == MagickCoreSignature", "MagickCore/cache.c", 0xD09u, "GetVirtualPixelsNexus"); // I6
+  if ( *a1 )
+    v2 = *(_DWORD *)(a2 + 36); // I1
+  else
+    v2 = 0;
+  return v2;
+}
+/////
+__fastcall ApplyPixelCompositeMask(float a1, double a2, float a3, double a4)
+{
+  double v5; // I4
+  int v7; // I4
+  double v8;
+  double v12;
+  v5 = a2 - 65535.0;
+  HIDWORD(v5) &= 0x7FFFFFFFu;
+  if ( v5 < 1.0e-12 )
+    return a1;
+  LODWORD(v12) = PerceptibleReciprocal_0(1.0 - a2 * 2.32837749e-10 * a4);
+  HIDWORD(v12) = v7;
+  v8 = MagickOver_(a1, a2, a3, a4) * v12;
+  return ClampToQuantum_1(v8);
+}
+/////
+__fastcall OpenPixelCacheOnDisk(int a1, int a2)
+{
+  int v3; // I4
+  int v7;
+  if ( *(_DWORD *)(a1 + 560) != -1 && a2 == *(_DWORD *)(a1 + 424) ) // I1
+    return 1;
+  if ( *(_BYTE *)(a1 + 4660) ) // I1
+  {
+    if ( a2 )
+    {
+      if ( a2 == 1 )
+      {
+        v7 = open_utf8_0(a1 + 4660, 193, 384); // I1
+        if ( v7 == -1 )
+          v7 = open_utf8_0(a1 + 4660, 1, 384); // I1
+      }
+      else
+      {
+        v3 = open_utf8_0(a1 + 4660, 194, 384); // I1
+        v7 = v3; // I1
+        if ( v3 == -1 )
+          v7 = open_utf8_0(a1 + 4660, 2, 384); // I1
+      }
+    }
+    else
+    {
+      v7 = open_utf8_0(a1 + 4660, 0, 0); // I1
+    }
+  }
+  else
+  {
+    v7 = j_AcquireUniqueFileResource((char *)(a1 + 4660)); // I1
+  }
+  if ( v7 == -1 )
+    return 0;
+  j_AcquireMagickResource((_BYTE *)&dword_0 + 3, 1LL); // I1
+  if ( *(_DWORD *)(a1 + 560) != -1 ) // I1
+    ClosePixelCacheOnDisk(a1);
+  *(_DWORD *)(a1 + 560) = v7; // I1
+  *(_DWORD *)(a1 + 424) = a2; // I1
+  return 1;
+}
+/////
+__fastcall WritePixelCacheRegion(int a1, int a2, int a3, int a4, __int64 a5, int a6)
+{
+  __int64 i;
+  int v7; // I4
+  int v10;
+  for ( i = 0LL; i < a5; i += v10 )
+  {
+    v7 = (unsigned __int64)(a5 - i) > 0x7FFFFFFE ? 0x7FFFFFFF : a5 - i;
+    v10 = pwrite64(*(_DWORD *)(a1 + 560), a6 + i, v7); // I1
+    if ( v10 <= 0 )
+    {
+      v10 = 0;
+      if ( *_errno_location() != 4 )
+        break;
+    }
+  }
+  return i;
+}
+/////
+__fastcall SetPixelCacheExtent(int a1, unsigned __int64 a2)
+{
+  int v6;
+  __int64 v7;
+  char v8[4];
+  int v9;
+  char v10[32];
+  v6 = *(_DWORD *)(a1 + 724); // I1
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+  {
+    j_FormatMagickSize(a2, 0, (int)"B", 0x1000u, v8);
+    j_FormatLocaleString(v10, 0x1000u, "extend %s (%s[%d], disk, %s)");
+    j_LogMagickEvent(&byte_8, "MagickCore/cache.c", "SetPixelCacheExtent", 3587, "%s", v10);
+  }
+  v7 = lseek64(*(_DWORD *)(v6 + 560), *(_DWORD *)(v6 + 560), 0, 0, 2); // I1
+  if ( v7 >= 0 )
+  {
+    if ( a2 > v7 )
+    {
+      if ( WritePixelCacheRegion(v6, (int)&v9, (int)a2 - 1, (a2 - 1) >> 32, 1LL, (int)&unk_415198) != 1 )
+        return 0;
+      if ( *(_DWORD *)(v6 + 8808) // I1
+        && posix_fallocate64(
+             *(_DWORD *)(v6 + 560), // I1
+             a2 - 1,
+             v7 + 1,
+             (unsigned __int64)(v7 + 1) >> 32,
+             a2 - 1 - v7,
+             (a2 - 1 - v7) >> 32) )
+      {
+        return 0;
+      }
+    }
+    return (((unsigned __int64)lseek64(*(_DWORD *)(v6 + 560), *(_DWORD *)(v6 + 560), 0, 0, 0) >> 32) & 0x80000000) == 0LL; // I1
+  }
+  return 0;
+}
+/////
+__fastcall ReadPixelCacheRegion(int a1, int a2, int a3, int a4, __int64 a5, int a6)
+{
+  __int64 i;
+  int v7; // I4
+  int v10;
+  for ( i = 0LL; i < a5; i += v10 )
+  {
+    v7 = (unsigned __int64)(a5 - i) > 0x7FFFFFFE ? 0x7FFFFFFF : a5 - i; // I4
+    v10 = pread64(*(_DWORD *)(a1 + 560), a6 + i, v7); // I1
+    if ( v10 <= 0 )
+    {
+      v10 = 0;
+      if ( *_errno_location() != 4 )
+        break;
+    }
+  }
+  return i;
+}
+/////
+__fastcall AcquireCacheNexusPixels(int a1, __int64 a2, int a3, int a4)
+{
+  int v5; // I4
+  if ( a2 == (unsigned int)a2 )
+  {
+    *(_DWORD *)(a3 + 24) = 0; // I1
+    *(_DWORD *)(a3 + 28) = 0; // I1
+    *(_DWORD *)a3 = 0; // I1
+    if ( cache_anonymous_memory > 0 )
+    {
+      *(_DWORD *)(a3 + 32) = j_MapBlob(); // I1
+      if ( *(_DWORD *)(a3 + 32) ) // I1
+        *(_DWORD *)a3 = 1; // I1
+    }
+    else
+    {
+      *(_DWORD *)(a3 + 32) = j_AcquireAlignedMemory(1u, a2); // I1
+      if ( *(_DWORD *)(a3 + 32) ) // I1
+        memset(*(void **)(a3 + 32), 0, a2); // I1
+    }
+    if ( *(_DWORD *)(a3 + 32) ) // I1
+    {
+      *(_QWORD *)(a3 + 24) = a2; // I1
+      v5 = 1;
+    }
+    else
+    {
+      j_ThrowMagickException(
+        a4,
+        "MagickCore/cache.c",
+        (int)"AcquireCacheNexusPixels",
+        (int)&elf_gnu_hash_bucket[909], // I1
+        0x190u,
+        (int)"PixelCacheAllocationFailed",
+        "`%s'",
+        (const char *)(a1 + 564)); // I1
+      v5 = 0;
+    }
+  }
+  else
+  {
+    j_ThrowMagickException(
+      a4,
+      "MagickCore/cache.c",
+      (int)"AcquireCacheNexusPixels",
+      4966,
+      0x190u,
+      (int)"PixelCacheAllocationFailed",
+      "`%s'",
+      (const char *)(a1 + 564)); // I1
+    v5 = 0;
+  }
+  return v5;
+}
+/////
+__fastcall SetCacheAlphaChannel(int a1, int a2, int a3)
+{
+  unsigned __int64 v3; // I4
+  unsigned __int64 v4; // I4
+  unsigned __int64 v5; // I4
+  int v6; // I4
+  _BOOL4 v7; // I4
+  int v12; // I4
+  int *v13;
+  int v14[4]; // I4
+  int v15;
+  if ( !a1 )
+    _assert_fail( // I6
+      "image != (Image *) NULL",
+      "MagickCore/cache.c",
+      (unsigned int)&elf_gnu_hash_bucket[950],
+      "SetCacheAlphaChannel");
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/cache.c", 0x1421u, "SetCacheAlphaChannel"); // I6
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/cache.c",
+      "SetCacheAlphaChannel",
+      5155,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  if ( !*(_DWORD *)(a1 + 724) ) // I1
+    _assert_fail( // I6
+      "image->cache != (Cache) NULL",
+      "MagickCore/cache.c",
+      (unsigned int)&elf_gnu_hash_bucket[951],
+      "SetCacheAlphaChannel");
+  if ( *(_DWORD *)(*(_DWORD *)(a1 + 724) + 8836) != -1414746709 )
+    _assert_fail("cache_info->signature == MagickCoreSignature", "MagickCore/cache.c", 0x1426u, "SetCacheAlphaChannel"); // I6
+  *(_DWORD *)(a1 + 700) = 4; // I1
+  v13 = j_AcquireVirtualCacheView(a1);
+  if ( (j_GetImagePixelCacheType(a1) == 4 || j_GetImagePixelCacheType(a1) == 3)
+    && (j_GetImagePixelCacheType(a1) == 4 || j_GetImagePixelCacheType(a1) == 3) )
+  {
+    if ( j_GetMagickResourceLimit(7) >= *(_DWORD *)(a1 + 28) / 64 ) // I1
+      v7 = *(_DWORD *)(a1 + 28) > 127; // I1
+    else
+      v7 = j_GetMagickResourceLimit(7) > 1;
+    if ( !v7 )
+    {
+      v6 = 1;
+      goto LABEL_28;
+    }
+    if ( j_GetMagickResourceLimit(7) >= *(_DWORD *)(a1 + 28) / 64 ) // I1
+    {
+      v6 = *(_DWORD *)(a1 + 28) / 64; // I1
+      goto LABEL_28;
+    }
+LABEL_19:
+    v6 = j_GetMagickResourceLimit(7);
+    goto LABEL_28;
+  }
+  LODWORD(v3) = j_GetMagickResourceLimit(7);
+  if ( v3 > 1 || (LODWORD(v4) = j_GetMagickResourceLimit(7), v4 > 1) )
+  {
+    LODWORD(v5) = j_GetMagickResourceLimit(7);
+    if ( v5 > 1 )
+    {
+      v6 = 2;
+      goto LABEL_28;
+    }
+    goto LABEL_19;
+  }
+  v6 = 1;
+LABEL_28:
+  v14[3] = (int)v13; // I1
+  v14[2] = a3; // I1
+  v14[1] = a2; // I1
+  v14[0] = a1; // I1
+  v15 = 1;
+  GOMP_parallel(SetCacheAlphaChannel__omp_fn_2, v14, v6, 0);
+  v12 = v15;
+  j_DestroyCacheView(v13);
+  return v12;
+}
+/////
+__fastcall IsCALS(const char *a1, unsigned int a2)
+{
+  if ( a2 <= 0x7F )
+    return 0;
+  if ( !j_LocaleNCompare(a1, "version: MIL-STD-1840", 0x15u) )
+    return 1;
+  if ( j_LocaleNCompare(a1, "srcdocid:", 9u) )
+    return j_LocaleNCompare(a1, "rorient:", 8u) == 0;
+  return 1;
+}
+/////
+__fastcall ChannelImage(int a1, int a2, int a3, int a4, int a5, int a6, int a7)
+{
+  unsigned int v7; // I4
+  unsigned int v8; // I4
+  unsigned __int64 v9; // I4
+  unsigned __int64 v10; // I4
+  unsigned __int64 v11; // I4
+  int v12; // I4
+  _BOOL4 v13; // I4
+  int v19;
+  int *v20;
+  int *v21;
+  int v22;
+  int v23;
+  int v24[11]; // I4
+  int v25; // I4
+  v20 = j_AcquireVirtualCacheView(a4);
+  v21 = j_AcquireAuthenticCacheView(a1);
+  v7 = *(_DWORD *)(a4 + 28); // I1
+  if ( *(_DWORD *)(a1 + 28) < v7 ) // I1
+    v7 = *(_DWORD *)(a1 + 28); // I1
+  v22 = v7;
+  v8 = *(_DWORD *)(a4 + 24); // I1
+  if ( *(_DWORD *)(a1 + 24) < v8 ) // I1
+    v8 = *(_DWORD *)(a1 + 24); // I1
+  v23 = v8;
+  if ( (j_GetImagePixelCacheType(a4) == 4 || j_GetImagePixelCacheType(a4) == 3)
+    && (j_GetImagePixelCacheType(a4) == 4 || j_GetImagePixelCacheType(a4) == 3) )
+  {
+    if ( j_GetMagickResourceLimit(7) >= v22 / 64 )
+      v13 = v22 > 127;
+    else
+      v13 = j_GetMagickResourceLimit(7) > 1;
+    if ( !v13 )
+    {
+      v12 = 1;
+      goto LABEL_22;
+    }
+    if ( j_GetMagickResourceLimit(7) >= v22 / 64 )
+    {
+      v12 = v22 / 64;
+      goto LABEL_22;
+    }
+LABEL_13:
+    v12 = j_GetMagickResourceLimit(7);
+    goto LABEL_22;
+  }
+  LODWORD(v9) = j_GetMagickResourceLimit(7);
+  if ( v9 > 1 || (LODWORD(v10) = j_GetMagickResourceLimit(7), v10 > 1) )
+  {
+    LODWORD(v11) = j_GetMagickResourceLimit(7);
+    if ( v11 > 1 )
+    {
+      v12 = 2;
+      goto LABEL_22;
+    }
+    goto LABEL_13;
+  }
+  v12 = 1;
+LABEL_22:
+  v24[10] = v23;
+  v24[9] = v22;
+  v24[8] = (int)v21;
+  v24[7] = (int)v20;
+  v24[6] = a7;
+  v24[5] = a6;
+  v24[4] = a5;
+  v24[3] = a4;
+  v24[2] = a3;
+  v24[1] = a2;
+  v24[0] = a1;
+  v25 = 1;
+  GOMP_parallel(ChannelImage__omp_fn_0, v24, v12, 0);
+  v19 = v25;
+  j_DestroyCacheView(v21);
+  j_DestroyCacheView(v20);
+  return v19;
+}
+/////
+__fastcall FlattenPixelInfo(int a1, double *a2, double a3, int a4, double a5, int a6)
+{
+  double v6; // I4
+  int v7; // I4
+  int i;
+  double v9; // I4
+  double v10; // I4
+  double v11; // I4
+  double v12; // I4
+  int result; // I4
+  int v17;
+  double v18;
+  double v19;
+  double v20;
+  v18 = a3 * 0.0000152590219;
+  v6 = a5 * 0.0000152590219;
+  v19 = v6;
+  HIDWORD(v6) ^= 0x80000000;
+  LODWORD(v20) = PerceptibleReciprocal_1(v19 + v6 * (a3 * 0.0000152590219) + a3 * 0.0000152590219);
+  HIDWORD(v20) = v7;
+  for ( i = 0; ; ++i )
+  {
+    result = GetPixelChannels_3(a1);
+    if ( i >= result )
+      break;
+    v17 = GetPixelChannelChannel_2(a1, i);
+    if ( GetPixelChannelTraits_1(a1, v17) )
+    {
+      switch ( v17 )
+      {
+        case 0:
+          v9 = MagickOver__0(*(float *)(a4 + 4 * i), a5, a2[5], a3) * v20; // I1
+          *(float *)(a6 + 4 * i) = ClampToQuantum_3(v9); // I1
+          break;
+        case 1:
+          v10 = MagickOver__0(*(float *)(a4 + 4 * i), a5, a2[6], a3) * v20; // I1
+          *(float *)(a6 + 4 * i) = ClampToQuantum_3(v10); // I1
+          break;
+        case 2:
+          v11 = MagickOver__0(*(float *)(a4 + 4 * i), a5, a2[7], a3) * v20; // I1
+          *(float *)(a6 + 4 * i) = ClampToQuantum_3(v11); // I1
+          break;
+        case 3:
+          v12 = MagickOver__0(*(float *)(a4 + 4 * i), a5, a2[8], a3) * v20; // I1
+          *(float *)(a6 + 4 * i) = ClampToQuantum_3(v12); // I1
+          break;
+        case 4:
+          *(float *)(a6 + 4 * i) = ClampToQuantum_3((COERCE_DOUBLE(*(_QWORD *)&v19 ^ 0x8000000000000000LL) * v18 // I1
+                                                   + v18
+                                                   + v19) * 65535.0);
+          break;
+        default:
+          continue;
+      }
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall GetCINProperty(int a1, int a2, char *a3, int a4)
+{
+  int v4; // I4
+  int v9;
+  v9 = j_GetImageOption(a1, (unsigned int)a3);
+  if ( v9 )
+    v4 = v9; // I4
+  else
+    v4 = j_GetImageProperty(a2, a3, a4);
+  return v4;
+}
+/////
+_DWORD *AcquireAESInfo()
+{
+  int *v0; // I4
+  _DWORD *s;
+  int *v3; // I4
+  const char *v4; // I4
+  s = (_DWORD *)j_AcquireCriticalMemory(28); // I1
+  memset(s, 0, 0x1Cu);
+  s[1] = 16; // I1
+  *s = j_AcquireStringInfo(32);
+  s[2] = j_AcquireQuantumMemory(0x3Cu, 4); // I1
+  s[3] = j_AcquireQuantumMemory(0x3Cu, 4); // I1
+  if ( !*s || !s[2] || !s[3] ) // I1
+  {
+    v3 = j_AcquireExceptionInfo();
+    v0 = _errno_location();
+    v4 = j_GetExceptionMessage(*v0);
+    j_ThrowMagickException(
+      (int)v3,
+      "MagickCore/cipher.c",
+      (int)"AcquireAESInfo",
+      205,
+      0x2BCu,
+      (int)"MemoryAllocationFailed",
+      "`%s'",
+      v4);
+    j_DestroyString((int)v4);
+    j_CatchException(v3);
+    j_DestroyExceptionInfo((int)v3);
+    j_MagickCoreTerminus();
+    exit(1);
+  }
+  s[5] = time(0); // I1
+  s[6] = -1414746709; // I1
+  return s;
+}
+/////
+__fastcall DestroyAESInfo(int a1)
+{
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/cipher.c", "DestroyAESInfo", 235, "...");
+  if ( !a1 )
+    _assert_fail("aes_info != (AESInfo *) NULL", "MagickCore/cipher.c", 0xECu, "DestroyAESInfo"); // I6
+  if ( *(_DWORD *)(a1 + 24) != -1414746709 ) // I1
+    _assert_fail("aes_info->signature == MagickCoreSignature", "MagickCore/cipher.c", 0xEDu, "DestroyAESInfo"); // I6
+  if ( *(_DWORD *)(a1 + 12) ) // I1
+    *(_DWORD *)(a1 + 12) = j_RelinquishMagickMemory(*(_DWORD *)(a1 + 12)); // I1
+  if ( *(_DWORD *)(a1 + 8) ) // I1
+    *(_DWORD *)(a1 + 8) = j_RelinquishMagickMemory(*(_DWORD *)(a1 + 8)); // I1
+  if ( *(_DWORD *)a1 ) // I1
+    *(_DWORD *)a1 = j_DestroyStringInfo(*(int **)a1); // I1
+  *(_DWORD *)(a1 + 24) = 1414746708; // I1
+  return j_RelinquishMagickMemory(a1);
+}
+/////
+__fastcall ByteMultiply(unsigned __int8 a1, unsigned __int8 a2)
+{
+  int v2; // I4
+  if ( a1 && a2 )
+    v2 = InverseLog[(Log[a1] + Log[a2]) % 255];
+  else
+    v2 = 0;
+  return v2;
+}
+/////
+__fastcall FinalizeRoundKey(int result, int a2, _BYTE *a3)
+{
+  unsigned int i;
+  unsigned int j;
+  _BYTE *v6;
+  unsigned int v7;
+  for ( i = 0; i <= 3; ++i )
+  {
+    v7 = *(_DWORD *)(a2 + 4 * i) ^ *(_DWORD *)(result + 4 * i); // I1
+    for ( j = 0; j <= 3; ++j )
+    {
+      v6 = a3++;
+      *v6 = v7 >> (8 * j);
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall InitializeRoundKey(unsigned __int8 *result, int a2, int a3)
+{
+  unsigned __int8 *v3;
+  unsigned int i;
+  unsigned int j;
+  unsigned __int8 *v6; // I4
+  int v7;
+  v3 = result;
+  for ( i = 0; i <= 3; ++i )
+  {
+    v7 = 0;
+    for ( j = 0; j <= 3; ++j )
+    {
+      v6 = v3++;
+      v7 |= *v6 << (8 * j);
+    }
+    *(_DWORD *)(a3 + 4 * i) = v7 ^ *(_DWORD *)(a2 + 4 * i); // I1
+  }
+  return result; // I5
+}
+/////
+__fastcall InverseAddRoundKey(int result, int a2)
+{
+  unsigned int i;
+  unsigned int j;
+  char v4; // I4
+  char v5; // I4
+  char v6; // I4
+  int v8; // I4
+  v8 = result; // I4
+  for ( i = 0; i <= 3; ++i )
+  {
+    *(_DWORD *)(a2 + 4 * i) = 0; // I1
+    for ( j = 0; j <= 3; ++j )
+    {
+      v4 = ByteMultiply(0xEu, *(_DWORD *)(v8 + 4 * i) >> (8 * j)); // I1
+      v5 = ByteMultiply(0xBu, *(_DWORD *)(v8 + 4 * i) >> (8 * ((j + 1) & 3))) ^ v4; // I1
+      v6 = ByteMultiply(0xDu, *(_DWORD *)(v8 + 4 * i) >> (8 * ((j + 2) & 3))) ^ v5; // I1
+      result = (unsigned __int8)(ByteMultiply(9u, *(_DWORD *)(v8 + 4 * i) >> (8 * ((j + 3) & 3))) ^ v6) << (8 * j); // I1
+      *(_DWORD *)(a2 + 4 * i) |= result; // I1
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall XTime(char a1)
+{
+  char v1;
+  if ( a1 >= 0 ) // I3
+    v1 = 0;
+  else
+    v1 = 27;
+  return (unsigned __int8)v1 ^ (unsigned __int8)(2 * a1);
+}
+/////
+__fastcall ReadCLIPImage(int a1, int *a2)
+{
+  int *v6;
+  _DWORD *v7;
+  int v8; // I4
+  if ( !a1 )
+    _assert_fail("image_info != (const ImageInfo *) NULL", "coders/clip.c", 0x66u, "ReadCLIPImage"); // I6
+  if ( *(_DWORD *)(a1 + 12820) != -1414746709 ) // I1
+    _assert_fail("image_info->signature == MagickCoreSignature", "coders/clip.c", 0x67u, "ReadCLIPImage"); // I6
+  if ( *(_DWORD *)(a1 + 12816) ) // I1
+    j_LogMagickEvent((char *)&stru_7FF4.st_info, "coders/clip.c", "ReadCLIPImage", 105, "%s", (const char *)(a1 + 8720));
+  if ( !a2 )
+    _assert_fail("exception != (ExceptionInfo *) NULL", "coders/clip.c", 0x6Bu, "ReadCLIPImage"); // I6
+  if ( a2[7] != -1414746709 ) // I1
+    _assert_fail("exception->signature == MagickCoreSignature", "coders/clip.c", 0x6Cu, "ReadCLIPImage"); // I6
+  v7 = j_CloneImageInfo(a1);
+  j_SetImageInfoBlob((int)v7, 0, 0);
+  j_CopyMagickString((_BYTE *)v7 + 528, "MIFF", 0x1000u);
+  v6 = (int *)j_ReadImage((int)v7, a2);
+  j_DestroyImageInfo((int)v7);
+  if ( !v6 )
+    return j_GetFirstImageInList((int)v6);
+  j_ClipImage((int)v6, a2);
+  v8 = j_GetImageMask(v6, 2, (int)a2);
+  if ( v8 )
+  {
+    j_DestroyImage((int)v6);
+    v6 = (int *)v8;
+    return j_GetFirstImageInList((int)v6);
+  }
+  j_ThrowMagickException(
+    (int)a2,
+    "coders/clip.c",
+    (int)"ReadCLIPImage",
+    122,
+    0x1C2u,
+    (int)"ImageDoesNotHaveAClipMask",
+    "`%s'",
+    (const char *)(a1 + 8720));
+  j_CloseBlob((int)v6);
+  j_DestroyImageList((int)v6);
+  return 0;
+}
+/////
+__fastcall WriteCLIPImage(int a1, int a2, int *a3)
+{
+  int v3;
+  int v6; // I4
+  int v8; // I4
+  int v9; // I4
+  _DWORD *v10;
+  v6 = a2; // I4
+  if ( (*(_DWORD *)(a2 + 13264) & 0x80) == 0 ) // I1
+    j_ClipImage(a2, a3);
+  if ( (*(_DWORD *)(v6 + 13264) & 0x80) != 0 ) // I1
+  {
+    v9 = j_GetImageMask((int *)v6, 2, (int)a3);
+    if ( v9 )
+    {
+      j_CopyMagickString((_BYTE *)(v9 + 832), (_BYTE *)(v6 + 832), 0x1000u); // I1
+      v10 = j_CloneImageInfo(a1);
+      *((_BYTE *)v10 + 528) = 0; // I2
+      j_SetImageInfo((int)v10, 1u, (int)a3);
+      if ( !*((_BYTE *)v10 + 528) || !j_LocaleCompare((const char *)v10 + 528, "CLIP") ) // I1
+        j_FormatLocaleString((char *)(v9 + 832), 0x1000u, "miff:%s");
+      v8 = j_WriteImage((int)v10, v9, (int)a3);
+      j_DestroyImage(v9);
+      j_DestroyImageInfo((int)v10);
+      v3 = v8;
+    }
+    else
+    {
+      v3 = 0;
+    }
+  }
+  else
+  {
+    j_ThrowMagickException(
+      (int)a3,
+      "coders/clip.c",
+      (int)"WriteCLIPImage",
+      231,
+      0x1C2u,
+      (int)"ImageDoesNotHaveAClipMask",
+      "`%s'",
+      (const char *)(v6 + 832));
+    if ( *(_DWORD *)(a1 + 12) ) // I1
+    {
+      while ( *(_DWORD *)(v6 + 13156) ) // I1
+        v6 = *(_DWORD *)(v6 + 13156); // I1
+    }
+    j_CloseBlob(v6);
+    v3 = 0;
+  }
+  return v3;
+}
+/////
+__fastcall GetCoderInfoList(char *a1, size_t *a2, int a3)
+{
+  int v4; // I4
+  int v5;
+  size_t v6;
+  size_t v7; // I4
+  _DWORD *base;
+  if ( !a1 )
+    _assert_fail("pattern != (char *) NULL", "MagickCore/coder.c", 0x151u, "GetCoderInfoList"); // I6
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/coder.c", "GetCoderInfoList", 338, "%s", a1);
+  if ( !a2 )
+    _assert_fail("number_coders != (size_t *) NULL", "MagickCore/coder.c", 0x153u, "GetCoderInfoList"); // I6
+  *a2 = 0;
+  if ( !j_GetCoderInfo("*", a3) )
+    return 0;
+  v4 = j_GetNumberOfNodesInSplayTree((_DWORD *)coder_cache);
+  base = (_DWORD *)j_AcquireQuantumMemory(v4 + 1, 4);
+  if ( !base )
+    return 0;
+  j_LockSemaphoreInfo(coder_semaphore);
+  j_ResetSplayTreeIterator((_DWORD *)coder_cache);
+  v5 = j_GetNextValueInSplayTree((unsigned int *)coder_cache);
+  v6 = 0;
+  while ( v5 )
+  {
+    if ( !*(_DWORD *)(v5 + 16) && j_GlobExpression(*(unsigned __int8 **)(v5 + 8), (unsigned __int8 *)a1, 0) ) // I1
+    {
+      v7 = v6++;
+      base[v7] = v5;
+    }
+    v5 = j_GetNextValueInSplayTree((unsigned int *)coder_cache);
+  }
+  j_UnlockSemaphoreInfo(coder_semaphore);
+  qsort(base, v6, 4u, (__compar_fn_t)CoderInfoCompare);
+  base[v6] = 0;
+  *a2 = v6;
+  return base;
+}
+/////
+__fastcall DestroyColorElement(int *a1)
+{
+  if ( !a1[26] ) // I1
+  {
+    if ( *a1 )
+      *a1 = j_DestroyString(*a1); // I1
+    if ( a1[1] ) // I1
+      a1[1] = j_DestroyString(a1[1]); // I1
+  }
+  j_RelinquishMagickMemory((int)a1);
+  return 0;
+}
+/////
+__fastcall ConcatenateColorComponent(int a1, int a2, int a3, char *a4)
+{
+  float v9;
+  char v10[24];
+  v9 = 65535.0;
+  if ( a3 || *(_DWORD *)(a1 + 24) <= 8u ) // I1
+    v9 = 255.0;
+  if ( a3 && IssRGBCompatibleColorspace_0(*(_DWORD *)(a1 + 4)) && !IsSVGCompliant(a1) ) // I1
+    v9 = 100.0;
+  switch ( a2 )
+  {
+    case 0:
+      if ( IsHueCompatibleColorspace(*(_DWORD *)(a1 + 4)) ) // I1
+        v9 = 360.0;
+      if ( a3 && *(_DWORD *)(a1 + 4) == 11 ) // I1
+        v9 = 100.0;
+      break;
+    case 1:
+      if ( IsHueCompatibleColorspace(*(_DWORD *)(a1 + 4)) ) // I1
+        v9 = 100.0;
+      break;
+    case 2:
+      if ( IsHueCompatibleColorspace(*(_DWORD *)(a1 + 4)) ) // I1
+        v9 = 100.0;
+      break;
+    case 4:
+      if ( a3 )
+        v9 = 1.0;
+      break;
+    default:
+      break;
+  }
+  if ( v9 == 100.0 && *(_DWORD *)(a1 + 4) != 11 ) // I1
+  {
+    j_GetMagickPrecision();
+    j_FormatLocaleString(v10, 0x1000u, "%.*g%%");
+  }
+  else
+  {
+    j_GetMagickPrecision();
+    j_FormatLocaleString(v10, 0x1000u, "%.*g");
+  }
+  return j_ConcatenateMagickString(a4, v10, &elf_gnu_hash_bucket[686]); // I5
+}
+/////
+__fastcall GetColorInfoList(char *a1, size_t *a2, int a3)
+{
+  int v4; // I4
+  int v5;
+  size_t v6;
+  size_t v7; // I4
+  _DWORD *base;
+  if ( !a1 )
+    _assert_fail("pattern != (char *) NULL", "MagickCore/color.c", 0x511u, "GetColorInfoList"); // I6
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/color.c", "GetColorInfoList", 1298, "%s", a1);
+  if ( !a2 )
+    _assert_fail("number_colors != (size_t *) NULL", "MagickCore/color.c", 0x513u, "GetColorInfoList"); // I6
+  *a2 = 0;
+  if ( !j_GetColorInfo("*", a3) )
+    return 0;
+  v4 = j_GetNumberOfElementsInLinkedList(color_cache);
+  base = (_DWORD *)j_AcquireQuantumMemory(v4 + 1, 4); // I1
+  if ( !base )
+    return 0;
+  j_LockSemaphoreInfo(color_semaphore);
+  j_ResetLinkedListIterator((_DWORD *)color_cache);
+  v5 = j_GetNextValueInLinkedList(color_cache);
+  v6 = 0;
+  while ( v5 )
+  {
+    if ( !*(_DWORD *)(v5 + 108) && j_GlobExpression(*(unsigned __int8 **)(v5 + 4), (unsigned __int8 *)a1, 0) ) // I1
+    {
+      v7 = v6++;
+      base[v7] = v5;
+    }
+    v5 = j_GetNextValueInLinkedList(color_cache);
+  }
+  j_UnlockSemaphoreInfo(color_semaphore);
+  qsort(base, v6, 4u, (__compar_fn_t)ColorInfoCompare);
+  base[v6] = 0; // I1
+  *a2 = v6;
+  return base;
+}
+/////
+__fastcall IsColorCacheInstantiated(int a1)
+{
+  if ( !color_cache )
+  {
+    if ( !color_semaphore )
+      j_ActivateSemaphoreInfo(&color_semaphore);
+    j_LockSemaphoreInfo(color_semaphore);
+    if ( !color_cache )
+      color_cache = (int)AcquireColorCache("colors.xml", a1);
+    j_UnlockSemaphoreInfo(color_semaphore);
+  }
+  return color_cache != 0;
+}
+/////
+__fastcall IsEquivalentAlpha(double *a1, int a2, int a3)
+{
+  int v4;
+  int v5; // I4
+  double v7;
+  if ( !*((_DWORD *)a1 + 175) ) // I1
+    return 1;
+  if ( *(double *)(a2 + 72) == *(double *)(a3 + 72) ) // I1
+    return 1;
+  if ( a1[73] <= 0.707106781 ) // I1
+  {
+    v4 = 1719614413;
+    v5 = 1072079006;
+  }
+  else
+  {
+    v4 = *((_DWORD *)a1 + 146);
+    v5 = *((_DWORD *)a1 + 147);
+  }
+  v7 = *(double *)(a2 + 72) - *(double *)(a3 + 72); // I1
+  return v7 * v7 <= COERCE_DOUBLE(__PAIR64__(v5, v4)) * COERCE_DOUBLE(__PAIR64__(v5, v4));
+}
+/////
+__fastcall IsEquivalentIntensity(int a1, int a2, int a3)
+{
+  double v3; // I4
+  int v5; // I4
+  int v6; // I4
+  double v7; // I4
+  double v12;
+  double v13;
+  v3 = COERCE_DOUBLE(j_GetPixelInfoIntensity(a1, a2));
+  if ( v3 == COERCE_DOUBLE(j_GetPixelInfoIntensity(a1, a3)) )
+    return 1;
+  if ( *(double *)(a1 + 584) <= 0.707106781 ) // I1
+  {
+    v5 = 1719614413;
+    v6 = 1072079006;
+  }
+  else
+  {
+    v5 = *(_DWORD *)(a1 + 584); // I1
+    v6 = *(_DWORD *)(a1 + 588); // I1
+  }
+  v12 = COERCE_DOUBLE(__PAIR64__(v6, v5)) * COERCE_DOUBLE(__PAIR64__(v6, v5));
+  v7 = COERCE_DOUBLE(j_GetPixelInfoIntensity(a1, a2));
+  v13 = v7 - COERCE_DOUBLE(j_GetPixelInfoIntensity(a1, a3));
+  return v13 * v13 <= v12;
+}
+/////
+__fastcall GetImageChannels(int a1)
+{
+  int v1;
+  int i; // I4
+  int v3; // I4
+  int v6;
+  int v7;
+  v6 = 0;
+  v1 = 0;
+  for ( i = GetPixelChannels_6(a1); v1 < i; i = GetPixelChannels_6(a1) )
+  {
+    v7 = GetPixelChannelChannel_3(a1, v1);
+    if ( (GetPixelChannelTraits_2(a1, v7) & 2) != 0 )
+      ++v6;
+    ++v1;
+  }
+  if ( v6 ) // I3
+    v3 = v6;
+  else
+    v3 = 1;
+  return v3;
+}
+/////
+__fastcall GetRootMeanSquaredDistortion(int a1, int a2, int a3, int a4)
+{
+  int i;
+  int v7;
+  v7 = GetMeanSquaredDistortion(a1, a2, a3, a4);
+  for ( i = 0; i <= 32; ++i )
+    *(double *)(a3 + 8 * i) = sqrt(*(double *)(a3 + 8 * i)); // I1
+  return v7;
+}
+/////
+__fastcall GetSimilarityMetric(int a1, int a2, int a3, int a4, int a5, int a6)
+{
+  int v6;
+  int *v12;
+  int v13;
+  int v14[3]; // I4
+  int v15[4];
+  j_SetGeometry(a2, v15);
+  v15[2] = a4;
+  v15[3] = a5;
+  v12 = j_CropImage(a1, v15, a6);
+  if ( !v12 )
+    return 0;
+  v14[0] = 0;
+  v14[1] = 0;
+  v13 = j_GetImageDistortion((int)v12, a2, a3, v14, a6);
+  j_DestroyImage((int)v12);
+  if ( v13 )
+    v6 = v14[0];
+  else
+    v6 = 0;
+  return v6;
+}
+/////
+__fastcall Ascii85Encode(size_t result, char a2)
+{
+  unsigned __int8 *v2;
+  char *j;
+  unsigned __int8 *v4; // I4
+  unsigned __int8 *v5; // I4
+  int v6; // I4
+  int i;
+  int k; // I4
+  v6 = result;
+  if ( !result )
+    _assert_fail("image != (Image *) NULL", "MagickCore/compress.c", 0x137u, "Ascii85Encode"); // I6
+  if ( *(_DWORD *)(result + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/compress.c", 0x138u, "Ascii85Encode"); // I6
+  if ( !*(_DWORD *)(result + 816) ) // I1
+    _assert_fail( // I6
+      "image->ascii85 != (Ascii85Info *) NULL",
+      "MagickCore/compress.c",
+      (unsigned int)&elf_gnu_hash_nbuckets + 1,
+      "Ascii85Encode");
+  *(_BYTE *)(*(_DWORD *)(result + 816) + (**(_DWORD **)(result + 816))++ + 14) = a2; // I1
+  if ( **(int **)(result + 816) > 3 ) // I1
+  {
+    v2 = (unsigned __int8 *)(*(_DWORD *)(result + 816) + 14); // I1
+    for ( i = **(_DWORD **)(result + 816); i > 3; i -= 4 ) // I1
+    {
+      result = Ascii85Tuple(*(_DWORD *)(v6 + 816), v2); // I1
+      for ( j = (char *)(*(_DWORD *)(v6 + 816) + 8); *j; ++j ) // I1
+      {
+        if ( (int)--*(_DWORD *)(*(_DWORD *)(v6 + 816) + 4) < 0 && *j != 37 ) // I1
+        {
+          j_WriteBlobByte(v6, 10);
+          *(_DWORD *)(*(_DWORD *)(v6 + 816) + 4) = 72; // I1
+        }
+        result = j_WriteBlobByte(v6, *j);
+      }
+      v2 += 8;
+    }
+    **(_DWORD **)(v6 + 816) = i; // I1
+    v4 = v2 - 4;
+    for ( k = 0; k <= 3; ++k )
+    {
+      v5 = v4++;
+      *(_BYTE *)(*(_DWORD *)(v6 + 816) + k + 14) = *v5; // I1
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall Ascii85Initialize(int a1)
+{
+  int *v1; // I4
+  void *result; // I4
+  int *v4; // I4
+  const char *v5; // I4
+  if ( !*(_DWORD *)(a1 + 816) ) // I1
+    *(_DWORD *)(a1 + 816) = j_AcquireMagickMemory(24); // I1
+  if ( !*(_DWORD *)(a1 + 816) ) // I1
+  {
+    v4 = j_AcquireExceptionInfo();
+    v1 = _errno_location();
+    v5 = j_GetExceptionMessage(*v1);
+    j_ThrowMagickException(
+      (int)v4,
+      "MagickCore/compress.c",
+      (int)"Ascii85Initialize",
+      272,
+      0x2BCu,
+      (int)"MemoryAllocationFailed",
+      "`%s'",
+      v5);
+    j_DestroyString((int)v5);
+    j_CatchException(v4);
+    j_DestroyExceptionInfo((int)v4);
+    j_MagickCoreTerminus();
+    exit(1);
+  }
+  result = memset(*(void **)(a1 + 816), 0, 0x18u);
+  *(_DWORD *)(*(_DWORD *)(a1 + 816) + 4) = 72; // I1
+  **(_DWORD **)(a1 + 816) = 0; // I1
+  return result; // I5
+}
+/////
+__fastcall Ascii85Flush(int a1)
+{
+  unsigned __int8 *v1; // I4
+  if ( !a1 )
+    _assert_fail("image != (Image *) NULL", "MagickCore/compress.c", 0x118u, "Ascii85Flush"); // I6
+  if ( *(_DWORD *)(a1 + 13164) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "image->signature == MagickCoreSignature",
+      "MagickCore/compress.c",
+      (unsigned int)&dword_118 + 1,
+      "Ascii85Flush");
+  if ( *(_DWORD *)(a1 + 13136) ) // I1
+    j_LogMagickEvent(
+      (char *)&stru_7FF4.st_info,
+      "MagickCore/compress.c",
+      "Ascii85Flush",
+      283,
+      "%s",
+      (const char *)(a1 + 832)); // I1
+  if ( !*(_DWORD *)(a1 + 816) ) // I1
+    _assert_fail("image->ascii85 != (Ascii85Info *) NULL", "MagickCore/compress.c", 0x11Cu, "Ascii85Flush"); // I6
+  if ( **(int **)(a1 + 816) > 0 ) // I1
+  {
+    *(_BYTE *)(*(_DWORD *)(a1 + 816) + **(_DWORD **)(a1 + 816) + 14) = 0; // I1 I2
+    *(_BYTE *)(*(_DWORD *)(a1 + 816) + **(_DWORD **)(a1 + 816) + 1 + 14) = 0; // I1 I2
+    *(_BYTE *)(*(_DWORD *)(a1 + 816) + **(_DWORD **)(a1 + 816) + 2 + 14) = 0; // I1 I2
+    Ascii85Tuple(*(_DWORD *)(a1 + 816), (unsigned __int8 *)(*(_DWORD *)(a1 + 816) + 14)); // I1
+    if ( *(_BYTE *)(*(_DWORD *)(a1 + 816) + 8) == 122 ) // I1 I2
+      v1 = "!!!!";
+    else
+      v1 = (unsigned __int8 *)(*(_DWORD *)(a1 + 816) + 8); // I1
+    j_WriteBlob(a1, **(_DWORD **)(a1 + 816) + 1, v1); // I1
+  }
+  j_WriteBlobByte(a1, 126); // I2
+  j_WriteBlobByte(a1, 62); // I2
+  return j_WriteBlobByte(a1, 10);
+}
+/////
+__fastcall Ascii85Encode(size_t result, char a2)
+{
+  unsigned __int8 *v2;
+  char *j;
+  unsigned __int8 *v4; // I4
+  unsigned __int8 *v5; // I4
+  int v6; // I4
+  int i;
+  int k; // I4
+  v6 = result;
+  if ( !result )
+    _assert_fail("image != (Image *) NULL", "MagickCore/compress.c", 0x137u, "Ascii85Encode"); // I6
+  if ( *(_DWORD *)(result + 13164) != -1414746709 ) // I1
+    _assert_fail("image->signature == MagickCoreSignature", "MagickCore/compress.c", 0x138u, "Ascii85Encode"); // I6
+  if ( !*(_DWORD *)(result + 816) ) // I1
+    _assert_fail( // I6
+      "image->ascii85 != (Ascii85Info *) NULL",
+      "MagickCore/compress.c",
+      (unsigned int)&elf_gnu_hash_nbuckets + 1,
+      "Ascii85Encode");
+  *(_BYTE *)(*(_DWORD *)(result + 816) + (**(_DWORD **)(result + 816))++ + 14) = a2; // I1
+  if ( **(int **)(result + 816) > 3 ) // I1
+  {
+    v2 = (unsigned __int8 *)(*(_DWORD *)(result + 816) + 14); // I1
+    for ( i = **(_DWORD **)(result + 816); i > 3; i -= 4 ) // I1
+    {
+      result = Ascii85Tuple(*(_DWORD *)(v6 + 816), v2);
+      for ( j = (char *)(*(_DWORD *)(v6 + 816) + 8); *j; ++j ) // I1
+      {
+        if ( (int)--*(_DWORD *)(*(_DWORD *)(v6 + 816) + 4) < 0 && *j != 37 ) // I1 I2
+        {
+          j_WriteBlobByte(v6, 10);
+          *(_DWORD *)(*(_DWORD *)(v6 + 816) + 4) = 72; // I1
+        }
+        result = j_WriteBlobByte(v6, *j);
+      }
+      v2 += 8;
+    }
+    **(_DWORD **)(v6 + 816) = i; // I1
+    v4 = v2 - 4;
+    for ( k = 0; k <= 3; ++k )
+    {
+      v5 = v4++;
+      *(_BYTE *)(*(_DWORD *)(v6 + 816) + k + 14) = *v5; // I1
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall AddConfigureKey(_DWORD *a1, const char *a2, const char *a3, const char *a4, int a5)
+{
+  _DWORD *result;
+  _DWORD *s; // I4
+  result = (_DWORD *)j_AcquireMagickMemory(24);
+  s = result;
+  if ( result )
+  {
+    memset(result, 0, 0x18u);
+    if ( a5 == 1 )
+    {
+      *s = a2; // I1
+      s[1] = a3; // I1
+      s[2] = a4; // I1
+    }
+    else
+    {
+      *s = j_ConstantString(a2); // I1
+      s[1] = j_ConstantString(a3); // I1
+      s[2] = j_ConstantString(a4); // I1
+    }
+    s[3] = a5; // I1
+    s[5] = -1414746709; // I1
+    result = (_DWORD *)j_AppendValueToLinkedList(a1, (int)s);
+  }
+  return result; // I5
+}
+/////
+__fastcall AcquireConfigureCache(char *a1, int a2)
+{
+  const char *v2; // I4
+  char *v3; // I4
+  const char *v4; // I4
+  const char *v5; // I4
+  const char *v6; // I4
+  _DWORD *i; // I4
+  int *v11;
+  int *v12; // I4
+  char v13[16];
+  char v14[16];
+  v11 = j_NewLinkedList(0);
+  v12 = j_GetConfigureOptions(a1, a2);
+  for ( i = (_DWORD *)j_GetNextValueInLinkedList((int)v12); i; i = (_DWORD *)j_GetNextValueInLinkedList((int)v12) )
+  {
+    v2 = (const char *)j_GetStringInfoDatum((int)i);
+    v3 = (char *)j_GetStringInfoPath(i);
+    if ( LoadConfigureCache(v11, v2, v3, 0, a2) )
+      break;
+  }
+  j_DestroyConfigureOptions((void **)v12);
+  AddConfigureKey(v11, "[built-in]", "NAME", "ImageMagick", 1);
+  v4 = j_GetMagickQuantumDepth(0);
+  AddConfigureKey(v11, "[built-in]", "QuantumDepth", v4, 1);
+  v5 = j_GetMagickFeatures();
+  AddConfigureKey(v11, "[built-in]", "FEATURES", v5, 1);
+  v6 = (const char *)j_GetMagickDelegates();
+  AddConfigureKey(v11, "[built-in]", "DELEGATES", v6, 1);
+  j_AcquireUniqueFilename(v14);
+  j_GetPathComponent(v14, 3, v13);
+  AddConfigureKey(v11, "[built-in]", "MAGICK_TEMPORARY_PATH", v13, 0);
+  return v11;
+}
+/////
+__fastcall DestroyConfigureElement(int *a1)
+{
+  if ( !a1[3] ) // I1
+  {
+    if ( a1[2] ) // I1
+      a1[2] = j_DestroyString(a1[2]); // I1
+    if ( a1[1] ) // I1
+      a1[1] = j_DestroyString(a1[1]); // I1
+    if ( *a1 )
+      *a1 = j_DestroyString(*a1);
+  }
+  j_RelinquishMagickMemory((int)a1);
+  return 0;
+}
+/////
+__fastcall GetConfigureInfo(const char *a1, int a2)
+{
+  int v3;
+  _DWORD *v4; // I4
+  int v5; // I4
+  if ( !a2 )
+    _assert_fail("exception != (ExceptionInfo *) NULL", "MagickCore/configure.c", 0x163u, "GetConfigureInfo"); // I6
+  if ( !IsConfigureCacheInstantiated(a2) )
+    return 0;
+  j_LockSemaphoreInfo(configure_semaphore);
+  j_ResetLinkedListIterator((_DWORD *)configure_cache);
+  v3 = j_GetNextValueInLinkedList(configure_cache);
+  if ( a1 && j_LocaleCompare(a1, "*") )
+  {
+    while ( v3 && j_LocaleCompare(a1, *(const char **)(v3 + 4)) )
+      v3 = j_GetNextValueInLinkedList(configure_cache);
+    if ( v3 )
+    {
+      v4 = (_DWORD *)configure_cache;
+      v5 = j_RemoveElementByValueFromLinkedList((_DWORD *)configure_cache, v3);
+      j_InsertValueInLinkedList(v4, 0, v5);
+    }
+  }
+  j_UnlockSemaphoreInfo(configure_semaphore);
+  return v3;
+}
+/////
+__fastcall GetConfigureInfoList(char *a1, size_t *a2, int a3)
+{
+  int v4; // I4
+  int v5;
+  size_t v6;
+  size_t v7; // I4
+  _DWORD *base;
+  if ( !a1 )
+    _assert_fail("pattern != (char *) NULL", "MagickCore/configure.c", 0x1C0u, "GetConfigureInfoList"); // I6
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/configure.c", "GetConfigureInfoList", 449, "%s", a1);
+  if ( !a2 )
+    _assert_fail("number_options != (size_t *) NULL", "MagickCore/configure.c", 0x1C2u, "GetConfigureInfoList"); // I6
+  *a2 = 0;
+  if ( !j_GetConfigureInfo("*", a3) )
+    return 0;
+  v4 = j_GetNumberOfElementsInLinkedList(configure_cache);
+  base = (_DWORD *)j_AcquireQuantumMemory(v4 + 1, 4); // I1
+  if ( !base )
+    return 0;
+  j_LockSemaphoreInfo(configure_semaphore);
+  j_ResetLinkedListIterator((_DWORD *)configure_cache);
+  v5 = j_GetNextValueInLinkedList(configure_cache);
+  v6 = 0;
+  while ( v5 )
+  {
+    if ( !*(_DWORD *)(v5 + 16) && j_GlobExpression(*(unsigned __int8 **)(v5 + 4), (unsigned __int8 *)a1, 0) ) // I1
+    {
+      v7 = v6++;
+      base[v7] = v5;
+    }
+    v5 = j_GetNextValueInLinkedList(configure_cache);
+  }
+  j_UnlockSemaphoreInfo(configure_semaphore);
+  qsort(base, v6, 4u, (__compar_fn_t)ConfigureInfoCompare);
+  base[v6] = 0;
+  *a2 = v6;
+  return base;
+}
+/////
+__fastcall GetConfigureList(char *a1, size_t *a2, int a3)
+{
+  int v4; // I4
+  int v5;
+  size_t v6;
+  size_t v7; // I4
+  _DWORD *base;
+  if ( !a1 )
+    _assert_fail("pattern != (char *) NULL", "MagickCore/configure.c", 0x21Eu, "GetConfigureList"); // I6
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/configure.c", "GetConfigureList", 543, "%s", a1);
+  if ( !a2 )
+    _assert_fail("number_options != (size_t *) NULL", "MagickCore/configure.c", 0x220u, "GetConfigureList"); // I6
+  *a2 = 0;
+  if ( !j_GetConfigureInfo("*", a3) )
+    return 0;
+  v4 = j_GetNumberOfElementsInLinkedList(configure_cache);
+  base = (_DWORD *)j_AcquireQuantumMemory(v4 + 1, 4); // I1
+  if ( !base )
+    return 0;
+  j_LockSemaphoreInfo(configure_semaphore);
+  j_ResetLinkedListIterator((_DWORD *)configure_cache);
+  v5 = j_GetNextValueInLinkedList(configure_cache);
+  v6 = 0;
+  while ( v5 )
+  {
+    if ( !*(_DWORD *)(v5 + 16) && j_GlobExpression(*(unsigned __int8 **)(v5 + 4), (unsigned __int8 *)a1, 0) ) // I1
+    {
+      v7 = v6++;
+      base[v7] = j_ConstantString(*(const char **)(v5 + 4)); // I1
+    }
+    v5 = j_GetNextValueInLinkedList(configure_cache);
+  }
+  j_UnlockSemaphoreInfo(configure_semaphore);
+  qsort(base, v6, 4u, (__compar_fn_t)ConfigureCompare);
+  base[v6] = 0;
+  *a2 = v6;
+  return base;
+}
+/////
+__fastcall GetConfigureOption(const char *a1)
+{
+  _BYTE *v1; // I4
+  _DWORD *v4;
+  int v5;
+  const char *v6;
+  if ( !a1 )
+    _assert_fail("option != (const char *) NULL", "MagickCore/configure.c", 0x25Bu, "GetConfigureOption"); // I6
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/configure.c", "GetConfigureOption", 604, "%s", a1);
+  v4 = j_AcquireExceptionInfo();
+  v5 = j_GetConfigureInfo(a1, (int)v4);
+  j_DestroyExceptionInfo((int)v4);
+  if ( !v5 )
+    return 0;
+  v6 = (const char *)j_GetConfigureValue(v5);
+  if ( v6 && *v6 )
+    v1 = j_ConstantString(v6);
+  else
+    v1 = 0;
+  return v1;
+}
+/////
+__fastcall GetConfigureValue(int a1)
+{
+  j_LogMagickEvent((char *)&stru_7FF4.st_info, "MagickCore/configure.c", "GetConfigureValue", 978, "...");
+  if ( !a1 )
+    _assert_fail("configure_info != (ConfigureInfo *) NULL", "MagickCore/configure.c", 0x3D3u, "GetConfigureValue"); // I6
+  if ( *(_DWORD *)(a1 + 20) != -1414746709 ) // I1
+    _assert_fail( // I6
+      "configure_info->signature == MagickCoreSignature",
+      "MagickCore/configure.c",
+      0x3D4u,
+      "GetConfigureValue");
+  return *(_DWORD *)(a1 + 8); // I1
+}
+/////
+__fastcall IsConfigureCacheInstantiated(int a1)
+{
+  if ( !configure_cache )
+  {
+    if ( !configure_semaphore )
+      j_ActivateSemaphoreInfo(&configure_semaphore);
+    j_LockSemaphoreInfo(configure_semaphore);
+    if ( !configure_cache )
+      configure_cache = (int)AcquireConfigureCache("configure.xml", a1);
+    j_UnlockSemaphoreInfo(configure_semaphore);
+  }
+  return configure_cache != 0;
+}
+/////
+__fastcall PingStream(int a1, int a2, int a3)
+{
+  return a3;
+}
+/////
+__fastcall IsCoderAuthorized(char *a1, char *a2, int a3)
+{
+  if ( j_IsRightsAuthorized((_BYTE *)&dword_0 + 1, a2, a1) )
+    return 1;
+  *_errno_location() = 1;
+  j_ThrowMagickException(
+    a3,
+    "MagickCore/constitute.c",
+    (int)"IsCoderAuthorized",
+    412,
+    0x1F3u,
+    (int)"NotAuthorized",
+    "`%s'",
+    a1);
+  return 0;
+}
+

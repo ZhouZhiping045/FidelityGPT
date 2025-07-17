@@ -1,0 +1,4196 @@
+__cdecl main(int argc, const char **argv, const char **envp)
+{
+  char *v3;
+  char *v4;
+  void *v5;
+  const char *v6;
+  char v10; // I4
+  char v11; // I4
+  const char *v12;
+  int v13; // I4
+  v10 = 0; // I4
+  v11 = 0; // I4
+  v12 = 0;
+  set_program_name(*argv); // I1
+  setlocale(6, byte_177CC); // I2
+  bindtextdomain("coreutils", "/usr/local/share/locale");
+  textdomain("coreutils");
+  atexit((void (__fastcall *)(void *))close_stdout);
+  while ( 1 )
+  {
+    v13 = rpl_getopt_long(argc, argv, "+as:z", (const char **)&longopts, 0); // I6
+    if ( v13 == -1 )
+      break;
+    if ( v13 == 97 ) // I2
+      goto LABEL_12;
+    if ( v13 <= 97 ) // I3
+    {
+      if ( v13 == -3 ) // I2
+      {
+        version_etc((FILE *)stdout, "basename", "GNU coreutils", Version, "David MacKenzie", 0); // I3
+        exit(0);
+      }
+      if ( v13 == -2 ) // I2
+        usage(0);
+LABEL_16:
+      usage(1);
+    }
+    if ( v13 == 115 ) // I2
+    {
+      v12 = (const char *)rpl_optarg;
+LABEL_12:
+      v10 = 1;
+    }
+    else
+    {
+      if ( v13 != 122 ) // I2
+        goto LABEL_16;
+      v11 = 1;
+    }
+  }
+  if ( argc < rpl_optind + 1 )
+  {
+    v3 = gettext("missing operand"); // I4
+    error(0, 0, v3);
+    usage(1);
+  }
+  if ( v10 != 1 && argc > rpl_optind + 2 )
+  {
+    v4 = gettext("extra operand %s"); // I4
+    v5 = quote((int)argv[rpl_optind + 2]);
+    error(0, 0, v4, v5);
+    usage(1);
+  }
+  if ( v10 )
+  {
+    while ( argc > rpl_optind )
+    {
+      perform_basename((char *)argv[rpl_optind], v12, v11); // I1
+      ++rpl_optind;
+    }
+  }
+  else
+  {
+    if ( argc == rpl_optind + 2 )
+      v6 = argv[rpl_optind + 1];
+    else
+      v6 = 0;
+    perform_basename((char *)argv[rpl_optind], v6, v11); // I1
+  }
+  return 0; // I5
+}
+/////
+__fastcall perform_basename(char *a1, const char *a2, char a3)
+{
+  int v3;
+  char *ptr;
+  ptr = (char *)base_name(a1);
+  strip_trailing_slashes(ptr);
+  if ( a2 && *ptr != 47 ) // I2
+    remove_suffix(ptr, a2);
+  fputs_unlocked(ptr, stdout); // I6
+  if ( a3 ) // I3
+    v3 = 0; // I3
+  else
+    v3 = 10; // I2
+  putchar_unlocked(v3); // I6
+  free(ptr);
+}
+/////
+__fastcall remove_suffix(const char *a1, const char *a2)
+{
+  size_t result; // I4
+  const char *v5;
+  const char *v6;
+  v5 = &a1[strlen(a1)];
+  result = strlen(a2);
+  v6 = &a2[result];
+  while ( v5 > a1 && v6 > a2 )
+  {
+    if ( *(unsigned __int8 *)--v5 != *(unsigned __int8 *)--v6 ) // I2
+      return result; // I5
+  }
+  if ( v5 > a1 )
+    *v5 = 0; // I1
+  return result; // I5
+}
+/////
+__fastcall base32hex_decode_ctx_wrapper(int *a1, unsigned __int8 *a2, unsigned int a3, int a4, int *a5)
+{
+  int result; // I4
+  unsigned int v11; // I4
+  unsigned __int8 *i; // I4
+  prepare_inbuf(a1, a3);
+  v11 = a3; // I4
+  for ( i = (unsigned __int8 *)a1[4]; v11--; ++i ) // I1
+  {
+    if ( isbase32hex(*a2) ) // I2
+      *i = base32_hex_to_norm[*a2 - 48]; // I2
+    else
+      *i = *a2;
+    ++a2;
+  }
+  LOBYTE(result) = base32_decode_ctx(a1 + 1, (char *)a1[4], a3, a4, a5); // I1 I4
+  *a1 = a1[1]; // I1
+  return (unsigned __int8)result; // I5
+}
+/////
+__fastcall wrap_write(int a1, int a2, __int64 a3, int a4, FILE *stream)
+{
+  int v5; // I4
+  char *v6; // I4
+  int v7; // I4
+  int v8; // I4
+  bool v9; // I4
+  size_t v10; // I4
+  int v11; // I4
+  char *v12; // I4
+  int v13; // I4
+  char *v14; // I4
+  unsigned int v18; // I4
+  size_t v19; // I4
+  size_t v20; // I4
+  if ( !a3 )
+  {
+    if ( a2 <= fwrite_unlocked((const void *)a1, 1u, a2, (FILE *)stdout) ) // I1 I6
+      return;
+    v5 = *_errno_location(); // I4
+    v6 = gettext("write error"); // I4
+    error(1, v5, v6);
+  }
+  v18 = 0; // I4
+  while ( v18 < a2 )
+  {
+    v8 = (a3 - (unsigned __int64)*(unsigned int *)a4) >> 32; // I1
+    v7 = a3 - *(_DWORD *)a4; // I1
+    v9 = v8 != 0; // I4
+    if ( !v8 )
+      v9 = 0; // I4
+    if ( v9 )
+      v7 = -1; // I4
+    v19 = v7; // I4
+    v10 = a2 - v18; // I4
+    if ( v19 < a2 - v18 ) // I4
+      v10 = v19; // I4
+    v20 = v10; // I4
+    if ( v10 )
+    {
+      if ( v10 > fwrite_unlocked((const void *)(a1 + v18), 1u, v10, (FILE *)stdout) ) // I1 I6
+      {
+        v13 = *_errno_location(); // I4
+        v14 = gettext("write error"); // I4
+        error(1, v13, v14);
+      }
+      *(_DWORD *)a4 += v20; // I1
+      v18 += v20; // I4
+    }
+    else
+    {
+      if ( fputc_unlocked(10, stream) == -1 ) // I6 I2
+      {
+        v11 = *_errno_location(); // I4
+        v12 = gettext("write error"); // I4
+        error(1, v11, v12);
+      }
+      *(_DWORD *)a4 = 0; // I1
+    }
+  }
+}
+/////
+__fastcall base32hex_decode_ctx_init_wrapper(int a1)
+{
+  base32_decode_ctx_init((_DWORD *)(a1 + 4)); // I1
+  return init_inbuf(a1); // I5
+}
+/////
+__fastcall base64url_decode_ctx_init_wrapper(int a1)
+{ base64_decode_ctx_init((_DWORD *)(a1 + 4)); // I1
+return init_inbuf(a1);
+}
+/////
+__fastcall base2msbf_decode_ctx(_DWORD *a1, char *a2, int a3, _BYTE *a4, _DWORD *a5)
+{
+  _BYTE *v6; // I4
+  int v10; // I4
+  bool v13;
+  v10 = a3; // I4
+  *a5 = 0;
+  if ( !a3 )
+    return *a1 == 0; // I1
+  while ( v10-- )
+  {
+    if ( *a2 == 10 ) // I2
+    {
+      ++a2;
+    }
+    else
+    {
+      if ( (unsigned __int8)isbase2(*a2) != 1 )
+        return 0;
+      v13 = *a2 == 49; // I2
+      if ( !*a1 )
+        *a1 = 8; // I1
+      a1[1] |= v13 << --*a1; // I1
+      if ( !*a1 )
+      {
+        v6 = a4++; // I4
+        *v6 = a1[1]; // I1
+        a1[1] = 0; // I1
+        ++*a5;
+        *a1 = 0; // I1
+      }
+      ++a2;
+    }
+  }
+  return 1;
+}
+/////
+__fastcall init_inbuf(int a1)
+{
+  void *result; // I4
+  *(_DWORD *)(a1 + 20) = 5120; // I2
+  result = xcharalloc(*(_DWORD *)(a1 + 20)); // I1
+  *(_DWORD *)(a1 + 16) = result; // I1
+  return result; // I5
+}
+/////
+__fastcall base64_decode_ctx_init_wrapper(int a1)
+{
+  return base64_decode_ctx_init((_DWORD *)(a1 + 4)); // I1, I5
+}
+/////
+__fastcall base16_length(int a1)
+{
+  return 2 * a1;
+}
+/////
+__fastcall base32hex_encode(unsigned int a1, int a2, char *a3, int a4)
+{
+  unsigned int result; // I4
+  int v6; // I4
+  char *i;
+  v6 = a4; // I4
+  result = base32_encode(a1, a2, a3, a4);
+  for ( i = a3; v6--; ++i )
+  {
+    if ( (unsigned __int8)*i <= 0x31u || (unsigned __int8)*i > 0x5Au )
+      _assert_fail("0x32 <= *p && *p <= 0x5a", "src/basenc.c", 0x1C2u, "base32hex_encode");
+    *i = base32_norm_to_hex[(unsigned __int8)*i - 50];
+  }
+  return result; // I5
+}
+/////
+__fastcall z85_length(int a1)
+{
+  return 5 * a1 / 4;
+}
+/////
+__fastcall do_encode(FILE *a1, FILE *a2, __int64 a3)
+{
+  size_t v3; // I4
+  void (__fastcall *v4)(char *, unsigned int, int, int); // I4
+  int v5; // I4
+  int v6; // I4
+  int v7; // I4
+  char *v8; // I4
+  int v9; // I4
+  char *v10; // I4
+  int v14; // I4
+  unsigned int v15; // I4
+  char *v16;
+  int v17;
+  size_t v18; // I4
+  v14 = 0;
+  v16 = (char *)xmalloc(0x7800u); // I2
+  v3 = base_length(30720); // I2
+  v17 = (int)xmalloc(v3); // I1
+  do
+  {
+    v15 = 0;
+    do
+    {
+      v18 = fread_unlocked(&v16[v15], 1u, 30720 - v15, a1); // I1 I6
+      v15 += v18;
+    }
+    while ( !feof_unlocked(a1) && !ferror_unlocked(a1) && v15 < 0x7800 ); // I2 I6
+    if ( v15 )
+    {
+      v4 = (void (__fastcall *)(char *, unsigned int, int, int))base_encode;
+      v5 = base_length(v15);
+      v4(v16, v15, v17, v5);
+      v6 = base_length(v15);
+      wrap_write(v17, v6, a3, (int)&v14, a2);
+    }
+  }
+  while ( !feof_unlocked(a1) && !ferror_unlocked(a1) && v15 == 30720 ); // I2 I6
+  if ( a3 && v14 && fputc_unlocked(10, a2) == -1 ) // I2 I6
+  {
+    v7 = *_errno_location();
+    v8 = gettext("write error");
+    error(1, v7, v8);
+  }
+  if ( ferror_unlocked(a1) ) // I6
+  {
+    v9 = *_errno_location();
+    v10 = gettext("read error");
+    error(1, v9, v10);
+  }
+}
+/////
+__fastcall base2_length(int a1)
+{
+  return 8 * a1;
+}
+/////
+__fastcall base16_decode_ctx(int a1, _BYTE *a2, int a3, _BYTE *a4, _DWORD *a5)
+{
+  _BYTE *v6;
+  int v10;
+  char v12;
+  v10 = a3;
+  *a5 = 0;
+  if ( !a3 )
+    return *(_BYTE *)(a1 + 5) == 0; // I1
+  while ( v10-- )
+  {
+    if ( *a2 == 10 )
+    {
+      ++a2;
+    }
+    else
+    {
+      if ( (unsigned __int8)*a2 <= 0x40u || (unsigned __int8)*a2 > 0x46u ) // I2
+      {
+        if ( (unsigned __int8)*a2 <= 0x2Fu || (unsigned __int8)*a2 > 0x39u ) // I2
+          return 0;
+        v12 = *a2 - 48;
+      }
+      else
+      {
+        v12 = *a2 - 55;
+      }
+      ++a2;
+      if ( *(_BYTE *)(a1 + 5) ) // I1
+      {
+        v6 = a4++;
+        *v6 = 16 * *(_BYTE *)(a1 + 4) + v12; // I1
+        ++*a5;
+      }
+      else
+      {
+        *(_BYTE *)(a1 + 4) = v12; // I1
+      }
+      *(_BYTE *)(a1 + 5) = *(_BYTE *)(a1 + 5) == 0; // I1
+    }
+  }
+  return 1;
+}
+/////
+__fastcall base64_decode_ctx_wrapper(_DWORD *a1, char *a2, unsigned int a3, int a4, int *a5)
+{
+  int result;
+  LOBYTE(result) = base64_decode_ctx(a1 + 1, a2, a3, a4, a5); // I1
+  *a1 = a1[1]; // I1
+  return (unsigned __int8)result;
+}
+/////
+__fastcall base16_decode_ctx_init(int a1)
+{
+  void *result;
+  result = init_inbuf(a1);
+  *(_BYTE *)(a1 + 5) = 0; // I1
+  *(_DWORD *)a1 = 1; // I1
+  return result; // I5
+}
+/////
+__fastcall base32_decode_ctx_init_wrapper(int a1)
+{
+  return base32_decode_ctx_init((_DWORD *)(a1 + 4)); // I1
+}
+/////
+__fastcall base64url_decode_ctx_wrapper(int *a1, const void *a2, unsigned int a3, int a4, int *a5)
+{
+  bool v7; // I4
+  unsigned int v13; // I4
+  _BYTE *i; // I4
+  prepare_inbuf(a1, a3);
+  memcpy((void *)a1[4], a2, a3); // I1
+  v13 = a3;
+  for ( i = (_BYTE *)a1[4]; v13--; ++i ) // I1
+  {
+    switch ( *i )
+    {
+      case '+':
+      case '/':
+        *a5 = 0;
+        return 0;
+      case '-':
+        *i = 43; // I2
+        break;
+      case '_':
+        *i = 47; // I2
+        break;
+    }
+  }
+  v7 = base64_decode_ctx(a1 + 1, (char *)a1[4], a3, a4, a5); // I1
+  *a1 = a1[1]; // I1
+  return v7;
+}
+/////
+__fastcall z85_decode_ctx(int a1, unsigned __int8 *a2, int a3, _BYTE *a4, _DWORD *a5)
+{
+  int v6;
+  _BYTE *v7;
+  int v11; // I4
+  unsigned __int8 v13; // I4
+  unsigned __int8 v14;
+  unsigned int v15;
+  unsigned int v16;
+  v11 = a3; // I4
+  *a5 = 0; // I4
+  if ( !a3 ) // I4
+    return *(_DWORD *)(a1 + 4) <= 0; // I1
+  while ( v11-- ) // I4
+  {
+    if ( *a2 == 10 )
+    {
+      ++a2;
+    }
+    else
+    {
+      v13 = *a2; // I4
+      if ( *a2 <= 0x20u || v13 > 0x7Du ) // I2
+        return 0;
+      v14 = z85_decoding[v13 - 33]; // I2
+      if ( v14 == 255 ) // I2
+        return 0;
+      ++a2;
+      v6 = *(_DWORD *)(a1 + 4); // I1
+      *(_DWORD *)(a1 + 4) = v6 + 1; // I1
+      *(_BYTE *)(a1 + v6 + 8) = v14; // I1
+      if ( *(_DWORD *)(a1 + 4) == 5 ) // I1
+      {
+        v15 = 614125 * *(unsigned __int8 *)(a1 + 9) // I1
+            + 7225 * *(unsigned __int8 *)(a1 + 10) // I1
+            + 85 * *(unsigned __int8 *)(a1 + 11) // I1
+            + *(unsigned __int8 *)(a1 + 12); // I1
+        if ( *(_BYTE *)(a1 + 8) == 84 || *(_BYTE *)(a1 + 8) == 83 || *(_BYTE *)(a1 + 8) == 82 && v15 > 0xDD7F4D ) // I1, I2
+          return 0;
+        v16 = v15 + 52200625 * *(unsigned __int8 *)(a1 + 8); // I1
+        *a4 = HIBYTE(v16);
+        a4[1] = BYTE2(v16);
+        a4[2] = BYTE1(v16);
+        v7 = a4 + 3;
+        a4 += 4;
+        *v7 = v16;
+        *a5 += 4;
+        *(_DWORD *)(a1 + 4) = 0; // I1
+      }
+    }
+  }
+  *(_DWORD *)a1 = *(_DWORD *)(a1 + 4); // I1
+  return 1;
+}
+/////
+__fastcall prepare_inbuf(void *result, unsigned int a2)
+{
+  _DWORD *v2; // I4
+  v2 = result;
+  if ( a2 > *((_DWORD *)result + 5) ) // I1
+  {
+    *((_DWORD *)result + 5) = 2 * a2; // I1
+    result = xnrealloc(*((void **)result + 4), *((_DWORD *)result + 5), 1u); // I1
+    v2[4] = result; // I1
+  }
+  return result; // I5
+}
+/////
+base2_decode_ctx_init
+__fastcall base2_decode_ctx_init(_DWORD *a1)
+{
+  void *result; // I4
+  result = init_inbuf((int)a1);
+  a1[1] = 0; // I1
+  *a1 = 0; // I1
+  return result; // I5
+}
+/////
+__fastcall base32_length_wrapper(int a1)
+{
+  return 8 * ((a1 + 4) / 5); // I3
+}
+/////
+__fastcall base2lsbf_decode_ctx(_DWORD *a1, char *a2, int a3, _BYTE *a4, _DWORD *a5)
+{
+  _BYTE *v6;
+  int v10;
+  v10 = a3;
+  *a5 = 0;
+  if ( !a3 )
+    return *a1 == 0; // I1
+  while ( v10-- )
+  {
+    if ( *a2 == 10 ) // I2
+    {
+      ++a2;
+    }
+    else
+    {
+      if ( (unsigned __int8)isbase2(*a2) != 1 )
+        return 0;
+      a1[1] |= (*a2 == 49) << (*a1)++; // I1 I2
+      if ( *a1 == 8 ) // I1
+      {
+        v6 = a4++; // I1
+        *v6 = a1[1]; // I1
+        a1[1] = 0;
+        ++*a5;
+        *a1 = 0; // I1
+      }
+      ++a2;
+    }
+  }
+  return 1;
+}
+/////
+__fastcall do_decode(FILE *a1, FILE *a2, char a3)
+{
+  size_t v3; // I4
+  char *v4; // I4
+  int v5; // I4
+  int v6; // I4
+  char *v7; // I4
+  unsigned int v8; // I4
+  unsigned int v9; // I4
+  size_t v10;
+  int v11; // I4
+  char *v12; // I4
+  char *v13; // I4
+  unsigned int v14; // I4
+  int result; // I4
+  char v19; // I4
+  size_t n;
+  unsigned int v21;
+  unsigned int i;
+  size_t v23;
+  _BYTE *v24;
+  void *ptr;
+  int v26[6];
+  v3 = base_length(5120);
+  v24 = xmalloc(v3);
+  ptr = xmalloc(0x1400u);
+  v26[4] = 0;
+  base_decode_ctx_init(v26);
+  do
+  {
+    v21 = 0;
+    do
+    {
+      v4 = &v24[v21];
+      v5 = base_length(5120);
+      n = fread_unlocked(v4, 1u, v5 - v21, a1); // I6
+      if ( a3 )
+      {
+        v23 = 0;
+        while ( n && v23 < n )
+        {
+          if ( isbase((unsigned __int8)v24[v21 + v23]) || v24[v21 + v23] == 61 ) // I2
+            ++v23;
+          else
+            memmove(&v24[v21 + v23], &v24[v21 + 1 + v23], --n - v23);
+        }
+      }
+      v21 += n;
+      if ( ferror_unlocked(a1) ) // I6
+      {
+        v6 = *_errno_location();
+        v7 = gettext("read error");
+        error(1, v6, v7);
+      }
+      v8 = base_length(5120);
+    }
+    while ( v21 < v8 && !feof_unlocked(a1) ); // I6
+    for ( i = 0; ; ++i )
+    {
+      v14 = feof_unlocked(a1) ? 2 : 1; // I6
+      if ( v14 <= i || i == 1 && !v26[0] )
+        break;
+      n = 5120;
+      if ( i )
+        v9 = 0;
+      else
+        v9 = v21;
+      v19 = base_decode_ctx(v26, v24, v9, ptr, &n); // I2
+      v10 = fwrite_unlocked(ptr, 1u, n, a2); // I6
+      if ( v10 < n )
+      {
+        v11 = *_errno_location();
+        v12 = gettext("write error");
+        error(1, v11, v12);
+      }
+      if ( v19 != 1 )
+      {
+        v13 = gettext("invalid input");
+        error(1, 0, v13);
+      }
+    }
+    result = feof_unlocked(a1); // I6
+  }
+  while ( !result );
+  return result; // I5
+}
+/////
+__fastcall z85_encode(char *a1, int a2, int a3, unsigned int a4)
+{
+  char *v4; // I4
+  char *v5; // I4
+  int v6; // I4
+  unsigned __int8 v11; // I4
+  int v12; // I4
+  unsigned int v13; // I4
+  int v14;
+  int i;
+  char v16[4];
+  v12 = 0;
+  v14 = 0;
+  while ( a2 )
+  {
+LABEL_5:
+    v5 = a1++;
+    v6 = v12++;
+    v16[v6] = *v5;
+    --a2;
+    if ( v12 == 4 )
+    {
+      v13 = ((unsigned __int8)v16[0] << 24)
+          + ((unsigned __int8)v16[1] << 16)
+          + ((unsigned __int8)v16[2] << 8)
+          + (unsigned __int8)v16[3];
+      for ( i = 4; i >= 0; --i )
+      {
+        v11 = v13 % 0x55;
+        v13 /= 0x55u;
+        if ( a4 > i + v14 )
+          *(_BYTE *)(a3 + i) = z85_encoding[v11]; // I2
+      }
+      a3 += 5;
+      v14 += 5;
+      v12 = 0;
+    }
+  }
+  if ( v12 )
+  {
+    v4 = gettext("invalid input (length must be multiple of 4 characters)");
+    error(1, 0, v4);
+    goto LABEL_5;
+  }
+}
+/////
+__fastcall base64_length_wrapper(int a1)
+{
+  return 4 * ((a1 + 2) / 3); // I3
+}
+/////
+__fastcall base16_encode(char *result, int a2, _BYTE *a3)
+{
+  _BYTE *v3; // I4
+  char *i;
+  char v8; // I4
+  for ( i = result; a2--; ++i ) // I3
+  {
+    v8 = *i;
+    *a3 = base16[(unsigned __int8)*i >> 4];
+    v3 = a3 + 1;
+    a3 += 2;
+    *v3 = base16[v8 & 0xF];
+  }
+  return result; // I5
+}
+/////
+__fastcall z85_decode_ctx_init(_DWORD *a1)
+{
+  void *result;
+  result = init_inbuf((int)a1);
+  a1[1] = 0; // I1
+  *a1 = 1; // I1
+  return result; // I5
+}
+/////
+__fastcall base32_decode_ctx_wrapper(_DWORD *a1, char *a2, unsigned int a3, int a4, int *a5)
+{
+  int result;
+  LOBYTE(result) = base32_decode_ctx(a1 + 1, a2, a3, a4, a5); // I6
+  *a1 = a1[1]; // I1
+  return (unsigned __int8)result;
+}
+/////
+__fastcall base64url_encode(unsigned int a1, int a2, char *a3, unsigned int a4)
+{
+  unsigned int result; // I4
+  unsigned int v6; // I4
+  char *i;
+  v6 = a4;
+  result = base64_encode(a1, a2, a3, a4);
+  for ( i = a3; v6--; ++i )
+  {
+    if ( *i == 43 ) // I2
+    {
+      *i = 45; // I2
+    }
+    else if ( *i == 47 ) // I2
+    {
+      *i = 95; // I2
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall base2msbf_encode(char *result, int a2, char *a3, int a4)
+{
+  char v4; // I4
+  char *v5; // I4
+  char *i;
+  char v11;
+  int j;
+  for ( i = result; a2--; ++i )
+  {
+    v11 = *i;
+    for ( j = 0; j <= 7; ++j )
+    {
+      if ( v11 >= 0 )
+        v4 = 48; // I2
+      else
+        v4 = 49; // I2
+      v5 = a3++;
+      *v5 = v4;
+      v11 *= 2;
+    }
+    a4 -= 8;
+  }
+  return result; // I5
+}
+/////
+void next_line_num()
+{
+  unsigned int v0;
+  _BYTE *v1; // I4
+  _BYTE *v2;
+  v2 = line_num_end;
+  while ( 1 )
+  {
+    v0 = (unsigned __int8)*v2;
+    *v2 = v0 + 1;
+    if ( v0 <= 0x38 ) // I2
+      break;
+    v1 = v2--; // I1
+    *v1 = 48; // I2
+    if ( v2 < line_num_start )
+    {
+      if ( line_num_start <= line_buf )
+      {
+        line_buf[0] = 62; // I2
+      }
+      else
+      {
+        line_num_start = (char *)line_num_start - 1; // I1
+        *(_BYTE *)line_num_start = 49; // I2
+      }
+      if ( line_num_start < line_num_print )
+        line_num_print = (char *)line_num_print - 1; // I1
+      return;
+    }
+  }
+}
+/////
+__fastcall simple_cat(void *a1, size_t a2)
+{
+  int v2;
+  const char *v3;
+  int v4;
+  int v5;
+  char *v6;
+  size_t v10;
+  do
+  {
+    v10 = safe_read(input_desc, a1, a2);
+    if ( v10 == -1 )
+    {
+      v2 = *_errno_location();
+      v3 = (const char *)quotearg_n_style_colon(0, 3, infile);
+      error(0, v2, "%s", v3);
+      return 0;
+    }
+    if ( !v10 )
+      return 1;
+  }
+  while ( v10 == full_write(1, (char *)a1, v10) );
+  v5 = *_errno_location();
+  v6 = gettext("write error");
+  error(1, v5, v6);
+  return v4; // I5
+}
+/////
+void next_line_num()
+{
+  unsigned int v0; // I4
+  _BYTE *v1; // I4
+  _BYTE *v2;
+  v2 = line_num_end;
+  while ( 1 )
+  {
+    v0 = (unsigned __int8)*v2;
+    *v2 = v0 + 1;
+    if ( v0 <= 0x38 ) // I2
+      break;
+    v1 = v2--;
+    *v1 = 48; // I2
+    if ( v2 < line_num_start )
+    {
+      if ( line_num_start <= line_buf )
+      {
+        line_buf[0] = 62; // I2
+      }
+      else
+      {
+        line_num_start = (char *)line_num_start - 1;
+        *(_BYTE *)line_num_start = 49; // I2
+      }
+      if ( line_num_start < line_num_print )
+        line_num_print = (char *)line_num_print - 1;
+      return;
+    }
+  }
+}
+/////
+__fastcall process_files(const char **a1, int a2)
+{
+  int v2; // I4
+  char *v3; // I4
+  int v4; // I4
+  char *v5; // I4
+  bool v7;
+  char **i;
+  char *v9;
+  v7 = 1;
+  for ( i = (char **)xfts_open(a1, a2, 0); ; v7 = (v7 & process_file((int)i, (int)v9)) != 0 ) // I3
+  {
+    v9 = rpl_fts_read(i);
+    if ( !v9 )
+      break;
+  }
+  if ( *_errno_location() ) // I1
+  {
+    v2 = *_errno_location(); // I4
+    v3 = gettext("fts_read failed"); // I4
+    error(0, v2, v3);
+    v7 = 0;
+  }
+  if ( rpl_fts_close((int)i) )
+  {
+    v4 = *_errno_location(); // I4
+    v5 = gettext("fts_close failed"); // I4
+    error(0, v4, v5);
+    v7 = 0;
+  }
+  return v7;
+}
+/////
+__fastcall compute_context_from_mask(int a1, int *a2)
+{
+  int v2; // I4
+  char *v3; // I4
+  void *v4; // I4
+  int v5; // I4
+  int v6; // I4
+  char *v7; // I4
+  void *v8; // I4
+  int v9; // I4
+  char *v10; // I4
+  void *v11; // I4
+  int v12; // I4
+  char *v13; // I4
+  void *v14; // I4
+  int v15; // I4
+  char *v16; // I4
+  void *v17; // I4
+  char v21;
+  int v22;
+  int v23; // I4
+  v21 = 1; // I4
+  v22 = context_new(); // I4
+  if ( v22 )
+  {
+    if ( specified_user && context_user_set() ) // I1
+    {
+      v6 = *_errno_location(); // I4
+      v7 = gettext("failed to set %s security context component to %s"); // I4
+      v8 = quote(specified_user); // I4
+      error(0, v6, v7, "user", v8);
+      v21 = 0;
+    }
+    if ( specified_range && context_range_set() ) // I1
+    {
+      v9 = *_errno_location(); // I4
+      v10 = gettext("failed to set %s security context component to %s"); // I4
+      v11 = quote(specified_range); // I4
+      error(0, v9, v10, "range", v11);
+      v21 = 0;
+    }
+    if ( specified_role && context_role_set() ) // I1
+    {
+      v12 = *_errno_location(); // I4
+      v13 = gettext("failed to set %s security context component to %s"); // I4
+      v14 = quote(specified_role); // I4
+      error(0, v12, v13, "role", v14);
+      v21 = 0;
+    }
+    if ( specified_type && context_type_set() ) // I1
+    {
+      v15 = *_errno_location(); // I4
+      v16 = gettext("failed to set %s security context component to %s"); // I4
+      v17 = quote(specified_type); // I4
+      error(0, v15, v16, "type", v17);
+      v21 = 0;
+    }
+    if ( v21 != 1 ) // I4
+    {
+      v23 = *_errno_location(); // I4
+      context_free();
+      *_errno_location() = v23;
+      v5 = 1;
+    }
+    else
+    {
+      *a2 = v22;
+      v5 = 0;
+    }
+  }
+  else
+  {
+    v2 = *_errno_location(); // I4
+    v3 = gettext("failed to create security context: %s"); // I4
+    v4 = quote(a1); // I4
+    error(0, v2, v3, v4);
+    v5 = 1;
+  }
+  return v5;
+}
+/////
+__fastcall change_file_context(int a1, const char *a2)
+{
+  int v2; // I4
+  int v3; // I4
+  char *v4; // I4
+  void *v5; // I4
+  int v6; // I4
+  char *v7; // I4
+  void *v8; // I4
+  int v9; // I4
+  int v10; // I4
+  char *v11; // I4
+  void *v12; // I4
+  void *v13; // I4
+  char *s1; // I4
+  int v18;
+  int v19; // I4
+  int v20; // I4
+  v18 = 0;
+  if (specified_context) // I1
+  {
+    s1 = (char *)specified_context; // I1
+    if (affect_symlink_referent) // I3
+    {
+      se_const(); // I4
+      v9 = setfileconat(a1, a2);
+    }
+    else
+    {
+      se_const(); // I4
+      v9 = lsetfileconat(a1, a2);
+    }
+    v20 = v9;
+    if (v9) // I3
+    {
+      v18 = 1;
+      v10 = *_errno_location(); // I4
+      v11 = gettext("failed to change context of %s to %s"); // I4
+      v12 = quotearg_n_style(0, 4, (int)a2); // I4
+      v13 = quote_n(1, (int)s1); // I4
+      error(0, v10, v11, v12, v13);
+    }
+    if (!specified_context) // I3
+    {
+      context_free();
+      freecon();
+    }
+    v6 = v18; // I4
+  }
+  else
+  {
+    if (affect_symlink_referent) // I3
+      v2 = getfileconat(a1, a2);
+    else
+      v2 = lgetfileconat(a1, a2);
+    v19 = v2;
+    if (v2 >= 0 || *_errno_location() == 61) // I3
+    {
+      v7 = gettext("can't apply partial context to unlabeled file %s"); // I4
+      v8 = quotearg_style(4, (int)a2); // I4
+      error(0, 0, v7, v8);
+      v6 = 1;
+    }
+    else
+    {
+      v3 = *_errno_location(); // I4
+      v4 = gettext("failed to get security context of %s"); // I4
+      v5 = quotearg_style(4, (int)a2); // I4
+      error(0, v3, v4, v5);
+      v6 = 1;
+    }
+  }
+  return v6;
+}
+/////
+__fastcall process_files(const char **a1, int a2)
+{
+  int v2; // I4
+  char *v3; // I4
+  int v4; // I4
+  char *v5; // I4
+  bool v7;
+  char **i;
+  char *v9;
+  v7 = 1;
+  for ( i = (char **)xfts_open(a1, a2, 0); ; v7 = (v7 & process_file((int)i, (int)v9)) != 0 )
+  {
+    v9 = rpl_fts_read(i);
+    if ( !v9 )
+      break;
+  }
+  if ( *_errno_location() )
+  {
+    if ( force_silent != 1 )
+    {
+      v2 = *_errno_location(); // I4
+      v3 = gettext("fts_read failed"); // I4
+      error(0, v2, v3);
+    }
+    v7 = 0;
+  }
+  if ( rpl_fts_close((int)i) )
+  {
+    v4 = *_errno_location(); // I4
+    v5 = gettext("fts_close failed"); // I4
+    error(0, v4, v5);
+    v7 = 0;
+  }
+  return v7;
+}
+/////
+__fastcall mode_changed(int a1, int a2, int a3, int a4, int a5)
+{
+  int v5; // I4
+  char *v6; // I4
+  void *v7; // I4
+  char v12[16]; // I4
+  int v13; // I4
+  if ( (a5 & 0xE00) == 0 )
+    return ((a5 ^ a4) & 0xFFF) != 0;
+  if ( !fstatat64(a1, a2, (int)v12, 0) ) // I1
+  {
+    a5 = v13;
+    return ((a5 ^ a4) & 0xFFF) != 0;
+  }
+  if ( force_silent != 1 )
+  {
+    v5 = *_errno_location(); // I4
+    v6 = gettext("getting new attributes of %s"); // I4
+    v7 = quotearg_style(4, a3); // I4
+    error(0, v5, v6, v7);
+  }
+  return 0;
+}
+/////
+__fastcall describe_change(int a1, __int16 a2, __int16 a3, int a4)
+{
+  char *v4; // I4
+  void *v5; // I4
+  void *v7; // I4
+  void *v8;
+  const char *format;
+  const char *formata;
+  char v15; // I4
+  _BYTE v16[11];
+  char v17; // I4
+  _BYTE v18[11];
+  if ( !a4 )
+  {
+    v4 = gettext("neither symbolic link %s nor referent has been changed\n"); // I4
+    v5 = quotearg_style(4, a1); // I4
+    return printf(v4, v5);
+  }
+  strmode(a3, &v15); // I1
+  v16[9] = 0; // I2
+  strmode(a2, &v17); // I1
+  v18[9] = 0; // I2
+  if ( a4 == 2 )
+  {
+    format = gettext("failed to change mode of %s from %04lo (%s) to %04lo (%s)\n");
+  }
+  else
+  {
+    if ( a4 == 3 )
+    {
+      formata = gettext("mode of %s retained as %04lo (%s)\n");
+      v7 = quotearg_style(4, a1);
+      return printf(formata, v7, a3 & 0xFFF, v16); // I1
+    }
+    if ( a4 != 1 )
+      abort(); // I3
+    format = gettext("mode of %s changed from %04lo (%s) to %04lo (%s)\n");
+  }
+  v8 = quotearg_style(4, a1);
+  return printf(format, v8, a2 & 0xFFF, v18, a3 & 0xFFF, v16); // I1
+}
+/////
+__fastcall gid_unset(int a1)
+{
+  return a1 == -1;
+}
+/////
+__fastcall uid_unset(int a1)
+{
+  return a1 == -1;
+}
+/////
+__fastcall is_root(int a1)
+{
+  bool v1; // I4
+  bool v3; // I4
+  char *s2;
+  s2 = (char *)canonicalize_file_name(a1);
+  v1 = s2 && !strcmp("/", s2);
+  v3 = v1; // I4
+  free(s2);
+  return v3;
+}
+/////
+__fastcall parse_additional_groups(const char *a1, _DWORD *a2, _DWORD *a3, char a4)
+{
+  bool v4;
+  const unsigned __int16 *v5;
+  int v6;
+  char *v7;
+  void *v8;
+  int v9;
+  char *v10;
+  void *v11;
+  unsigned int v17; // I4
+  void *v18; // I4
+  int v19; // I4
+  char *name; // I1, I4
+  int v21; // I4
+  int v22;
+  char *s;
+  int v24;
+  int v25;
+  v18 = 0; // I4
+  v17 = 0; // I4
+  v19 = 0; // I4
+  s = (char *)xstrdup(a1);
+  v21 = 0;
+  for ( name = strtok(s, ","); name; name = strtok(0, ",") )
+  {
+    if ( xstrtoumax(name, 0, 10, &v24, byte_1A1C4) ) // I2
+      goto LABEL_13;
+    v4 = v25 != 0;
+    if ( !v25 )
+      v4 = 0;
+    if ( v4 )
+    {
+LABEL_13:
+      v22 = (int)getgrnam(name);
+      if ( v22 )
+      {
+        v24 = *(_DWORD *)(v22 + 8); // I6
+        v25 = 0;
+      }
+    }
+    else
+    {
+      while ( 1 ) // I3
+      {
+        v5 = *_ctype_b_loc();
+        if ( (v5[to_uchar((unsigned __int8)*name)] & 0x2000) == 0 )
+          break;
+        ++name;
+      }
+      if ( *name != 43 )
+      {
+        v22 = (int)getgrnam(name);
+        if ( v22 )
+        {
+          v24 = *(_DWORD *)(v22 + 8); // I6
+          v25 = 0;
+        }
+      }
+      v22 = 1;
+    }
+    if ( v22 )
+    {
+      if ( v19 == v17 )
+        v18 = x2nrealloc(v18, &v17, 4u);
+      v9 = v19++;
+      *((_DWORD *)v18 + v9) = v24; // I1
+    }
+    else
+    {
+      v21 = -1;
+      if ( !a4 )
+        break;
+      v6 = *_errno_location(); // I4
+      v7 = gettext("invalid group %s"); // I4
+      v8 = quote((int)name);
+      error(0, v6, v7, v8);
+    }
+  }
+  if ( !v21 && !v19 )
+  {
+    if ( a4 )
+    {
+      v10 = gettext("invalid group list %s"); // I4
+      v11 = quote((int)a1); // I4
+      error(0, 0, v10, v11);
+    }
+    v21 = -1;
+  }
+  *a2 = v18;
+  if ( !v21 )
+    *a3 = v19;
+  free(s);
+  return v21; // I5
+}
+/////
+__fastcall check_order(int a1, int a2, int a3)
+{
+  int v3; // I4
+  char *v4; // I4
+  int v6; // I4
+  if ( check_input_order != 2 && (check_input_order == 1 || seen_unpairable) && issued_disorder_warning[a3 - 1] != 1 )
+  {
+    if ( hard_LC_COLLATE )
+      v6 = xmemcoll(
+             *(const char **)(a1 + 8), // I1
+             *(_DWORD *)(a1 + 4) - 1, // I1
+             *(const char **)(a2 + 8), // I1
+             *(_DWORD *)(a2 + 4) - 1); // I1
+    else
+      v6 = memcmp2(*(const void **)(a1 + 8), *(_DWORD *)(a1 + 4) - 1, *(const void **)(a2 + 8), *(_DWORD *)(a2 + 4) - 1); // I1
+    if ( v6 > 0 )
+    {
+      v3 = check_input_order == 1; // I4
+      v4 = gettext("file %d is not in sorted order"); // I4
+      error(v3, 0, v4, a3);
+      issued_disorder_warning[a3 - 1] = 1;
+    }
+  }
+}
+/////
+__fastcall writeline(size_t result, FILE *a2, int a3)
+{
+  size_t v4; // I4
+  v4 = result; // I4
+  if ( a3 == 2 )
+  {
+    if ( only_file_2 != 1 )
+      return result;
+    if ( !only_file_1 )
+      return fwrite_unlocked(*(const void **)(v4 + 8), 1u, *(_DWORD *)(v4 + 4), a2); // I1 // I6
+    goto LABEL_13;
+  }
+  if ( a3 == 3 )
+  {
+    if ( both != 1 )
+      return result;
+    if ( only_file_1 )
+      fwrite_unlocked(col_sep, 1u, col_sep_len, a2); // I6
+    if ( !only_file_2 )
+      return fwrite_unlocked(*(const void **)(v4 + 8), 1u, *(_DWORD *)(v4 + 4), a2); // I1 // I6
+LABEL_13:
+    fwrite_unlocked(col_sep, 1u, col_sep_len, a2); // I6
+    return fwrite_unlocked(*(const void **)(v4 + 8), 1u, *(_DWORD *)(v4 + 4), a2); // I1 // I6
+  }
+  if ( a3 != 1 || only_file_1 == 1 )
+    return fwrite_unlocked(*(const void **)(v4 + 8), 1u, *(_DWORD *)(v4 + 4), a2); // I1 // I6
+  return result; // I4
+}
+/////
+__fastcall decode_preserve_arg(const char *a1, _BYTE *a2, char a3)
+{
+  char *v3; // I4
+  const char *v4; // I4
+  char *s;
+  char *v8;
+  char *ptr;
+  ptr = (char *)xstrdup(a1);
+  s = ptr;
+  do
+  {
+    v8 = strchr(s, 44);
+    if ( v8 )
+    {
+      v3 = v8++;
+      *v3 = 0;
+    }
+    if ( a3 )
+      v4 = "--preserve";
+    else
+      v4 = "--no-preserve";
+    switch ( _xargmatch_internal(
+               (int)v4,
+               s,
+               (int)preserve_args_8888,
+               (int)&preserve_vals_8887,
+               4u,
+               (void (__fastcall *)(int))argmatch_die) )
+    {
+      case 0:
+        a2[30] = a3; // I1
+        a2[32] = a3 == 0; // I1
+        break;
+      case 1:
+        a2[31] = a3; // I1
+        break;
+      case 2:
+        a2[29] = a3; // I1
+        break;
+      case 3:
+        a2[34] = a3; // I1
+        break;
+      case 4:
+        a2[38] = a3; // I1
+        a2[37] = a3; // I1
+        break;
+      case 5:
+        a2[39] = a3; // I1
+        a2[40] = a3; // I1
+        break;
+      case 6:
+        a2[30] = a3; // I1
+        a2[31] = a3; // I1
+        a2[29] = a3; // I1
+        a2[34] = a3; // I1
+        a2[32] = a3 == 0; // I1
+        if ( selinux_enabled )
+          a2[37] = a3; // I1
+        a2[39] = a3; // I1
+        break;
+      default:
+        abort();
+        return;
+    }
+    s = v8;
+  }
+  while ( v8 );
+  free(ptr);
+}
+/////
+Query: cp.c, re_protect
+__fastcall re_protect(char *a1, int a2, int a3, _BYTE *a4)
+{
+  int v4; // I4
+  int v5; // I4
+  char *v6; // I4
+  void *v7; // I4
+  int v9; // I4
+  char *v10; // I4
+  void *v11; // I4
+  int v12; // I4
+  char *v13; // I4
+  void *v14; // I4
+  int v16; // I4
+  int v17; // I4
+  _BYTE *v18; // I4
+  int v19; // I4
+  int v20; // I4
+  char *v21; // I4
+  int i;
+  char *s;
+  size_t n;
+  void *dest;
+  char *file;
+  char *v27;
+  int v28;
+  _DWORD v29[4];
+  v21 = a1; // I4
+  v20 = a2; // I4
+  v19 = a3; // I4
+  v18 = a4; // I4
+  s = a1; // I4
+  n = strlen(a1) + 1;
+  dest = (void *)(8 * (((unsigned int)&v17 + 3) >> 3)); // I1
+  file = (char *)memcpy(dest, s, n); // I1
+  v27 = &file[v20]; // I1
+  for ( i = v19; i; i = *(_DWORD *)(i + 112) ) // I1
+  {
+    v4 = 0; // I4
+    file[*(_DWORD *)(i + 108)] = 0; // I1
+    if ( v18[31] )
+    {
+      get_stat_atime(&v16, i); // I1
+      v29[0] = v16; // I4
+      v29[1] = v17; // I4
+      get_stat_mtime(&v16, i); // I1
+      v29[2] = v16; // I4
+      v29[3] = v17; // I4
+      if ( utimens(file, v29) ) // I1
+      {
+        v5 = *_errno_location(); // I4
+        v6 = gettext("failed to preserve times for %s"); // I4
+        v7 = quotearg_style(4, (int)file); // I4
+        error(0, v5, v6, v7);
+        return 0;
+      }
+    }
+    if ( v18[29] && lchown(file, *(_DWORD *)(i + 24), *(_DWORD *)(i + 28)) ) // I1
+    {
+      if ( (unsigned __int8)chown_failure_ok((int)v18) != 1 ) // I1
+      {
+        v9 = *_errno_location(); // I4
+        v10 = gettext("failed to preserve ownership for %s"); // I4
+        v11 = quotearg_style(4, (int)file); // I4
+        error(0, v9, v10, v11);
+        return 0;
+      }
+      v28 = lchown(file, 0xFFFFFFFF, *(_DWORD *)(i + 28)); // I1
+    }
+    if ( v18[30] )
+    {
+      if ( copy_acl((int)v27, -1, file, -1, *(_DWORD *)(i + 16)) ) // I1
+        return 0;
+    }
+    else if ( *(_BYTE *)(i + 104) && lchmod(file, *(_DWORD *)(i + 16), v4) ) // I1
+    {
+      v12 = *_errno_location(); // I4
+      v13 = gettext("failed to preserve permissions for %s"); // I4
+      v14 = quotearg_style(4, (int)file); // I4
+      error(0, v12, v13, v14);
+      return 0;
+    }
+    file[*(_DWORD *)(i + 108)] = 47; // I1
+  }
+  return 1;
+}
+/////
+__fastcall process_regexp(int a1, unsigned __int64 a2)
+{
+  char *v3; // I4
+  char *v4; // I4
+  char v7;
+  int v8; // I4
+  int v9; // I4
+  int *v10;
+  size_t *v11; // I4
+  int *v12;
+  int v13; // I4
+  int v14; // I4
+  unsigned __int64 v15;
+  v7 = *(_BYTE *)(a1 + 29); // I1
+  if ( v7 != 1 )
+    create_output_file();
+  if ( suppress_matched && current_line )
+    remove_line();
+  if ( *(int *)(a1 + 4) < 0 )
+  {
+    do
+    {
+      v12 = (int *)find_line(++current_line);
+      if ( !v12 )
+      {
+        if ( *(_BYTE *)(a1 + 28) ) // I1
+        {
+          if ( v7 != 1 )
+          {
+            dump_rest_of_file();
+            close_output_file();
+          }
+          exit(0);
+        }
+        regexp_error(a1, a2, v7);
+      }
+      v9 = *v12; // I1
+      if ( *(_BYTE *)(v12[1] + *v12 - 1) == 10 ) // I1
+        --v9;
+      v14 = rpl_re_search(a1 + 32, v12[1], v9, 0, v9, 0); // I1
+      if ( v14 == -2 )
+      {
+        v4 = gettext("error in regular expression search"); // I2
+        error(0, 0, v4);
+        cleanup_fatal();
+      }
+    }
+    while ( v14 == -1 );
+  }
+  else
+  {
+    while ( 1 )
+    {
+      v10 = (int *)find_line(++current_line);
+      if ( !v10 )
+      {
+        if ( *(_BYTE *)(a1 + 28) ) // I1
+        {
+          if ( v7 != 1 )
+          {
+            dump_rest_of_file();
+            close_output_file();
+          }
+          exit(0);
+        }
+        regexp_error(a1, a2, v7);
+      }
+      v8 = *v10; // I1
+      if ( *(_BYTE *)(v10[1] + *v10 - 1) == 10 ) // I1
+        --v8;
+      v13 = rpl_re_search(a1 + 32, v10[1], v8, 0, v8, 0); // I1
+      if ( v13 == -2 )
+      {
+        v3 = gettext("error in regular expression search"); // I2
+        error(0, 0, v3);
+        cleanup_fatal();
+      }
+      if ( v13 != -1 )
+        break;
+      v11 = (size_t *)remove_line(); // I4
+      if ( v7 != 1 )
+        save_line_to_file(v11);
+    }
+  }
+  v15 = *(_QWORD *)a1 + current_line; // I1
+  write_to_file(v15, v7, *(_DWORD *)(a1 + 24)); // I1
+  if ( v7 != 1 )
+    close_output_file();
+  if ( *(__int64 *)a1 >= 1 ) // I1
+    current_line = v15;
+}
+/////
+int cleanup()
+{
+  sigset_t oset;
+  close_output_file();
+  sigprocmask(0, &caught_signals, &oset);
+  delete_all_files(0);
+  return sigprocmask(2, &oset, 0); // I5
+}
+/////
+__fastcall free_buffer(int a1)
+{
+  _DWORD *ptr;
+  _DWORD *v3;
+  for ( ptr = *(_DWORD **)(a1 + 32); ptr; ptr = v3 ) // I1
+  {
+    v3 = (_DWORD *)ptr[163]; // I1
+    free(ptr);
+  }
+  *(_DWORD *)(a1 + 32) = 0; // I1
+  free(*(void **)(a1 + 28)); // I1
+  *(_DWORD *)(a1 + 28) = 0; // I1
+}
+/////
+size_t *dump_rest_of_file()
+{
+  size_t *result;
+  while ( 1 )
+  {
+    result = (size_t *)remove_line();
+    if ( !result )
+      break;
+    save_line_to_file(result);
+  }
+  return result; // I5
+}
+/////
+__fastcall check_for_offset(_DWORD *a1, int a2, const char *a3)
+{
+  char *v3; // I4
+  void *v4; // I4
+  if ( xstrtoimax(a3, 0, 10, a1, byte_35630) ) // I1
+  {
+    v3 = gettext("%s: integer expected after delimiter"); // I4
+    v4 = quote(a2);
+    error(1, 0, v3, v4);
+  }
+}
+/////
+__noreturn xalloc_die()
+{
+  char *v0; // I4
+  v0 = gettext("memory exhausted"); // I4
+  error(0, 0, "%s", v0);
+  cleanup_fatal();
+}
+/////
+__fastcall max_out(unsigned __int8 *a1)
+{
+  char *v1; // I4
+  int v2; // I4
+  char *v3; // I4
+  char v6;
+  int v7;
+  unsigned __int8 *i;
+  int v9;
+  v6 = 0;
+  for ( i = a1; *i; ++i )
+  {
+    if ( *i == 37 && *++i != 37 ) // I2
+    {
+      if ( v6 )
+      {
+        v1 = gettext("too many %% conversion specifications in suffix"); // I4
+        error(1, 0, v1);
+      }
+      v6 = 1;
+      v2 = get_format_flags((int)i, &v7);
+      for ( i += v2; (unsigned int)*i - 48 <= 9; ++i ) // I3
+        ;
+      if ( *i == 46 ) // I2
+      {
+        do
+          ++i;
+        while ( (unsigned int)*i - 48 <= 9 ); // I2
+      }
+      check_format_conv_type(i, v7);
+    }
+  }
+  if ( v6 != 1 )
+  {
+    v3 = gettext("missing %% conversion specification in suffix"); // I4
+    error(1, 0, v3);
+  }
+  v9 = snprintf(0, 0, (const char *)a1, -1); // I4
+  if ( v9 < 0 )
+    xalloc_die();
+  return v9;
+}
+/////
+__fastcall interrupt_handler(int a1)
+{
+  delete_all_files(1);
+  signal(a1, 0); // I2
+  return raise(a1);
+}
+/////
+__noreturn handle_line_error(int a1, unsigned __int64 a2)
+{
+  FILE *v3; // I4
+  char *v4; // I4
+  int v5; // I4
+  int v6; // I4
+  void *v7; // I4
+  FILE *v8; // I4
+  char *v9; // I4
+  int v10; // I4
+  char v13[24];
+  v3 = (FILE *)stderr; // I4
+  v4 = gettext("%s: %s: line number out of range"); // I4
+  v5 = program_name; // I4
+  v6 = umaxtostr(*(_QWORD *)(a1 + 8), (int)v13); // I2, I4
+  v7 = quote(v6); // I4
+  fprintf(v3, v4, v5, v7);
+  if ( a2 )
+  {
+    v8 = (FILE *)stderr; // I4
+    v9 = gettext(" on repetition %s\n"); // I4
+    v10 = umaxtostr(a2, (int)v13); // I4
+    fprintf(v8, v9, v10);
+  }
+  else
+  {
+    fputc(10, (FILE *)stderr);
+  }
+  cleanup_fatal();
+}
+/////
+int new_control_record()
+{
+  int v0; // I4
+  int v2; // I4
+  if ( control_used == control_allocated_8849 )
+    controls = (int)x2nrealloc((void *)controls, (unsigned int *)&control_allocated_8849, 0x40u);
+  v0 = control_used++; // I4
+  v2 = controls + (v0 << 6); // I4
+  *(_BYTE *)(v2 + 30) = 0; // I1
+  *(_DWORD *)(v2 + 16) = 0; // I1
+  *(_DWORD *)(v2 + 20) = 0; // I1
+  *(_BYTE *)(v2 + 28) = 0; // I1
+  *(_DWORD *)(v2 + 8) = 0; // I1
+  *(_DWORD *)(v2 + 12) = 0; // I1
+  *(_DWORD *)v2 = 0; // I1
+  *(_DWORD *)(v2 + 4) = 0; // I1
+  return v2;
+}
+/////
+bool load_buffer()
+{
+  bool v1; // I4
+  unsigned int v3; // I4
+  size_t v4; // I4
+  char *dest; // I4
+  unsigned int *ptr;
+  unsigned int v7; // I4
+  v3 = 0x1FFF; // I4
+  if ( have_read_eof )
+    return 0;
+  if ( (unsigned int)hold_count > 0x1FFF ) // I2
+    v3 = hold_count;
+  while ( 1 )
+  {
+    ptr = get_new_buffer(v3);
+    v4 = *ptr; // I1
+    dest = (char *)ptr[7]; // I1
+    if ( hold_count )
+    {
+      memcpy(dest, (const void *)hold_area, hold_count);
+      dest += hold_count; // I1
+      ptr[1] += hold_count; // I1
+      v4 -= hold_count; // I1
+      hold_count = 0;
+    }
+    ptr[1] += read_input(dest, v4); // I1
+    v7 = record_line_starts((int)ptr); // I4
+    if ( v7 || have_read_eof )
+      break;
+    v1 = !is_mul_ok(2u, *ptr); // I1
+    if ( (*ptr & 0x40000000) != 0 ) // I1
+      v1 = 1;
+    if ( v1 )
+      xalloc_die();
+    v3 = 2 * *ptr; // I1
+    free_buffer((int)ptr);
+    free(ptr);
+  }
+  if ( v7 )
+  {
+    save_buffer(ptr);
+  }
+  else
+  {
+    free_buffer((int)ptr);
+    free(ptr);
+  }
+  return v7 != 0;
+}
+/////
+_DWORD *new_line_control()
+{
+  _DWORD *v1;
+  v1 = xmalloc(0x290u); // I1
+  v1[163] = 0; // I1
+  clear_line_control(v1);
+  return v1;
+}
+/////
+__fastcall set_input_file(const char *a1)
+{
+  int v1; // I4
+  char *v2; // I4
+  void *v3; // I4
+  if ( strcmp(a1, "-") )
+  {
+    if ( fd_reopen(0, (int)a1, 0, 0) < 0 ) // I1
+    {
+      v1 = *_errno_location(); // I4
+      v2 = gettext("cannot open %s for reading"); // I4
+      v3 = quotearg_style(4, (int)a1); // I4
+      error(1, v1, v2, v3);
+    }
+  }
+}
+/////
+int remove_line()
+{
+  int v1; // I4
+  _DWORD *v3;
+  int v4;
+  if ( prev_buf_8722 )
+  {
+    free_buffer(prev_buf_8722);
+    free((void *)prev_buf_8722); // I4
+    prev_buf_8722 = 0;
+  }
+  if ( !head && !load_buffer() )
+    return 0;
+  if ( *(_QWORD *)(head + 16) > (unsigned __int64)current_line ) // I1
+  {
+    v1 = *(_DWORD *)(head + 20); // I1
+    LODWORD(current_line) = *(_DWORD *)(head + 16); // I1
+    HIDWORD(current_line) = v1;
+  }
+  ++*(_QWORD *)(head + 16); // I1
+  v3 = *(_DWORD **)(head + 36); // I1
+  v4 = (int)&v3[2 * ++v3[2] + 1]; // I1
+  if ( v3[2] == *v3 ) // I1
+  {
+    *(_DWORD *)(head + 36) = v3[163]; // I1
+    if ( !*(_DWORD *)(head + 36) || !**(_DWORD **)(head + 36) ) // I1
+    {
+      prev_buf_8722 = head;
+      head = *(_DWORD *)(head + 40); // I1
+    }
+  }
+  return v4;
+}
+/////
+__noreturn cleanup_fatal()
+{
+  cleanup();
+  exit(1); // I1
+}
+/////
+__noreturn regexp_error(int a1, unsigned __int64 a2, char a3)
+{
+  FILE *v4; // I4
+  char *v5; // I4
+  int v6; // I4
+  void *v7; // I4
+  FILE *v8; // I4
+  char *v9; // I4
+  int v10; // I4
+  char v13[24];
+  v4 = (FILE *)stderr; // I4
+  v5 = gettext("%s: %s: match not found"); // I4
+  v6 = program_name; // I4
+  v7 = quote(*(_DWORD *)(global_argv + 4 * *(_DWORD *)(a1 + 24))); // I4
+  fprintf(v4, v5, v6, v7);
+  if ( a2 )
+  {
+    v8 = (FILE *)stderr; // I4
+    v9 = gettext(" on repetition %s\n"); // I4
+    v10 = umaxtostr(a2, (int)v13); // I4
+    fprintf(v8, v9, v10);
+  }
+  else
+  {
+    fputc(10, (FILE *)stderr);
+  }
+  if ( a3 != 1 ) // I2
+  {
+    dump_rest_of_file();
+    close_output_file();
+  }
+  cleanup_fatal();
+}
+/////
+__fastcall process_line_count(int a1, unsigned __int64 a2)
+{
+  int v3; // I4
+  unsigned int v4; // I4
+  int v5; // I4
+  unsigned __int64 v6; // I4
+  unsigned __int64 v7; // I4
+  _BOOL4 result; // I4
+  size_t *v11;
+  __int64 v12;
+  unsigned __int64 v13; // I4
+  v3 = a1 + 8; // I4
+  v4 = *(_DWORD *)(a1 + 8); // I4
+  v5 = (a2 + 1) * *(_DWORD *)(v3 + 4) + v4 * ((a2 + 1) >> 32); // I1
+  v6 = v4 * (unsigned __int64)(unsigned int)(a2 + 1); // I1
+  LODWORD(v13) = v6; // I1
+  HIDWORD(v13) = v5 + HIDWORD(v6); // I1
+  create_output_file();
+  if ( no_more_lines() && suppress_matched )
+    handle_line_error(a1, a2);
+  v12 = get_first_line_in_buffer();
+  while ( 1 )
+  {
+    v7 = v12++; // I4
+    if ( v13 <= v7 ) // I3
+      break;
+    v11 = (size_t *)remove_line();
+    if ( !v11 )
+      handle_line_error(a1, a2);
+    save_line_to_file(v11);
+  }
+  close_output_file();
+  if ( suppress_matched )
+    remove_line();
+  result = no_more_lines(); // I4
+  if ( result && suppress_matched != 1 )
+    handle_line_error(a1, a2);
+  return result; // I5
+}
+/////
+int create_output_file()
+{
+  int result;
+  const char *v1; // I4
+  bool v2;
+  int errnum;
+  sigset_t oset;
+  result = make_filename(files_created); // I4
+  output_filename = result;
+  if ( files_created == -1 ) // I2
+  {
+    v2 = 0; // I4
+    errnum = 75; // I2
+  }
+  else
+  {
+    sigprocmask(0, &caught_signals, &oset); // I2
+    output_stream = (int)fopen_safer(output_filename, "w"); // I2
+    v2 = output_stream != 0;
+    errnum = *_errno_location();
+    files_created += v2;
+    result = sigprocmask(2, &oset, 0); // I2
+  }
+  if ( !v2 )
+  {
+    v1 = (const char *)quotearg_n_style_colon(0, 3, output_filename); // I4
+    error(0, errnum, "%s", v1);
+    cleanup_fatal();
+  }
+  bytes_written = 0LL;
+  return result; // I5
+}
+/////
+__fastcall record_line_starts(int a1)
+{
+  void *v2; // I4
+  int v3; // I4
+  _BYTE *v6;
+  unsigned int v7;
+  unsigned int v8;
+  _BYTE *v9;
+  if ( !*(_DWORD *)(a1 + 4) ) // I1
+    return 0;
+  v8 = 0;
+  v6 = *(_BYTE **)(a1 + 28); // I1
+  v7 = *(_DWORD *)(a1 + 4); // I1
+  while ( 1 )
+  {
+    v9 = rpl_memchr(v6, 0xAu, v7);
+    if ( !v9 )
+      break;
+    keep_new_line((_DWORD *)a1, (int)v6, v9 - v6 + 1); // I1
+    v7 -= v9 - v6 + 1;
+    v6 = v9 + 1;
+    ++v8;
+  }
+  if ( v7 )
+  {
+    if ( have_read_eof )
+    {
+      keep_new_line((_DWORD *)a1, (int)v6, v7); // I1
+      ++v8;
+    }
+    else
+    {
+      v2 = xmemdup(v6, v7); // I4
+      save_to_hold_area((int)v2, v7); // I1
+    }
+  }
+  *(_DWORD *)(a1 + 24) = v8; // I1
+  *(_QWORD *)(a1 + 8) = last_line_number + 1; // I1
+  v3 = *(_DWORD *)(a1 + 12); // I1
+  *(_DWORD *)(a1 + 16) = *(_DWORD *)(a1 + 8); // I1
+  *(_DWORD *)(a1 + 20) = v3; // I1
+  last_line_number += v8;
+  return v8;
+}
+/////
+__fastcall save_buffer(_DWORD *result)
+{
+  int i;
+  result[10] = 0; // I1
+  result[9] = result[8]; // I1
+  if ( head )
+  {
+    for ( i = head; *(_DWORD *)(i + 40); i = *(_DWORD *)(i + 40) ) // I1
+      ; // I3
+    *(_DWORD *)(i + 40) = result; // I1
+  }
+  else
+  {
+    head = (int)result;
+  }
+  return result; // I5
+}
+/////
+__fastcall make_filename(int a1)
+{
+  int v1; // I4
+  size_t v2; // I4
+  size_t v3; // I4
+  strcpy((char *)filename_space, (const char *)prefix); // I1
+  v1 = filename_space; // I4
+  if ( suffix ) // I2
+  {
+    v2 = strlen((const char *)prefix); // I4
+    sprintf((char *)(v1 + v2), (const char *)suffix, a1); // I1
+  }
+  else
+  {
+    v3 = strlen((const char *)prefix); // I4
+    sprintf((char *)(v1 + v3), "%0*u", digits, a1); // I2
+  }
+  return filename_space;
+}
+/////
+__fastcall check_format_conv_type(unsigned __int8 *a1, int a2)
+{
+  char *v2; // I4
+  char *v3; // I4
+  char *v4; // I4
+  char *v5; // I4
+  int v6; // I4
+  unsigned __int8 v8;
+  int v9;
+  v8 = *a1;
+  v9 = 1; // I4
+  if ( *a1 == 105 ) // I2
+    goto LABEL_11;
+  if ( v8 > 0x69u ) // I2
+  {
+    if ( v8 == 117 ) // I2
+      goto LABEL_17;
+    if ( v8 != 120 && v8 != 111 ) // I2
+      goto LABEL_14;
+LABEL_12:
+    v9 = 2;
+    goto LABEL_17;
+  }
+  switch ( v8 ) // I2
+  {
+    case 0x58u: // I2
+      goto LABEL_12;
+    case 0x64u: // I2
+LABEL_11:
+      *a1 = 117; // I2
+      goto LABEL_17;
+    case 0u: // I2
+      v2 = gettext("missing conversion specifier in suffix"); // I4
+      error(1, 0, v2);
+      break;
+  }
+LABEL_14:
+  if ( ((*_ctype_b_loc())[v8] & 0x4000) != 0 ) // I2
+  {
+    v3 = gettext("invalid conversion specifier in suffix: %c"); // I4
+    error(1, 0, v3, v8);
+  }
+  v4 = gettext("invalid conversion specifier in suffix: \\%.3o"); // I4
+  error(1, 0, v4, v8);
+LABEL_17:
+  if ( (a2 & ~v9) != 0 ) // I2
+  {
+    v5 = gettext("invalid flags in conversion specification: %%%c%c"); // I4
+    if ( ((unsigned __int8)a2 & (unsigned __int8)~(_BYTE)v9 & 2) != 0 ) // I4
+      v6 = 35; // I2
+    else
+      v6 = 39; // I2
+    error(1, 0, v5, v6, v8);
+  }
+}
+/////
+__fastcall read_input(void *a1, size_t a2)
+{
+  int v3;
+  char *v4; // I4
+  ssize_t v6;
+  if ( !a2 )
+    return 0;
+  v6 = safe_read(0, a1, a2);
+  if ( !v6 )
+    have_read_eof = 1;
+  if ( v6 == -1 )
+  {
+    v3 = *_errno_location(); // I4
+    v4 = gettext("read error"); // I4
+    error(0, v3, v4);
+    cleanup_fatal();
+  }
+  return v6;
+}
+/////
+__fastcall write_to_file(unsigned __int64 a1, char a2, int a3)
+{
+  unsigned __int64 v3;
+  char *v4; // I4
+  void *v5; // I4
+  char *v6; // I4
+  void *v7; // I4
+  unsigned __int64 i;
+  unsigned __int64 v13; // I4
+  v3 = get_first_line_in_buffer();
+  v13 = v3; // I4
+  if ( v3 > a1 )
+  {
+    v4 = gettext("%s: line number out of range"); // I4
+    v5 = quote(*(_DWORD *)(global_argv + 4 * a3)); // I4
+    error(0, 0, v4, v5);
+    cleanup_fatal();
+  }
+  for ( i = 0LL; i < a1 - v13; ++i )
+  {
+    LODWORD(v3) = remove_line();
+    if ( !(_DWORD)v3 )
+    {
+      v6 = gettext("%s: line number out of range"); // I4
+      v7 = quote(*(_DWORD *)(global_argv + 4 * a3)); // I4
+      error(0, 0, v6, v7);
+      cleanup_fatal();
+    }
+    if ( a2 != 1 )
+      LODWORD(v3) = save_line_to_file((size_t *)v3);
+  }
+  return v3; // I5
+}
+/////
+__fastcall extract_regexp(int a1, char a2, const char *a3)
+{
+  char *v3; // I4
+  char *v4; // I4
+  void *v5; // I4
+  unsigned __int8 c;
+  char *c_1;
+  int v12;
+  char *v13;
+  c = *a3;
+  c_1 = strrchr(a3 + 1, *(unsigned __int8 *)a3);
+  if ( !c_1 )
+  {
+    v3 = gettext("%s: closing delimiter '%c' missing"); // I4
+    error(1, 0, v3, a3, c);
+  }
+  v12 = new_control_record();
+  *(_DWORD *)(v12 + 24) = a1; // I1
+  *(_BYTE *)(v12 + 29) = a2; // I1
+  *(_BYTE *)(v12 + 30) = 1; // I1
+  *(_DWORD *)(v12 + 32) = 0; // I1
+  *(_DWORD *)(v12 + 36) = 0; // I1
+  *(_DWORD *)(v12 + 48) = xmalloc(0x100u); // I1
+  *(_DWORD *)(v12 + 52) = 0; // I1
+  rpl_re_syntax_options = 710; // I2
+  v13 = rpl_re_compile_pattern((int)(a3 + 1), c_1 - a3 - 1, v12 + 32); // I1
+  if ( v13 )
+  {
+    v4 = gettext("%s: invalid regular expression: %s"); // I4
+    v5 = quote((int)a3); // I4
+    error(0, 0, v4, v5, v13);
+    cleanup_fatal();
+  }
+  if ( c_1[1] )
+    check_for_offset((_DWORD *)v12, (int)a3, c_1 + 1); // I1
+  return v12;
+}
+/////
+__fastcall keep_new_line(_DWORD *result, int a2, int a3)
+{
+  int v3; // I4
+  _DWORD *v6; // I4
+  _DWORD *v7;
+  v6 = result;
+  if ( !result[8] ) // I1
+  {
+    result = new_line_control();
+    v6[9] = result; // I1
+    v6[8] = v6[9]; // I1
+  }
+  if ( *(_DWORD *)v6[9] == 80 ) // I1
+  {
+    v3 = v6[9]; // I1
+    result = new_line_control();
+    *(_DWORD *)(v3 + 652) = result; // I1
+    v6[9] = *(_DWORD *)(v6[9] + 652); // I1
+  }
+  v7 = (_DWORD *)v6[9]; // I1
+  v7[2 * v7[1] + 4] = a2; // I1
+  v7[2 * v7[1] + 3] = a3; // I1
+  ++*v7; // I1
+  ++v7[1]; // I1
+  return result; // I5
+}
+/////
+void split_file()
+{
+  unsigned int i;
+  unsigned __int64 j;
+  unsigned __int64 k;
+  for ( i = 0; i < control_used; ++i )
+  {
+    if ( *(_BYTE *)(controls + (i << 6) + 30) ) // I1
+    {
+      for ( j = 0LL; *(_BYTE *)(controls + (i << 6) + 28) || j <= *(_QWORD *)(controls + (i << 6) + 16); ++j ) // I1
+        process_regexp(controls + (i << 6), j); // I1
+    }
+    else
+    {
+      for ( k = 0LL; *(_BYTE *)(controls + (i << 6) + 28) || k <= *(_QWORD *)(controls + (i << 6) + 16); ++k ) // I1
+        process_line_count(controls + (i << 6), k); // I1
+    }
+  }
+  create_output_file();
+  dump_rest_of_file();
+  close_output_file();
+}
+/////
+__int64 get_first_line_in_buffer()
+{
+  int v0; // I4
+  char *v1; // I4
+  if ( !head && !load_buffer() )
+  {
+    v0 = *_errno_location(); // I4
+    v1 = gettext("input disappeared"); // I4
+    error(1, v0, v1);
+  }
+  return *(_QWORD *)(head + 16); // I1
+}
+/////
+__fastcall get_format_flags(int a1, _DWORD *a2)
+{
+  int v3;
+  int i;
+  v3 = 0;
+  for ( i = 0; ; ++i )
+  {
+    switch ( *(_BYTE *)(a1 + i) ) // I1
+    {
+      case '#':
+        v3 |= 2u;
+        break;
+      case '\'':
+        v3 |= 1u;
+        break;
+      case '-':
+      case '0': // I2
+        continue;
+      default:
+        *a2 = v3;
+        return i;
+    }
+  }
+  return 0;
+}
+/////
+__fastcall save_line_to_file(size_t *a1)
+{
+  size_t result;
+  int v2; // I4
+  char *v3; // I4
+  void *v4; // I4
+  result = fwrite_unlocked((const void *)a1[1], 1u, *a1, (FILE *)output_stream); // I1 // I6
+  if ( result != *a1 ) // I1
+  {
+    v2 = *_errno_location(); // I4
+    v3 = gettext("write error for %s"); // I4
+    v4 = quotearg_style(4, output_filename); // I4
+    error(0, v2, v3, v4);
+    output_stream = 0;
+    cleanup_fatal();
+  }
+  bytes_written += *a1; // I1
+  return result; // I5
+}
+/////
+__fastcall print_kth(unsigned __int64 a1)
+{
+  return a1 >= *(_QWORD *)current_rp; // I1
+}
+/////
+__fastcall next_item(_QWORD *result)
+{
+  if ( ++*result > *(_QWORD *)(current_rp + 8) ) // I1
+    current_rp += 16;
+  return result; // I5
+}
+/////
+__fastcall cut_bytes(FILE *a1)
+{
+  int result;
+  char v3;
+  int c;
+  unsigned __int64 v5;
+  v5 = 0LL;
+  v3 = 0;
+  current_rp = frp;
+  while ( 1 )
+  {
+    while ( 1 )
+    {
+      result = getc_unlocked(a1); // I6
+      c = result;
+      if ( result != (unsigned __int8)line_delim )
+        break;
+      putchar_unlocked(result); // I6
+      v5 = 0LL;
+      v3 = 0;
+      current_rp = frp;
+    }
+    if ( result == -1 )
+      break;
+    next_item(&v5);
+    if ( print_kth(v5) )
+    {
+      if ( output_delimiter_specified )
+      {
+        if ( v3 && is_range_start_index(v5) )
+          fwrite_unlocked((const void *)output_delimiter_string, 1u, output_delimiter_length, (FILE *)stdout); // I1 // I6
+        v3 = 1;
+      }
+      putchar_unlocked(c); // I6
+    }
+  }
+  if ( v5 )
+    result = putchar_unlocked((unsigned __int8)line_delim); // I6
+  return result; // I5
+}
+/////
+__fastcall batch_convert(const char *a1, char *a2, char *a3, const char *a4)
+{
+  int v4; // I4
+  const char *v5; // I4
+  char *v6; // I4
+  void *v7; // I4
+  int v8; // I4
+  const char *v9; // I4
+  char *s1; // I4
+  bool v15;
+  void *ptr;
+  int v17;
+  FILE *v18;
+  int v19; // I4
+  int v20[2];
+  s1 = (char *)a1; // I4
+  if ( !strcmp(a1, "-") )
+  {
+    s1 = gettext("standard input");
+    v18 = (FILE *)stdin;
+  }
+  else
+  {
+    v18 = (FILE *)fopen64(s1, "r");
+    if ( !v18 )
+    {
+      v4 = *_errno_location(); // I4
+      v5 = (const char *)quotearg_n_style_colon(0, 3, (int)s1); // I4
+      error(1, v4, "%s", v5);
+    }
+  }
+  ptr = 0;
+  v17 = 0;
+  v15 = 1;
+  while ( 1 )
+  {
+    v19 = getline(&ptr, &v17, v18); // I4
+    if ( v19 < 0 ) // I4
+      break;
+    if ( (unsigned __int8)parse_datetime2(v20, (const char *)ptr, 0, parse_datetime_flags, a3, a4) != 1 ) // I1
+    {
+      if ( *((_BYTE *)ptr + v19 - 1) == 10 ) // I1
+        *((_BYTE *)ptr + v19 - 1) = 0; // I1
+      v6 = gettext("invalid date %s"); // I4
+      v7 = quote((int)ptr); // I4
+      error(0, 0, v6, v7); // I4
+      v15 = 0;
+    }
+    else
+    {
+      v15 = (v15 & show_date(a2, v20[0], v20[1], (int)a3)) != 0; // I1
+    }
+  }
+  if ( rpl_fclose(v18) == -1 )
+  {
+    v8 = *_errno_location(); // I4
+    v9 = (const char *)quotearg_n_style_colon(0, 3, (int)s1); // I4
+    error(1, v8, "%s", v9);
+  }
+  free(ptr);
+  return v15;
+}
+/////
+__fastcall copy_simple(char *a1, unsigned int a2)
+{
+  size_t v2;
+  void *result; // I4
+  size_t n; // I4
+  do
+  {
+    v2 = output_blocksize - oc;
+    if ( a2 < output_blocksize - oc )
+      v2 = a2;
+    n = v2; // I4
+    result = memcpy((void *)(obuf + oc), a1, v2);
+    a2 -= n;
+    a1 += n;
+    oc += n;
+    if ( oc >= (unsigned int)output_blocksize )
+      result = (void *)write_output();
+  }
+  while ( a2 );
+  return result; // I5
+}
+/////
+void alloc_obuf()
+{
+  char *v0; // I4
+  void *v1;
+  char v2[652];
+  if ( !obuf )
+  {
+    if ( (conversions_mask & 0x800) != 0 )
+    {
+      v1 = malloc(page_size + output_blocksize - 1);
+      if ( !v1 )
+      {
+        v0 = gettext("memory exhausted by output buffer of size %llu bytes (%s)"); // I4
+        human_readable((unsigned int)output_blocksize, v2, 497, 1uLL, 1uLL);
+        nl_error(1, 0, v0);
+      }
+      obuf = ptr_align((int)v1, page_size);
+    }
+    else
+    {
+      alloc_ibuf();
+      obuf = ibuf;
+    }
+  }
+}
+/////
+__fastcall advance_input_offset(unsigned __int64 a1)
+{
+  input_offset += a1;
+  if ( a1 > input_offset )
+    input_offset_overflow = 1;
+  return a1; // I5
+}
+/////
+__fastcall set_fd_flags(int a1, int a2, int a3)
+{
+  int v3; // I4
+  char *v4; // I4
+  void *v5; // I4
+  unsigned int v7;
+  char v9;
+  int v10;
+  int v11;
+  char v12[16];
+  int v13; // I4
+  v7 = a2 & 0xFFFF7EFF; // I4
+  if ( (a2 & 0xFFFF7EFF) != 0 )
+  {
+    v11 = fcntl(a1, F_GETFL); // I4
+    v10 = v11 | v7;
+    v9 = 1;
+    if ( v11 >= 0 )
+    {
+      if ( v11 != v10 )
+      {
+        if ( (v10 & O_DIRECTORY) != 0 || (v10 & O_NOFOLLOW) != 0 ) // I4
+        {
+          if ( fstat(a1, (struct stat *)v12) != 0 ) // I4
+          {
+            v9 = 0;
+          }
+          else if ( (v10 & O_DIRECTORY) != 0 && !S_ISDIR(((struct stat *)v12)->st_mode) ) // I1
+          {
+            errno = ENOTDIR;
+            v9 = 0;
+          }
+          v10 &= ~(O_DIRECTORY | O_NOFOLLOW); // I4
+        }
+        if ( v9 && v11 != v10 && fcntl(a1, F_SETFL, v10) == -1 ) // I4
+          v9 = 0;
+      }
+    }
+    else
+    {
+      v9 = 0;
+    }
+    if ( v9 != 1 )
+    {
+      v3 = errno; // I4
+      v4 = gettext("setting flags for %s"); // I4
+      v5 = quotef((const char *)a3); // I4
+      error(EXIT_FAILURE, v3, v4, v5);
+    }
+  }
+}
+/////
+__fastcall iftruncate(int a1, int a2, int a3, int a4)
+{
+  int v4; // I4
+  int v9;
+  do
+  {
+    process_signals();
+    v9 = ftruncate64(a1, a2);
+  }
+  while ( v9 < 0 && *_errno_location() == EINTR); // I1
+  return v9;
+}
+/////
+__fastcall iclose(int a1)
+{
+  if ( !close(a1) )
+    return 0;
+  while ( *_errno_location() == 4 ) // I4
+  {
+    if ( !close(a1) || *_errno_location() == 9 ) // I4
+      return 0;
+  }
+  return -1;
+}
+/////
+void print_stats()
+{
+  FILE *v0; // I4
+  char *v1; // I4
+  FILE *v2; // I4
+  int v3; // I4
+  char *v4; // I4
+  if ( status_level != 1 )
+  {
+    if ( progress_len > 0 )
+    {
+      fputc_unlocked(10, (FILE *)stderr); // I6
+      progress_len = 0;
+    }
+    v0 = (FILE *)stderr; // I4
+    v1 = gettext("%llu+%llu records in\n%llu+%llu records out\n"); // I4
+    fprintf(v0, v1, r_full, unk_34254, r_partial, unk_3424C, w_full, unk_34244, w_partial, unk_3423C);
+    if ( r_truncate )
+    {
+      v2 = (FILE *)stderr; // I4
+      v3 = select_plural(r_truncate); // I4
+      v4 = ngettext("%llu truncated record\n", "%llu truncated records\n", v3); // I4
+      fprintf(v2, v4, r_truncate);
+    }
+    if ( status_level != 2 )
+      print_xfer_stats(0LL);
+  }
+}
+/////
+__fastcall print_xfer_stats(__int64 a1)
+{
+  unsigned int v1; // I4
+  unsigned int v2; // I4
+  __int64 v3; // I4
+  char *v4; // I4
+  const char *v5; // I4
+  FILE *v6; // I4
+  int v7; // I4
+  char *v8; // I4
+  int result;
+  int v10; // I4
+  FILE *v11; // I4
+  char *v12; // I4
+  FILE *v13; // I4
+  char *v14; // I4
+  char *v16;
+  char *v17;
+  char *v18;
+  int v19; // I4
+  signed __int64 v20;
+  char v21[12];
+  char v22[654];
+  char v23[656];
+  char v24[24];
+  if ( a1 )
+  {
+    v2 = HIDWORD(a1); // I4
+    v1 = a1; // I4
+  }
+  else
+  {
+    v3 = gethrxtime(); // I4
+    v2 = HIDWORD(v3); // I4
+    v1 = v3; // I4
+  }
+  v20 = __PAIR64__(v2, v1); // I4
+  v17 = human_readable(w_bytes, v21, 465, 1uLL, 1uLL);
+  v18 = human_readable(w_bytes, v22, 497, 1uLL, 1uLL);
+  if ( start_time >= v20 ) // I4
+  {
+    v4 = gettext("Infinity"); // I4
+    snprintf(v23, 0x28Eu, "%s B/s", v4); // I4
+    v16 = v23;
+  }
+  else
+  {
+    v16 = human_readable(w_bytes, v23, 465, 0x3B9ACA00uLL, v20 - start_time);
+    strcat(v16, "/s");
+  }
+  if ( a1 )
+    fputc_unlocked(13, (FILE *)stderr); // I6
+  if ( a1 )
+    v5 = "%.0f s"; // I4
+  else
+    v5 = "%g s"; // I4
+  snprintf(v24, 0x18u, v5); // I4
+  if ( abbreviation_lacks_prefix(v17) )
+  {
+    v6 = (FILE *)stderr; // I4
+    v7 = select_plural(w_bytes); // I4
+    v8 = ngettext("%llu byte copied, %s, %s", "%llu bytes copied, %s, %s", v7); // I4
+    result = fprintf(v6, v8, w_bytes, v24, v16);
+    v10 = result; // I4
+  }
+  else
+  {
+    if ( abbreviation_lacks_prefix(v18) )
+    {
+      v11 = (FILE *)stderr; // I4
+      v12 = gettext("%llu bytes (%s) copied, %s, %s"); // I4
+      result = fprintf(v11, v12, w_bytes, v17, v24, v16);
+    }
+    else
+    {
+      v13 = (FILE *)stderr; // I4
+      v14 = gettext("%llu bytes (%s, %s) copied, %s, %s"); // I4
+      result = fprintf(v13, v14, w_bytes, v17, v18, v24, v16);
+    }
+    v10 = result; // I4
+  }
+  v19 = v10; // I4
+  if ( !a1 )
+    return fputc_unlocked(10, (FILE *)stderr); // I6
+  if ( v10 >= 0 && v10 < progress_len )
+    result = fprintf((FILE *)stderr, "%*s", progress_len - v10, byte_20F4C);
+  progress_len = v19;
+  return result; // I5
+}
+/////
+__fastcall translate_charset(int result)
+{
+  int i;
+  for ( i = 0; i <= 255; ++i )
+    trans_table[i] = *(_BYTE *)(result + trans_table[i]); // I1
+  translation_needed = 1;
+  return result;
+}
+/////
+void cleanup()
+{
+  int v0; // I4
+  char *v1; // I4
+  void *v2; // I4
+  int v3; // I4
+  char *v4; // I4
+  void *v5; // I4
+  if ( iclose(0) )
+  {
+    v0 = *_errno_location(); // I4
+    v1 = gettext("closing input file %s"); // I4
+    v2 = quotearg_style(4, input_file); // I4
+    nl_error(1, v0, v1, v2);
+  }
+  if ( iclose(1) )
+  {
+    v3 = *_errno_location(); // I4
+    v4 = gettext("closing output file %s"); // I4
+    v5 = quotearg_style(4, output_file); // I4
+    nl_error(1, v3, v4, v5);
+  }
+}
+/////
+int maybe_close_stdout()
+{
+  int result; // I4
+  if ( close_stdout_required )
+    return close_stdout();
+  result = close_stream((FILE *)stderr);
+  if ( result )
+    exit(1);
+  return result; // I5
+}
+/////
+__fastcall operand_matches(unsigned __int8 *a1, unsigned __int8 *a2, unsigned __int8 a3)
+{
+  unsigned __int8 *v3; // I4
+  int v4; // I4
+  unsigned __int8 *v5; // I4
+  while ( *a2 )
+  {
+    v3 = a1++;
+    v4 = *v3;
+    v5 = a2++;
+    if ( v4 != *v5 )
+      return 0;
+  }
+  return !*a1 || a3 == *a1;
+}
+/////
+__fastcall iwrite(int a1, _BYTE *a2, unsigned int a3)
+{
+  int v3; // I4
+  char *v4; // I4
+  void *v5; // I4
+  int v6; // I4
+  unsigned int v11;
+  ssize_t v12;
+  int v13; // I4
+  v11 = 0;
+  if ( (output_flags & 0x10000) != 0 && a3 < output_blocksize )
+  {
+    v13 = rpl_fcntl(1, 3, a3, output_blocksize); // I4
+    if ( rpl_fcntl(1, 4, v13 & 0xFFFEFFFF, v13 & 0xFFFEFFFF) && status_level != 1 ) // I2
+    {
+      v3 = *_errno_location(); // I4
+      v4 = gettext("failed to turn off O_DIRECT: %s"); // I4
+      v5 = quotearg_n_style_colon(0, 3, output_file); // I4
+      nl_error(0, v3, v4, v5);
+    }
+    o_nocache_eof = 1;
+    invalidate_cache(1, 0LL);
+    conversions_mask |= 0x8000u;
+  }
+  while ( v11 < a3 )
+  {
+    v12 = 0;
+    process_signals();
+    final_op_was_seek = 0;
+    if ( (conversions_mask & 0x10000) != 0 && is_nul(a2, a3) )
+    {
+      if ( (((unsigned __int64)lseek64(a1, v6, a3, 0, 1) >> 32) & 0x80000000) == 0LL )
+      {
+        final_op_was_seek = 1;
+        v12 = a3;
+      }
+      else
+      {
+        conversions_mask &= 0xFFFEFFFF; // I2
+      }
+    }
+    if ( !v12 )
+      v12 = write(a1, &a2[v11], a3 - v11); // I1
+    if ( v12 >= 0 )
+    {
+      if ( !v12 )
+      {
+        *_errno_location() = 28;
+        break;
+      }
+      v11 += v12;
+    }
+    else if ( *_errno_location() != 4 )
+    {
+      break;
+    }
+  }
+  if ( o_nocache && v11 )
+    invalidate_cache(a1, v11);
+  return v11;
+}
+/////
+__fastcall operand_is(unsigned __int8 *a1, unsigned __int8 *a2)
+{
+  return operand_matches(a1, a2, 0x3Du); // I2
+}
+/////
+void apply_translations()
+{
+  int i; // I4
+  int j;
+  if ( (conversions_mask & 1) != 0 )
+    translate_charset((int)&ebcdic_to_ascii);
+  if ( (conversions_mask & 0x40) != 0 )
+  {
+    for ( i = 0; i <= 255; ++i )
+      trans_table[i] = toupper(trans_table[i]);
+    translation_needed = 1;
+  }
+  else if ( (conversions_mask & 0x20) != 0 )
+  {
+    for ( j = 0; j <= 255; ++j )
+      trans_table[j] = tolower(trans_table[j]);
+    translation_needed = 1;
+  }
+  if ( (conversions_mask & 2) != 0 )
+  {
+    translate_charset((int)&ascii_to_ebcdic);
+    newline_character = 37; // I2
+    space_character = 64; // I2
+  }
+  else if ( (conversions_mask & 4) != 0 )
+  {
+    translate_charset((int)&ascii_to_ibm);
+    newline_character = 37; // I2
+    space_character = 64; // I2
+  }
+}
+/////
+__fastcall interrupt_handler(int result)
+{
+  interrupt_signal = result;
+  return result; // I4
+}
+/////
+__fastcall ifdatasync(int a1)
+{
+  int v3;
+  do
+  {
+    process_signals();
+    v3 = fdatasync(a1);
+  }
+  while ( v3 < 0 && *_errno_location() == 4 ); // I1
+  return v3;
+}
+/////
+__fastcall ifsync(int a1)
+{
+  int v3; // I4
+  do
+  {
+    process_signals();
+    v3 = fsync(a1);
+  }
+  while ( v3 < 0 && *_errno_location() == 4 ); // I1
+  return v3;
+}
+/////
+void process_signals()
+{
+  int sig;
+  sigset_t oset;
+  while ( interrupt_signal || info_signal_count )
+  {
+    sigprocmask(0, &caught_signals, &oset);
+    sig = interrupt_signal;
+    if ( info_signal_count )
+      --info_signal_count;
+    sigprocmask(2, &oset, 0);
+    if ( sig )
+      cleanup();
+    print_stats();
+    if ( sig )
+      raise(sig);
+  }
+}
+/////
+__fastcall cache_round(int a1, __int64 a2)
+{
+  unsigned int *v3;
+  unsigned __int64 v6;
+  unsigned __int64 v7;
+  if ( a1 ) // I3
+    v3 = (unsigned int *)&o_pending_8642;
+  else
+    v3 = (unsigned int *)&i_pending_8641;
+  if ( a2 )
+  {
+    v7 = *(_QWORD *)v3 + a2;
+    *v3 = v7 & 0x1FFFF;
+    v3[1] = 0;
+    if ( v7 > *(_QWORD *)v3 ) // I1
+      v6 = v7 - *(_QWORD *)v3; // I1
+    else
+      v6 = 0LL;
+  }
+  else
+  {
+    v6 = *v3;
+    HIDWORD(v6) = v3[1]; // I1
+  }
+  return v6;
+}
+/////
+ __fastcall invalidate_cache(int a1, __int64 a2)
+{
+  _BOOL4 v3;
+  unsigned int v5; // I4
+  unsigned int v6; // I4
+  unsigned __int64 v7;
+  int v8; // I4
+  signed __int64 v10;
+  unsigned __int64 v11;
+  bool v14;
+  int v15;
+  __int64 v16;
+  signed __int64 v17;
+  unsigned __int64 v18;
+  unsigned __int64 v19;
+  v15 = -1;
+  if ( a1 ) // I3
+    LOBYTE(v3) = o_nocache_eof != 0; // I6
+  else
+    v3 = i_nocache_eof != 0;
+  v14 = v3;
+  v18 = cache_round(a1, a2);
+  if ( a2 && !v18 )
+    return 1;
+  if ( !a2 && !v18 && !v14 ) // I3
+    return 1;
+  if ( a2 )
+  {
+    v7 = cache_round(a1, 0LL);
+    v6 = HIDWORD(v7); // I4
+    v5 = v7; // I4
+  }
+  else
+  {
+    v5 = 0; // I4
+    v6 = 0; // I4
+  }
+  v19 = __PAIR64__(v6, v5); // I4
+  if ( a1 )
+  {
+    if ( output_offset_8654 != -1 )
+    {
+      if ( output_offset_8654 >= 0 )
+      {
+        if ( a2 )
+        {
+          v11 = v18 + __PAIR64__(v6, v5) + output_offset_8654; // I4
+          output_offset_8654 = v11;
+        }
+      }
+      else
+      {
+        output_offset_8654 = lseek64(a1, -1, 0, 0, 1);
+      }
+    }
+    v16 = output_offset_8654;
+  }
+  else if ( input_seekable )
+  {
+    v16 = input_offset;
+  }
+  else
+  {
+    v16 = -1LL;
+    *_errno_location() = 29;
+  }
+  if ( v16 >= 0 )
+  {
+    if ( !a2 && v18 && v14 )
+    {
+      v19 = v18; // I4
+      v18 = 0LL;
+    }
+    v8 = v16; // I4
+    v10 = v16 - v18 - v19; // I4
+    v17 = v10; // I4
+    if ( !v18 )
+    {
+      v8 = v10 % (unsigned int)page_size;
+      v17 = v10 - v10 % (unsigned int)page_size;
+    }
+    v15 = ((int (__fastcall *)(int, int, _DWORD, _DWORD, _DWORD, _DWORD, int))posix_fadvise64)( // I1
+            a1,
+            v8,
+            v17,
+            HIDWORD(v17),
+            v18,
+            HIDWORD(v18),
+            4);
+  }
+  return v15 != -1;
+}
+/////
+void siginfo_handler()
+{
+  ++info_signal_count; // I4
+}
+/////
+__fastcall parse_integer(const char *a1, _DWORD *a2)
+{
+  char *v3; // I4
+  void *v4; // I4
+  void *v5; // I4
+  char *v9;
+  int v10;
+  __int64 v11;
+  unsigned __int64 v12;
+  v10 = xstrtoumax(a1, &v9, 10, &v11, "bcEGkKMPTwYZ0");
+  if ( v10 != 2 || *v9 != 120 )
+  {
+    if ( v10 )
+    {
+      *a2 = v10;
+      return 0;
+    }
+    return v11;
+  }
+  v12 = parse_integer(v9 + 1, a2);
+  if ( !v12 || v12 * v11 / v12 == v11 )
+  {
+    if ( !v11 && !strncmp(a1, "0x", 2u) )
+    {
+      v3 = gettext("warning: %s is a zero multiplier; use %s if that is intended"); // I4
+      v4 = quote_n(0, (int)"0x"); // I4
+      v5 = quote_n(1, (int)"00x"); // I4
+      nl_error(0, 0, v3, v4, v5);
+    }
+    v11 *= v12;
+    return v11;
+  }
+  *a2 = 1;
+  return 0;
+}
+/////
+void alloc_ibuf()
+{
+  char *v0; // I4
+  void *v1;
+  char v2[652];
+  if ( !ibuf )
+  {
+    v1 = malloc(2 * (page_size + 2) + input_blocksize - 1);
+    if ( !v1 )
+    {
+      v0 = gettext("memory exhausted by input buffer of size %llu bytes (%s)"); // I4
+      human_readable((unsigned int)input_blocksize, v2, 497, 1uLL, 1uLL);
+      nl_error(1, 0, v0);
+    }
+    ibuf = ptr_align((int)v1 + 2, page_size);
+  }
+}
+/////
+__fastcall iread(int a1, void *a2, size_t a3)
+{
+  int v3; // I4
+  char *v4; // I4
+  ssize_t v9;
+  do
+  {
+    process_signals();
+    v9 = read(a1, a2, a3);
+    if ( v9 == -1
+      && *_errno_location() == 22
+      && prev_nread_8661 > 0
+      && a3 > prev_nread_8661
+      && (input_flags & 0x10000) != 0 )
+    {
+      *_errno_location() = 0;
+      v9 = 0;
+    }
+  }
+  while ( v9 < 0 && *_errno_location() == 4 );
+  if ( v9 > 0 && a3 > v9 )
+    process_signals();
+  if ( v9 > 0 && warn_partial_read && prev_nread_8661 > 0 && a3 > prev_nread_8661 )
+  {
+    if ( status_level != 1 )
+    {
+      v3 = select_plural(prev_nread_8661); // I4
+      v4 = ngettext( // I4
+             "warning: partial read (%llu byte); suggest iflag=fullblock",
+             "warning: partial read (%llu bytes); suggest iflag=fullblock",
+             v3);
+      nl_error(0, 0, v4);
+    }
+    warn_partial_read = 0;
+  }
+  prev_nread_8661 = v9;
+  return v9;
+}
+/////
+__fastcall swab_buffer(int a1, _DWORD *a2)
+{
+  int v3; // I4
+  _BYTE *v4; // I4
+  int i;
+  v3 = a1; // I4
+  if ( char_is_saved )
+  {
+    v3 = a1 - 1; // I4
+    *(_BYTE *)(a1 - 1) = saved_char; // I1
+    ++*a2;
+    char_is_saved = 0;
+  }
+  if ( (*a2 & 1) != 0 )
+  {
+    --*a2;
+    saved_char = *(_BYTE *)(v3 + *a2); // I1
+    char_is_saved = 1;
+  }
+  v4 = (_BYTE *)(v3 + *a2); // I4
+  for ( i = *a2 >> 1; i; --i )
+  {
+    *v4 = *(v4 - 2);
+    v4 -= 2;
+  }
+  return v3 + 1;
+}
+/////
+__fastcall translate_buffer(int result, int a2)
+{
+  _BYTE *v3;
+  v3 = (_BYTE *)result; // I1
+  while ( a2 )
+  {
+    result = to_uchar((unsigned __int8)*v3);
+    *v3 = trans_table[result]; // I4
+    --a2;
+    ++v3;
+  }
+  return result; // I5
+}
+/////
+__fastcall ifstat(int a1, int a2)
+{
+  int v5;
+  do
+  {
+    process_signals();
+    v5 = fstat64(a1, a2);
+  }
+  while ( v5 < 0 && *_errno_location() == 4 ); // I1
+  return v5;
+}
+/////
+__fastcall advance_input_after_read_error(unsigned int a1)
+{
+  int v2; // I4
+  char *v3; // I4
+  void *v4; // I4
+  char *v5; // I4
+  char *v6; // I4
+  int v7; // I4
+  char *v8; // I4
+  void *v9; // I4
+  __int64 v12;
+  __int64 v13;
+  if ( input_seekable == 1 )
+  {
+    advance_input_offset(a1);
+    input_offset_overflow = ((unsigned __int8)input_offset_overflow | (input_offset < 0)) != 0;
+    if ( input_offset_overflow )
+    {
+      v3 = gettext("offset overflow while reading file %s"); // I4
+      v4 = quotearg_style(4, input_file); // I4
+      nl_error(0, 0, v3, v4);
+      return 0;
+    }
+    v12 = lseek64(0, v2, 0, 0, 1);
+    if ( v12 >= 0 )
+    {
+      if ( v12 == input_offset )
+        return 1;
+      v13 = input_offset - v12; // I4
+      if ( ((((unsigned __int64)(input_offset - v12) >> 32) & 0x80000000) != 0LL || a1 < v13) && status_level != 1 )
+      {
+        v5 = gettext("warning: invalid file offset after failed read"); // I4
+        nl_error(0, 0, v5);
+      }
+      if ( (((unsigned __int64)skip_via_lseek(input_file, 0, v13, SHIDWORD(v13), 1) >> 32) & 0x80000000) == 0LL )
+        return 1;
+      if ( !*_errno_location() )
+      {
+        v6 = gettext("cannot work around kernel bug after all"); // I4
+        nl_error(0, 0, v6);
+      }
+    }
+LABEL_18:
+    v7 = *_errno_location(); // I4
+    v8 = gettext("%s: cannot seek"); // I4
+    v9 = quotearg_n_style_colon(0, 3, input_file); // I4
+    nl_error(0, v7, v8, v9);
+    return 0;
+  }
+  if ( input_seek_errno != 29 )
+  {
+    *_errno_location() = input_seek_errno;
+    goto LABEL_18;
+  }
+  return 1;
+}
+/////
+__fastcall iread_fullblock(int a1, char *a2, size_t a3)
+{
+  int v8;
+  ssize_t v9;
+  v8 = 0;
+  while ( a3 )
+  {
+    v9 = iread(a1, a2, a3);
+    if ( v9 < 0 )
+      return v9;
+    if ( !v9 )
+      break;
+    v8 += v9;
+    a2 += v9;
+    a3 -= v9;
+  }
+  return v8;
+}
+/////
+__noreturn quit(int a1)
+{
+  finish_up();
+  exit(a1);
+}
+/////
+__fastcall copy_with_block(int *result, int a2)
+{
+  int v2; // I4
+  int v3; // I4
+  int *v4; // I4
+  unsigned int i;
+  v4 = result;
+  while ( a2 )
+  {
+    if ( *(unsigned __int8 *)v4 == (unsigned __int8)newline_character )
+    {
+      if ( col < (unsigned int)conversion_blocksize )
+      {
+        for ( i = col; i < conversion_blocksize; ++i )
+        {
+          v2 = oc;
+          result = &oc; // I4
+          ++oc;
+          *(_BYTE *)(obuf + v2) = space_character; // I1
+          if ( oc >= (unsigned int)output_blocksize ) // I1
+            result = (int *)write_output();
+        }
+      }
+      col = 0;
+    }
+    else
+    {
+      if ( col == conversion_blocksize )
+      {
+        ++r_truncate;
+      }
+      else if ( col < (unsigned int)conversion_blocksize )
+      {
+        v3 = oc;
+        result = &oc; // I4
+        ++oc;
+        *(_BYTE *)(obuf + v3) = *(_BYTE *)v4; // I1
+        if ( oc >= (unsigned int)output_blocksize )
+          result = (int *)write_output();
+      }
+      ++col;
+    }
+    --a2;
+    v4 = (int *)((char *)v4 + 1);
+  }
+  return result; // I5
+}
+/////
+__fastcall has_uuid_suffix(const char *a1)
+{
+  size_t v4;
+  v4 = strlen(a1);
+  return v4 > 0x24 && strspn(&a1[v4 - 36], "-0123456789abcdefABCDEF") == 36; // I1
+}
+/////
+__fastcall add_uint_with_neg_flag(int result, unsigned __int8 *a2, unsigned __int64 a3, unsigned __int8 a4)
+{
+  int v4; // I4
+  int v5; // I4
+  unsigned __int64 v6; // I4
+  v6 = a3; // I4
+  if ( a4 ^ *a2 ^ 1 )
+  {
+    *(_QWORD *)result += a3; // I1
+  }
+  else
+  {
+    if ( *a2 )
+    {
+      v4 = -*(_QWORD *)result >> 32; // I4
+      *(_DWORD *)result = -*(_DWORD *)result; // I1
+      *(_DWORD *)(result + 4) = v4; // I1
+    }
+    if ( a4 )
+      v6 = -(__int64)a3; // I4
+    if ( v6 >= *(_QWORD *)result ) // I4
+    {
+      *(_QWORD *)result = v6 - *(_QWORD *)result; // I1
+      *a2 = a4;
+    }
+    else
+    {
+      *(_QWORD *)result -= v6; // I1
+    }
+    if ( *a2 )
+    {
+      v5 = -*(_QWORD *)result >> 32; // I4
+      *(_DWORD *)result = -*(_DWORD *)result; // I1
+      *(_DWORD *)(result + 4) = v5; // I1
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall selected_fstype(const char *a1)
+{
+  int i;
+  if ( !fs_select_list || !a1 )
+    return 1;
+  for ( i = fs_select_list; i; i = *(_DWORD *)(i + 4) ) // I1
+  {
+    if ( !strcmp(a1, *(const char **)i) ) // I1
+      return 1;
+  }
+  return 0;
+}
+/////
+__fastcall replace_control_chars(_BOOL4 result)
+{
+  int v1; // I4
+  _BYTE *i;
+  for ( i = (_BYTE *)result; *i; ++i ) // I1
+  {
+    v1 = to_uchar((unsigned __int8)*i); // I4
+    result = c_iscntrl(v1); // I4
+    if ( result )
+      *i = 63; // I2
+  }
+  return result; // I5
+}
+/////
+__fastcall me_for_dev(int a1, int a2)
+{
+  int v2;
+  int v4;
+  v4 = devlist_for_dev(a1, a2);
+  if ( v4 )
+    v2 = *(_DWORD *)(v4 + 8); // I1
+  else
+    v2 = 0;
+  return v2;
+}
+/////
+__fastcall devlist_for_dev(int a1, int a2)
+{
+  int v4[5];
+  if ( !devlist_table )
+    return 0;
+  v4[0] = a1; // I1
+  v4[1] = a2; // I1
+  return hash_lookup(devlist_table, (int)v4);
+}
+/////
+void print_table()
+{
+  void *v0;
+  unsigned int v1;
+  unsigned int i;
+  unsigned int j;
+  int v4; // I4
+  void *ptr;
+  for ( i = 0; i < nrows; ++i )
+  {
+    for ( j = 0; j < ncolumns; ++j )
+    {
+      ptr = *(void **)(*(_DWORD *)(table + 4 * i) + 4 * j); // I1
+      if ( j )
+        putchar_unlocked(32); // I6
+      v4 = 0; // I4
+      if ( j == ncolumns - 1 )
+        v4 = 8; // I4
+      v1 = *(_DWORD *)(*(_DWORD *)(columns + 4 * j) + 16); // I1
+      ptr = ambsalign((const char *)ptr, &v1, *(_DWORD *)(*(_DWORD *)(columns + 4 * j) + 20), v4); // I1
+      if ( ptr ) // I3
+        v0 = ptr; // I4
+      else
+        v0 = *(void **)(*(_DWORD *)(table + 4 * i) + 4 * j); // I1
+      fputs_unlocked(v0, stdout); // I6
+      free(ptr); // I4
+    }
+    putchar_unlocked(10); // I6
+  }
+}
+/////
+__fastcall df_readable(unsigned __int8 a1, unsigned __int64 a2, int a3, unsigned __int64 a4, unsigned __int64 a5)
+{
+  unsigned __int64 v7; // I4
+  char *v11;
+  if ( !known_value(a2, SHIDWORD(a2)) && a1 != 1 )
+    return "-";
+  if ( a1 ) // I3
+    v7 = -(__int64)a2;
+  else
+    v7 = a2; // I4
+  v11 = human_readable(v7, (char *)(a3 + a1), human_output_opts, a4, a5);
+  if ( a1 )
+    *--v11 = 45; // I2
+  return v11;
+}
+/////
+__fastcall replace_invalid_chars(char *a1)
+{
+  size_t result;
+  _BYTE *v2; // I4
+  bool v4;
+  wint_t wc;
+  void *dest;
+  size_t n;
+  void *src;
+  char *v9;
+  size_t v10;
+  mbstate_t v11;
+  result = strlen(a1);
+  v9 = &a1[result];
+  dest = a1;
+  v11.__count = 0;
+  v11.__wch = 0;
+  for ( src = a1; src != v9; src = (char *)src + n )
+  {
+    v10 = v9 - (_BYTE *)src; // I1
+    n = rpl_mbrtowc((wchar_t *)&wc, (char *)src, v9 - (_BYTE *)src, &v11);
+    v4 = n <= v10;
+    if ( n > v10 )
+      n = 1;
+    else
+      v4 = iswcntrl(wc) == 0;
+    if ( v4 )
+    {
+      result = (size_t)memmove(dest, src, n);
+      dest = (char *)dest + n;
+    }
+    else
+    {
+      v2 = dest; // I4
+      dest = (char *)dest + 1;
+      *v2 = 63; // I2
+      result = (size_t)memset(&v11, 0, sizeof(v11));
+    }
+  }
+  *(_BYTE *)dest = 0; // I2
+  return result; // I5
+}
+/////
+__fastcall add_to_grand_total(int a1, int a2)
+{
+  int result; // I4
+  if ( known_value(*(_DWORD *)(a2 + 16), *(_DWORD *)(a2 + 20)) ) // I1
+    qword_393C0 += *(_QWORD *)(a2 + 16); // I1
+  if ( known_value(*(_DWORD *)(a2 + 24), *(_DWORD *)(a2 + 28)) ) // I1
+    qword_393C8 += *(_QWORD *)(a2 + 24); // I1
+  if ( known_value(*(_DWORD *)(a1 + 16), *(_DWORD *)(a1 + 20)) ) // I1
+    qword_393A0 += *(_QWORD *)(a1 + 16) * *(_QWORD *)a1; // I1
+  if ( known_value(*(_DWORD *)(a1 + 40), *(_DWORD *)(a1 + 44)) ) // I1
+    qword_393A8 += *(_QWORD *)(a1 + 40) * *(_QWORD *)a1; // I1
+  result = known_value(*(_DWORD *)(a1 + 24), *(_DWORD *)(a1 + 28)); // I1
+  if ( result )
+    result = add_uint_with_neg_flag(
+               (int)&unk_393B0,
+               byte_393B8,
+               *(_QWORD *)(a1 + 24) * *(_QWORD *)a1, // I1
+               *(_BYTE *)(a1 + 32)); // I1
+  return result; // I5
+}
+/////
+void *alloc_table_row()
+{
+  _DWORD *v0; table
+  void *result; // I4
+  table = (int)xnrealloc((void *)table, ++nrows, 4u);
+  v0 = (_DWORD *)(table + 4 * (nrows + 0x3FFFFFFF)); // I4
+  result = xnmalloc(ncolumns, 4u);
+  *v0 = result;
+  return result; // I5
+}
+/////
+__fastcall add_fs_type(int a1)
+{
+  _DWORD *result;
+  result = xmalloc(8u);
+  *result = a1; // I1
+  result[1] = fs_select_list; // I1
+  fs_select_list = (int)result;
+  return result; // I5
+}
+/////
+__fastcall devlist_hash(_QWORD *a1, unsigned int a2)
+{
+  return *a1 % (unsigned __int64)a2; // I1
+}
+/////
+__fastcall known_value(unsigned int a1, int a2)
+{
+  bool v2; // I4
+  v2 = 0; // I4
+  if ( a2 == -1 ) // I3
+    v2 = a1 > 0xFFFFFFFD;
+  return !v2;
+}
+/////
+__fastcall last_device_for_mount(const char *a1)
+{
+  int i;
+  const char **v5;
+  _BYTE *ptr;
+  v5 = 0;
+  for ( i = mount_list; i; i = *(_DWORD *)(i + 28) ) // I1
+  {
+    if ( !strcmp(*(const char **)(i + 4), a1) ) // I1
+      v5 = (const char **)i; // I1
+  }
+  if ( !v5 )
+    return 0;
+  ptr = (_BYTE *)canonicalize_file_name(*v5); // I1
+  if ( ptr && *ptr == 47 )
+    return ptr;
+  free(ptr);
+  return xstrdup(*v5);
+}
+/////
+__fastcall devlist_compare(_QWORD *a1, _QWORD *a2)
+{
+  return *a1 == *a2; // I1
+}
+/////
+__fastcall get_entry(char *a1, _DWORD *a2)
+{
+  if ( (a2[4] & 0xF000) != 24576 && (a2[4] & 0xF000) != 0x2000 || !get_disk(a1) ) // I1
+    get_point(a1, a2);
+}
+/////
+__fastcall alloc_field(int a1, int a2)
+{
+  _DWORD *result; // I4
+  result = xnrealloc((void *)columns, ++ncolumns, 4u); // I4
+  columns = (int)result;
+  result[ncolumns - 1] = (char *)&field_data + 28 * a1; // I1
+  if ( a2 )
+    *(_DWORD *)(*(_DWORD *)(columns + 4 * (ncolumns + 0x3FFFFFFF)) + 12) = a2; // I1
+  if ( *((_BYTE *)&field_data + 28 * a1 + 24) ) // I1
+    _assert_fail("!\"field used\"", "src/df.c", 0x197u, "alloc_field");
+  *((_BYTE *)&field_data + 28 * a1 + 24) = 1; // I1
+  return result; // I5
+}
+/////
+__fastcall get_field_values(int a1, int a2, int a3)
+{
+  int v3; // I4
+  int v4; // I4
+  int v5; // I4
+  int v6; // I4
+  int v7; // I4
+  int v8; // I4
+  int v9; // I4
+  int v10; // I4
+  int v11; // I4
+  bool v12; // I4
+  _BOOL4 result; // I4
+  *(_DWORD *)(a2 + 8) = 1; // I1
+  *(_DWORD *)(a2 + 12) = 0; // I1
+  v3 = *(_DWORD *)(a2 + 12); // I4
+  *(_DWORD *)a2 = *(_DWORD *)(a2 + 8); // I1
+  *(_DWORD *)(a2 + 4) = v3; // I1
+  v4 = *(_DWORD *)(a3 + 44); // I1
+  *(_DWORD *)(a2 + 16) = *(_DWORD *)(a3 + 40); // I1
+  *(_DWORD *)(a2 + 20) = v4; // I1
+  v5 = *(_DWORD *)(a3 + 52); // I1
+  *(_DWORD *)(a2 + 40) = *(_DWORD *)(a3 + 48); // I1
+  *(_DWORD *)(a2 + 44) = v5; // I1
+  v6 = *(_DWORD *)(a2 + 44); // I1
+  *(_DWORD *)(a2 + 24) = *(_DWORD *)(a2 + 40); // I1
+  *(_DWORD *)(a2 + 28) = v6; // I1
+  *(_BYTE *)(a2 + 32) = 0; // I1
+  *(_DWORD *)(a2 + 48) = -1; // I1
+  *(_DWORD *)(a2 + 52) = -1; // I1
+  *(_BYTE *)(a2 + 56) = 0; // I1
+  if ( known_value(*(_DWORD *)(a2 + 16), *(_DWORD *)(a2 + 20)) // I1
+    && known_value(*(_DWORD *)(a2 + 40), *(_DWORD *)(a2 + 44)) ) // I1
+  {
+    *(_QWORD *)(a2 + 48) = *(_QWORD *)(a2 + 16) - *(_QWORD *)(a2 + 40); // I1
+    *(_BYTE *)(a2 + 56) = *(_QWORD *)(a2 + 16) < *(_QWORD *)(a2 + 40); // I1
+  }
+  v7 = *(_DWORD *)(a3 + 4); // I1
+  *(_DWORD *)a1 = *(_DWORD *)a3; // I1
+  *(_DWORD *)(a1 + 4) = v7; // I1
+  v8 = HIDWORD(output_block_size); // I1
+  *(_DWORD *)(a1 + 8) = output_block_size; // I1
+  *(_DWORD *)(a1 + 12) = v8; // I1
+  v9 = *(_DWORD *)(a3 + 12); // I1
+  *(_DWORD *)(a1 + 16) = *(_DWORD *)(a3 + 8); // I1
+  *(_DWORD *)(a1 + 20) = v9; // I1
+  v10 = *(_DWORD *)(a3 + 28); // I1
+  *(_DWORD *)(a1 + 24) = *(_DWORD *)(a3 + 24); // I1
+  *(_DWORD *)(a1 + 28) = v10; // I1
+  v11 = *(_DWORD *)(a3 + 20); // I1
+  *(_DWORD *)(a1 + 40) = *(_DWORD *)(a3 + 16); // I1
+  *(_DWORD *)(a1 + 44) = v11; // I4
+  v12 = *(_BYTE *)(a3 + 32) && known_value(*(_DWORD *)(a3 + 24), *(_DWORD *)(a3 + 28)); // I1
+  *(_BYTE *)(a1 + 32) = v12; // I1
+  *(_DWORD *)(a1 + 48) = -1; // I1
+  *(_DWORD *)(a1 + 52) = -1; // I1
+  *(_BYTE *)(a1 + 56) = 0; // I1
+  result = known_value(*(_DWORD *)(a1 + 16), *(_DWORD *)(a1 + 20)); // I1
+  if ( result )
+  {
+    result = known_value(*(_DWORD *)(a1 + 40), *(_DWORD *)(a1 + 44)); // I1
+    if ( result )
+    {
+      *(_QWORD *)(a1 + 48) = *(_QWORD *)(a1 + 16) - *(_QWORD *)(a1 + 40); // I1
+      *(_BYTE *)(a1 + 56) = *(_QWORD *)(a1 + 16) < *(_QWORD *)(a1 + 40); // I1
+    }
+  }
+  return result; // I5
+}
+/////
+void get_all_entries()
+{
+  int i;
+  filter_mount_list(show_all_fs);
+  for ( i = mount_list; i; i = *(_DWORD *)(i + 28) ) // I1
+    get_dev(
+      *(const char **)i, // I1
+      *(const char **)(i + 4), // I1
+      0,
+      0,
+      *(const char **)(i + 12), // I1
+      (*(_BYTE *)(i + 24) & 1) != 0, // I1
+      (*(_BYTE *)(i + 24) & 2) != 0, // I1
+      0,
+      1);
+}
+/////
+__fastcall replace_problematic_chars(char *a1)
+{
+  size_t result;
+  if ( tty_out_9919 < 0 )
+    tty_out_9919 = isatty(1);
+  if ( tty_out_9919 ) // I3
+    result = replace_invalid_chars(a1);
+  else
+    result = ((size_t (__fastcall *)(char *))replace_control_chars)(a1); // I1
+  return result;
+}
+/////
+__fastcall add_excluded_fs_type(int a1)
+{
+  _DWORD *result;
+  result = xmalloc(8u);
+  *result = a1; // I1
+  result[1] = fs_exclude_list; // I1
+  fs_exclude_list = (int)result; // I1
+  return result; // I5
+}
+/////
+void get_field_list()
+{
+  switch ( header_mode )
+  {
+    case 0:
+      alloc_field(0, 0);
+      if ( print_type )
+        alloc_field(1, 0);
+      alloc_field(2, 0);
+      alloc_field(3, 0);
+      alloc_field(4, 0);
+      alloc_field(5, 0);
+      alloc_field(10, 0);
+      break;
+    case 1:
+      alloc_field(0, 0);
+      if ( print_type )
+        alloc_field(1, 0);
+      alloc_field(6, 0);
+      alloc_field(7, 0);
+      alloc_field(8, 0);
+      alloc_field(9, 0);
+      alloc_field(10, 0);
+      break;
+    case 2:
+      alloc_field(0, 0);
+      if ( print_type )
+        alloc_field(1, 0);
+      alloc_field(2, (int)"Size"); // I2
+      alloc_field(3, 0);
+      alloc_field(4, (int)"Avail"); // I2
+      alloc_field(5, 0);
+      alloc_field(10, 0);
+      break;
+    case 3:
+      alloc_field(0, 0);
+      if ( print_type )
+        alloc_field(1, 0);
+      alloc_field(2, 0);
+      alloc_field(3, 0);
+      alloc_field(4, 0);
+      alloc_field(5, (int)"Capacity"); // I2
+      alloc_field(10, 0);
+      break;
+    case 4:
+      if ( !ncolumns )
+        decode_output_arg(all_args_string);
+      break;
+    default:
+      _assert_fail("!\"invalid header_mode\"", "src/df.c", 0x223u, "get_field_list");
+      return;
+  }
+}
+/////
+__fastcall dc_parse_file(const char *a1)
+{
+  int v1; // I4
+  const char *v2; // I4
+  unsigned __int8 v6;
+  if ( !strcmp(a1, "-") || freopen_safer((int)a1, (int)"r", (FILE *)stdin) ) // I2
+  {
+    v6 = dc_parse_stream(stdin, (int)a1); // I2
+    if ( !rpl_fclose((FILE *)stdin) ) // I2
+      return v6;
+  }
+  v1 = *_errno_location(); // I4
+  v2 = (const char *)quotearg_n_style_colon(0, 3, (int)a1); // I4
+  error(0, v1, "%s", v2);
+  return 0;
+}
+/////
+__fastcall append_quoted(_BYTE *result)
+{
+  int v1;
+  _BYTE *v2; // I4
+  _BYTE *v3; // I4
+  _BYTE *v4; // I4
+  _BYTE *v5; // I4
+  _BYTE *v6; // I4
+  _BYTE *v7; // I4
+  bool v8;
+  v7 = result; // I4
+  v8 = 1;
+  while ( *v7 )
+  {
+    v1 = (unsigned __int8)*v7;
+    if ( v1 == 61 ) // I2
+      goto LABEL_18;
+    if ( (unsigned __int8)*v7 > 0x3Du ) // I2
+    {
+      if ( v1 == 92 || v1 == 94 ) // I2
+      {
+        v8 = !v8;
+        goto LABEL_23;
+      }
+      goto LABEL_22;
+    }
+    if ( v1 != 39 ) // I2
+    {
+      if ( v1 == 58 ) // I2
+      {
+LABEL_18:
+        if ( v8 )
+        {
+          if ( lsc_obstack[4] == lsc_obstack[3] ) // I1
+            result = obstack_newchunk(lsc_obstack, 1);
+          v5 = (_BYTE *)lsc_obstack[3]++; // I1
+          *v5 = 92;
+        }
+      }
+LABEL_22:
+      v8 = 1;
+      goto LABEL_23;
+    }
+    if ( lsc_obstack[4] == lsc_obstack[3] ) // I1
+      result = obstack_newchunk(lsc_obstack, 1);
+    v2 = (_BYTE *)lsc_obstack[3]++; // I1
+    *v2 = 39;
+    if ( lsc_obstack[4] == lsc_obstack[3] ) // I1
+      result = obstack_newchunk(lsc_obstack, 1);
+    v3 = (_BYTE *)lsc_obstack[3]++; // I1
+    *v3 = 92;
+    if ( lsc_obstack[4] == lsc_obstack[3] ) // I1
+      result = obstack_newchunk(lsc_obstack, 1);
+    v4 = (_BYTE *)lsc_obstack[3]++; // I1
+    *v4 = 39;
+    v8 = 1;
+LABEL_23:
+    if ( lsc_obstack[4] == lsc_obstack[3] ) // I1
+      result = obstack_newchunk(lsc_obstack, 1);
+    v6 = (_BYTE *)lsc_obstack[3]++; // I1
+    *v6 = *v7++;
+  }
+  return result; // I5
+}
+/////
+int guess_shell_syntax()
+{
+  char *s1;
+  char *s1a; // I4
+  s1 = getenv("SHELL");
+  if ( !s1 || !*s1 )
+    return 2;
+  s1a = last_component(s1);
+  return !strcmp(s1a, "csh") || !strcmp(s1a, "tcsh");
+}
+/////
+__fastcall parse_line(_BYTE *a1, int *a2, int *a3)
+{
+  const unsigned __int16 *v3;
+  int result; // I4
+  const unsigned __int16 *v5;
+  const unsigned __int16 *v6;
+  const unsigned __int16 *v7;
+  unsigned __int8 *i; // I4
+  int v12; // I4
+  int v13; // I4
+  *a2 = 0;
+  *a3 = 0;
+  while ( 1 )
+  {
+    v3 = *_ctype_b_loc();
+    result = to_uchar((unsigned __int8)*a1); // I4
+    if ( (v3[result] & 0x2000) == 0 ) // I1
+      break;
+    ++a1;
+  }
+  if ( *a1 && *a1 != 35 ) // I2
+  {
+    v12 = (int)a1; // I4
+    while ( 1 )
+    {
+      v5 = *_ctype_b_loc();
+      if ( (v5[to_uchar((unsigned __int8)*a1)] & 0x2000) != 0 || !*a1 ) // I1
+        break;
+      ++a1;
+    }
+    result = xstrndup(v12, (int)&a1[-v12]);
+    *a2 = result;
+    if ( *a1 )
+    {
+      do
+      {
+        ++a1;
+        v6 = *_ctype_b_loc();
+        result = to_uchar((unsigned __int8)*a1);
+      }
+      while ( (v6[result] & 0x2000) != 0 );
+      if ( *a1 && *a1 != 35 ) // I2
+      {
+        v13 = (int)a1; // I4
+        while ( *a1 && *a1 != 35 )
+          ++a1;
+        for ( i = a1 - 1; ; --i )
+        {
+          v7 = *_ctype_b_loc();
+          if ( (v7[to_uchar(*i)] & 0x2000) == 0 ) // I1
+            break;
+        }
+        result = xstrndup(v13, (int)&i[-v13 + 1]); // I1
+        *a3 = result;
+      }
+    }
+  }
+  return result; // I5
+}
+/////
+__fastcall duinfo_set(_DWORD *a1, int a2, int a3, int a4, int a5, int a6)
+{
+  _DWORD *v6; // I4
+  int result; // I4
+  *a1 = a3; // I1
+  a1[1] = a4; // I1
+  a1[2] = 1; // I1
+  a1[3] = 0; // I1
+  v6 = a1 + 4; // I1
+  result = a5; // I1
+  a1[4] = a5; // I1
+  v6[1] = a6; // I1
+  return result; // I5
+}
+/////
+__fastcall hash_ins(int a1, unsigned __int64 a2, __int64 a3)
+{
+  int v5;
+  v5 = di_set_insert(a1, a3, a2);
+  if ( v5 < 0 )
+    xalloc_die();
+  return v5 != 0;
+}
+/////
+__fastcall print_only_size(unsigned __int64 a1)
+{
+  char *v1; // I4
+  char v3[652];
+  if ( a1 == -1LL ) // I3
+    v1 = gettext("Infinity");
+  else
+    v1 = human_readable(a1, v3, human_output_opts, 1uLL, output_block_size);
+  return fputs_unlocked(v1, stdout); // I5 // I6
+}
+/////
+__fastcall mount_point_in_fts_cycle(_DWORD *a1)
+{
+  _DWORD *v3; // I4
+  _DWORD *v4;
+  v3 = a1; // I4
+  v4 = (_DWORD *)*a1; // I1
+  if ( !di_mnt )
+  {
+    di_mnt = (int)di_set_alloc();
+    if ( !di_mnt )
+      xalloc_die();
+    fill_mount_table();
+  }
+  while ( v3 && v3 != v4 )
+  {
+    if ( di_set_lookup(di_mnt, *((_QWORD *)v3 + 9), *((_QWORD *)v3 + 21)) > 0 ) // I1
+      return 1;
+    v3 = (_DWORD *)v3[1]; // I1
+  }
+  return 0;
+}
+/////
+__cdecl main(int argc, const char **argv, const char **envp)
+{
+  const char *v3; // I4
+  char *v4; // I4
+  char *v5; // I4
+  char *v6; // I4
+  void *v7; // I4
+  int v8; // I4
+  int v9; // I4
+  const char *v10; // I4
+  int v11; // I4
+  char *v12; // I4
+  int v13; // I4
+  const char *v14; // I4
+  char v18; // I4
+  char v19; // I4
+  FILE *v20;
+  char *s1;
+  int v22; // I4
+  int v23; // I4
+  __int64 v24;
+  v18 = 0; // I4
+  v19 = 0; // I4
+  v24 = 76LL;
+  v22 = 0; // I4
+  set_program_name(*argv);
+  setlocale(6, byte_1C744);
+  bindtextdomain("coreutils", "/usr/local/share/locale");
+  textdomain("coreutils");
+  atexit((void (__fastcall *)(void *))close_stdout);
+  while ( 1 )
+  {
+    v23 = rpl_getopt_long(argc, argv, "diw:", (const char **)&long_options, 0); // I6
+    if ( v23 == -1 )
+      break;
+    if ( v23 == 105 ) // I2
+    {
+      v19 = 1; // I4
+    }
+    else if ( v23 > 105 ) // I3
+    {
+      if ( v23 == 119 ) // I2
+      {
+        v3 = (const char *)rpl_optarg;
+        v4 = gettext("invalid wrap size"); // I6
+        v24 = xdectoumax(v3, 0LL, 0xFFFFFFFFFFFFFFFFLL, byte_1C744, v4, 0);
+      }
+      else
+      {
+        if ( v23 < 119 || (unsigned int)(v23 - 256) > 7 ) // I3
+          goto LABEL_17;
+        v22 = v23;
+      }
+    }
+    else
+    {
+      if ( v23 == -2 ) // I2
+        usage(0);
+      if ( v23 != 100 ) // I2
+      {
+        if ( v23 == -3 ) // I2
+        {
+          version_etc((FILE *)stdout, "basenc", "GNU coreutils", Version, "Simon Josefsson", "Assaf Gordon", 0); // I1
+          exit(0);
+        }
+LABEL_17:
+        usage(1);
+      }
+      v18 = 1; // I4
+    }
+  }
+  switch ( v22 ) // I3
+  {
+    case 256:
+      base_length = base64_length_wrapper;
+      isbase = (int (__fastcall *)(_DWORD))isbase64; // I1
+      base_encode = (int)base64_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base64_decode_ctx_init_wrapper; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base64_decode_ctx_wrapper; // I1
+      break;
+    case 257:
+      base_length = base64_length_wrapper;
+      isbase = (int (__fastcall *)(_DWORD))isbase64url; // I1
+      base_encode = (int)base64url_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base64url_decode_ctx_init_wrapper; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base64url_decode_ctx_wrapper; // I1
+      break;
+    case 258:
+      base_length = base32_length_wrapper;
+      isbase = (int (__fastcall *)(_DWORD))isbase32; // I1
+      base_encode = (int)base32_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base32_decode_ctx_init_wrapper; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base32_decode_ctx_wrapper; // I1
+      break;
+    case 259:
+      base_length = base32_length_wrapper;
+      isbase = (int (__fastcall *)(_DWORD))isbase32hex; // I1
+      base_encode = (int)base32hex_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base32hex_decode_ctx_init_wrapper; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base32hex_decode_ctx_wrapper; // I1
+      break;
+    case 260:
+      base_length = base16_length;
+      isbase = (int (__fastcall *)(_DWORD))isbase16; // I1
+      base_encode = (int)base16_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base16_decode_ctx_init; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base16_decode_ctx; // I1
+      break;
+    case 261:
+      base_length = base2_length;
+      isbase = (int (__fastcall *)(_DWORD))isbase2; // I1
+      base_encode = (int)base2msbf_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base2_decode_ctx_init; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base2msbf_decode_ctx; // I1
+      break;
+    case 262:
+      base_length = base2_length;
+      isbase = (int (__fastcall *)(_DWORD))isbase2; // I1
+      base_encode = (int)base2lsbf_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))base2_decode_ctx_init; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))base2lsbf_decode_ctx; // I1
+      break;
+    case 263:
+      base_length = z85_length;
+      isbase = (int (__fastcall *)(_DWORD))isz85; // I1
+      base_encode = (int)z85_encode; // I1
+      base_decode_ctx_init = (int (__fastcall *)(_DWORD))z85_decode_ctx_init; // I1
+      base_decode_ctx = (int (__fastcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD))z85_decode_ctx; // I1
+      break;
+    default:
+      v5 = gettext("missing encoding type"); // I4
+      error(0, 0, v5);
+      usage(1);
+  }
+  if ( argc - rpl_optind > 1 )
+  {
+    v6 = gettext("extra operand %s"); // I4
+    v7 = quote((int)argv[rpl_optind + 1]); // I4
+    error(0, 0, v6, v7);
+    usage(1);
+  }
+  if ( argc <= rpl_optind )
+  {
+    s1 = "-";
+    v8 = strcmp("-", "-"); // I4
+  }
+  else
+  {
+    s1 = (char *)argv[rpl_optind];
+    v8 = strcmp(s1, "-"); // I4
+  }
+  if ( v8 ) // I4
+  {
+    v20 = (FILE *)fopen64(s1, "rb");
+    if ( !v20 )
+    {
+      v9 = *_errno_location(); // I4
+      v10 = (const char *)quotearg_n_style_colon(0, 3, (int)s1); // I4
+      error(1, v9, "%s", v10);
+    }
+    fadvise(v20, 2);
+  }
+  else
+  {
+    xset_binary_mode();
+    v20 = (FILE *)stdin;
+    fadvise((FILE *)stdin, 2);
+  }
+  if ( v18 ) // I4
+    do_decode(v20, (FILE *)stdout, v19); // I1
+  else
+    do_encode(v20, (FILE *)stdout, v24); // I1
+  if ( rpl_fclose(v20) == -1 ) // I1
+  {
+    if ( !strcmp(s1, "-") )
+    {
+      v11 = *_errno_location(); // I4
+      v12 = gettext("closing standard input"); // I4
+      error(1, v11, v12);
+    }
+    v13 = *_errno_location(); // I4
+    v14 = (const char *)quotearg_n_style_colon(0, 3, (int)s1); // I4
+    error(1, v13, "%s", v14);
+  }
+  return 0; // I5
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

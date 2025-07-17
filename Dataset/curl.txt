@@ -1,0 +1,2029 @@
+__fastcall Curl_resolver_kill(int a1)
+{
+  _DWORD *result;
+  _DWORD *v2;
+  v2 = *(_DWORD **)(a1 + 1328);
+  if ( v2 && *v2 )
+    result = (_DWORD *)thread_wait_resolv(a1, 0, 0);
+  else
+    result = Curl_resolver_cancel(a1);
+  return result;
+}
+/////
+__fastcall destroy_async_data(_DWORD *a1)
+{
+  _DWORD *result;
+  int v2;
+  int fd;
+  int *v4;
+  int v5;
+  if ( a1[4] )
+  {
+    v2 = a1[4];
+    fd = *(_DWORD *)(v2 + 36);
+    v4 = *(int **)(v2 + 32);
+    pthread_mutex_lock(*(pthread_mutex_t **)(v2 + 16));
+    v5 = *(_DWORD *)(v2 + 20);
+    *(_DWORD *)(v2 + 20) = 1;
+    pthread_mutex_unlock(*(pthread_mutex_t **)(v2 + 16));
+    if ( v5 )
+    {
+      if ( *(_DWORD *)v2 )
+        Curl_thread_join((pthread_t **)v2);
+      destroy_thread_sync_data((_DWORD *)(v2 + 16));
+      Curl_cfree(a1[4]);
+    }
+    else
+    {
+      Curl_thread_destroy(*(pthread_t **)v2);
+    }
+    if ( v4 )
+      Curl_multi_closed(*v4, fd);
+    close(fd);
+  }
+  a1[4] = 0;
+  Curl_cfree(*a1);
+  result = a1;
+  *a1 = 0;
+  return result;
+}
+/////
+__fastcall Curl_resolver_getsock(int *a1, _DWORD *a2)
+{
+  int v2;
+  int v3;
+  int v5;
+  int v6;
+  int *v7;
+  int v8;
+  __int64 v9;
+  __time_t v10[2];
+  v5 = 0;
+  v6 = *a1;
+  v7 = *(int **)(*a1 + 3380);
+  v8 = a1[332];
+  if ( v8 )
+  {
+    *a2 = *(_DWORD *)(v8 + 36);
+    *(_DWORD *)(v8 + 32) = a1;
+    v5 = 1;
+  }
+  else
+  {
+    Curl_now(v10);
+    v9 = Curl_timediff(v10[0], v10[1], *v7, v7[1]);
+    if ( v9 >= 3 )
+    {
+      if ( v9 >= 51 )
+      {
+        if ( v9 >= 251 )
+          Curl_expire(v6, v2, 200LL, 1);
+        else
+          Curl_expire(v6, v2, 50LL, 1);
+      }
+      else
+      {
+        Curl_expire(v6, v3, v9 / 3, 1);
+      }
+    }
+    else
+    {
+      Curl_expire(v6, v2, 0LL, 1);
+    }
+  }
+  return v5;
+}
+/////
+__fastcall Curl_resolver_getaddrinfo(int *a1, int a2, int a3, _DWORD *a4)
+{
+  int v4;
+  int v5;
+  _DWORD *v6;
+  __time_t v7;
+  int v8;
+  int v9;
+  __time_t v11[3];
+  _DWORD *v12;
+  int v13;
+  int *v14;
+  int v15;
+  int v16;
+  _DWORD *v17;
+  int v18[8];
+  v14 = a1;
+  v13 = a2;
+  v12 = a4;
+  v15 = 2;
+  v16 = *a1;
+  v17 = *(_DWORD **)(v16 + 3380);
+  *a4 = 0;
+  v4 = v14[316];
+  if ( v4 == 1 )
+  {
+    v15 = 2;
+  }
+  else if ( v4 == 2 )
+  {
+    v15 = 10;
+  }
+  else
+  {
+    v15 = 0;
+  }
+  if ( v15 != 2 && (unsigned __int8)Curl_ipv6works((int)v14) != 1 )
+    v15 = 2;
+  memset(v18, 0, sizeof(v18));
+  v18[1] = v15;
+  if ( v14[190] == 3 )
+    v5 = 2;
+  else
+    v5 = 1;
+  v18[2] = v5;
+  v6 = v17;
+  Curl_now(v11);
+  v7 = v11[1];
+  *v6 = v11[0];
+  v6[1] = v7;
+  if ( init_resolve_thread((int)v14, v13, a3, v18) )
+    *v12 = 1;
+  else
+    Curl_failf(v16, "getaddrinfo() thread failed to start\n", v9, v8);
+  return 0;
+}
+/////
+__fastcall destroy_thread_sync_data(_DWORD *a1)
+{
+  if ( *a1 )
+  {
+    pthread_mutex_destroy((pthread_mutex_t *)*a1);
+    Curl_cfree(*a1);
+  }
+  Curl_cfree(a1[2]);
+  if ( a1[8] )
+    Curl_freeaddrinfo(a1[8]);
+  if ( a1[6] != -1 )
+    close(a1[6]);
+  return memset(a1, 0, 0x48u);
+}
+/////
+__fastcall getaddrinfo_complete(int a1)
+{
+  int result;
+  int v2;
+  v2 = conn_thread_sync_data(a1);
+  result = Curl_addrinfo_callback(a1, *(_DWORD *)(v2 + 28), *(_DWORD *)(v2 + 32));
+  *(_DWORD *)(v2 + 32) = 0;
+  return result;
+}
+/////
+__fastcall getaddrinfo_thread(int a1)
+{
+  int v1;
+  int v4;
+  int v5;
+  char v6[4];
+  char v7[12];
+  v4 = *(_DWORD *)(a1 + 68);
+  curl_msnprintf((int)v7, 12, (int)"%d", *(_DWORD *)(a1 + 12));
+  v5 = Curl_getaddrinfo_ex(*(const char **)(a1 + 8), v7, (const struct addrinfo *)(a1 + 36), (_DWORD *)(a1 + 32));
+  if ( v5 )
+  {
+    v1 = *_errno_location() ? *_errno_location() : v5;
+    *(_DWORD *)(a1 + 28) = v1;
+    if ( !*(_DWORD *)(a1 + 28) )
+      *(_DWORD *)(a1 + 28) = -10;
+  }
+  pthread_mutex_lock(*(pthread_mutex_t **)a1);
+  if ( *(_DWORD *)(a1 + 4) )
+  {
+    pthread_mutex_unlock(*(pthread_mutex_t **)a1);
+    destroy_thread_sync_data((_DWORD *)a1);
+    Curl_cfree(v4);
+  }
+  else
+  {
+    if ( *(_DWORD *)(a1 + 24) != -1 )
+    {
+      v6[0] = 1;
+      if ( send(*(_DWORD *)(a1 + 24), v6, 1u, 0x4000) < 0 )
+        *(_DWORD *)(a1 + 28) = *_errno_location();
+    }
+    *(_DWORD *)(a1 + 4) = 1;
+    pthread_mutex_unlock(*(pthread_mutex_t **)a1);
+  }
+  return 0;
+}
+/////
+__fastcall destroy_async_data(_DWORD *a1)
+{
+  _DWORD *result;
+  int v2;
+  int fd;
+  int *v4;
+  int v5;
+  if ( a1[4] )
+  {
+    v2 = a1[4];
+    fd = *(_DWORD *)(v2 + 36);
+    v4 = *(int **)(v2 + 32);
+    pthread_mutex_lock(*(pthread_mutex_t **)(v2 + 16));
+    v5 = *(_DWORD *)(v2 + 20);
+    *(_DWORD *)(v2 + 20) = 1;
+    pthread_mutex_unlock(*(pthread_mutex_t **)(v2 + 16));
+    if ( v5 )
+    {
+      if ( *(_DWORD *)v2 )
+        Curl_thread_join((pthread_t **)v2);
+      destroy_thread_sync_data((_DWORD *)(v2 + 16));
+      Curl_cfree(a1[4]);
+    }
+    else
+    {
+      Curl_thread_destroy(*(pthread_t **)v2);
+    }
+    if ( v4 )
+      Curl_multi_closed(*v4, fd);
+    close(fd);
+  }
+  a1[4] = 0;
+  Curl_cfree(*a1);
+  result = a1;
+  *a1 = 0;
+  return result;
+}
+/////
+__fastcall init_resolve_thread(int a1, int a2, int a3, _DWORD *a4)
+{
+  int v5;
+  pthread_t **v6;
+  v6 = (pthread_t **)Curl_ccalloc(1, 88);
+  v5 = 12;
+  *(_DWORD *)(a1 + 1328) = v6;
+  if ( v6 )
+  {
+    *(_DWORD *)(a1 + 1316) = a3;
+    *(_BYTE *)(a1 + 1332) &= 0x7Fu;
+    *(_DWORD *)(a1 + 1324) = 0;
+    *(_DWORD *)(a1 + 1320) = 0;
+    *v6 = 0;
+    if ( init_thread_sync_data((int)v6, a2, a3, a4) )
+    {
+      Curl_cfree(*(_DWORD *)(a1 + 1312));
+      *(_DWORD *)(a1 + 1312) = Curl_cstrdup(a2);
+      if ( *(_DWORD *)(a1 + 1312) )
+      {
+        v6[5] = 0;
+        *v6 = Curl_thread_create((int)getaddrinfo_thread, (int)(v6 + 4));
+        if ( *v6 )
+          return 1;
+        v6[5] = (pthread_t *)(&__cxa_finalize + 1);
+        v5 = *_errno_location();
+      }
+      destroy_async_data((_DWORD *)(a1 + 1312));
+    }
+    else
+    {
+      *(_DWORD *)(a1 + 1328) = 0;
+      Curl_cfree(v6);
+    }
+  }
+  *_errno_location() = v5;
+  return 0;
+}
+/////
+__fastcall resolver_error(int *a1)
+{
+  int v2;
+  if ( a1[305] >= 0 )
+  {
+    v2 = 6;
+    Curl_failf(*a1, "Could not resolve %s: %s", (int)"host", a1[328]);
+  }
+  else
+  {
+    v2 = 5;
+    Curl_failf(*a1, "Could not resolve %s: %s", (int)"proxy", a1[328]);
+  }
+  return v2;
+}
+/////
+__fastcall thread_wait_resolv(int a1, _DWORD *a2, char a3)
+{
+  int v4;
+  v4 = 0;
+  if ( Curl_thread_join(*(pthread_t ***)(a1 + 1328)) && a2 )
+    v4 = getaddrinfo_complete(a1);
+  *(_BYTE *)(a1 + 1332) = *(_BYTE *)(a1 + 1332) & 0x7F | 0x80;
+  if ( a2 )
+    *a2 = *(_DWORD *)(a1 + 1320);
+  if ( !*(_DWORD *)(a1 + 1320) && a3 )
+    v4 = resolver_error((int *)a1);
+  destroy_async_data((_DWORD *)(a1 + 1312));
+  if ( !*(_DWORD *)(a1 + 1320) && a3 )
+    Curl_conncontrol(a1, 1);
+  return v4;
+}
+/////
+__fastcall Curl_resolver_kill(int a1)
+{
+  _DWORD *result;
+  _DWORD *v2;
+  v2 = *(_DWORD **)(a1 + 1328);
+  if ( v2 && *v2 )
+    result = (_DWORD *)thread_wait_resolv(a1, 0, 0);
+  else
+    result = Curl_resolver_cancel(a1);
+  return result;
+}
+/////
+__fastcall decodeQuantum(_BYTE *a1, _BYTE *a2)
+{
+  unsigned int v3;
+  const char *j;
+  unsigned int i;
+  unsigned int v7;
+  unsigned int v8;
+  int v9;
+  v3 = 0;
+  v7 = 0;
+  for ( i = 0; i < 4; ++i )
+  {
+    if ( *a2 == 61 )
+    {
+      v7 <<= 6;
+      ++v3;
+    }
+    else
+    {
+      v9 = 0;
+      for ( j = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"; *j && *j != (char)*a2; ++j )
+        ++v9;
+      if ( *j != (char)*a2 )
+        return 0;
+      v7 = v9 + (v7 << 6);
+    }
+    ++a2;
+  }
+  if ( !v3 )
+    a1[2] = curlx_ultouc(v7);
+  v8 = v7 >> 8;
+  if ( v3 < 2 )
+    a1[1] = curlx_ultouc(v8);
+  *a1 = curlx_ultouc(BYTE2(v8));
+  return 3 - v3;
+}
+/////
+__fastcall base64_encode(int a1, int a2, const char *a3, size_t a4, char **a5, size_t *a6)
+{
+  int i;
+  int v9;
+  char *v10;
+  char *s;
+  char *v12;
+  unsigned __int8 v13;
+  unsigned __int8 v14;
+  unsigned __int8 v15;
+  unsigned __int8 v16;
+  unsigned __int8 v17;
+  unsigned __int8 v18;
+  unsigned __int8 v19;
+  size_t v20;
+  v20 = a4;
+  s = (char *)a3;
+  *a5 = 0;
+  *a6 = 0;
+  if ( !a4 )
+    v20 = strlen(a3);
+  if ( v20 >= 0x40000000 )
+    return 27;
+  v10 = (char *)Curl_cmalloc(4 * v20 / 3 + 4);
+  v12 = v10;
+  if ( !v10 )
+    return 27;
+  while ( v20 )
+  {
+    v9 = 0;
+    for ( i = 0; i < 3; ++i )
+    {
+      if ( v20 )
+      {
+        ++v9;
+        *(&v13 + i) = *s++;
+        --v20;
+      }
+      else
+      {
+        *(&v13 + i) = 0;
+      }
+    }
+    v16 = v13 >> 2;
+    v17 = (16 * v13) & 0x30 | (v14 >> 4);
+    v18 = (4 * v14) & 0x3C | (v15 >> 6);
+    v19 = v15 & 0x3F;
+    if ( v9 == 1 )
+    {
+      curl_msnprintf((int)v10, 5, (int)"%c%c==", *(char *)(a1 + v16), *(char *)(a1 + v17));
+    }
+    else if ( v9 == 2 )
+    {
+      curl_msnprintf((int)v10, 5, (int)"%c%c%c=", *(char *)(a1 + v16), *(char *)(a1 + v17), *(char *)(a1 + v18));
+    }
+    else
+    {
+      curl_msnprintf(
+        (int)v10,
+        5,
+        (int)"%c%c%c%c",
+        *(char *)(a1 + v16),
+        *(char *)(a1 + v17),
+        *(char *)(a1 + v18),
+        *(char *)(a1 + v19));
+    }
+    v10 += 4;
+  }
+  *v10 = 0;
+  *a5 = v12;
+  Curl_cfree(0);
+  *a6 = strlen(v12);
+  return 0;
+}
+/////
+__fastcall conn_llist_dtor(int a1, int a2)
+{
+  int result;
+  result = a2;
+  *(_DWORD *)(a2 + 1528) = 0;
+  return result;
+}
+/////
+__fastcall bundle_create(int a1)
+{
+  *(_DWORD *)a1 = Curl_cmalloc(24);
+  if ( !*(_DWORD *)a1 )
+    return 27;
+  *(_DWORD *)(*(_DWORD *)a1 + 4) = 0;
+  **(_DWORD **)a1 = 0;
+  Curl_llist_init((_DWORD *)(*(_DWORD *)a1 + 8), (int)conn_llist_dtor);
+  return 0;
+}
+/////
+__fastcall bundle_destroy(int a1)
+{
+  int result;
+  result = a1;
+  if ( a1 )
+  {
+    Curl_llist_destroy(a1 + 8, 0);
+    result = Curl_cfree(a1);
+  }
+  return result;
+}
+/////
+__fastcall bundle_add_conn(_DWORD *a1, int a2)
+{
+  _DWORD *result;
+  Curl_llist_insert_next(a1 + 2, a1[3], a2, (_DWORD *)(a2 + 616));
+  *(_DWORD *)(a2 + 1528) = a1;
+  result = a1;
+  ++a1[1];
+  return result;
+}
+/////
+__fastcall bundle_remove_conn(int a1, int a2)
+{
+  int *i;
+  for ( i = *(int **)(a1 + 8); i; i = (int *)i[2] )
+  {
+    if ( a2 == *i )
+    {
+      Curl_llist_remove((int **)(a1 + 8), i, 0);
+      --*(_DWORD *)(a1 + 4);
+      *(_DWORD *)(a2 + 1528) = 0;
+      return 1;
+    }
+  }
+  return 0;
+}
+/////
+__fastcall Curl_conncache_init(_DWORD *a1, int a2)
+{
+  int v3;
+  a1[10] = curl_easy_init();
+  if ( !a1[10] )
+    return 1;
+  v3 = Curl_hash_init(a1, a2, (int)Curl_hash_str, (int)Curl_str_key_compare, (int)free_bundle_hash_entry);
+  if ( v3 )
+    Curl_close(a1 + 10);
+  else
+    *(_DWORD *)(a1[10] + 3136) = a1;
+  return v3;
+}
+/////
+__fastcall Curl_conncache_destroy(_DWORD *a1)
+{
+  _DWORD *result;
+  result = a1;
+  if ( a1 )
+    result = Curl_hash_destroy(a1);
+  return result;
+}
+/////
+__fastcall hashkey(_DWORD *a1, int a2, int a3, const char **a4)
+{
+  const char *v5;
+  int v6;
+  v6 = a1[218];
+  if ( (int)a1[305] >= 0 || (a1[305] & 0x10000000) != 0 )
+  {
+    if ( (a1[305] & 0x800000) != 0 )
+      v5 = (const char *)a1[199];
+    else
+      v5 = (const char *)a1[193];
+  }
+  else
+  {
+    v5 = (const char *)a1[211];
+    v6 = a1[217];
+  }
+  if ( a4 )
+    *a4 = v5;
+  return curl_msnprintf(a2, a3, (int)"%ld%s", v6, v5);
+}
+/////
+__fastcall Curl_conncache_find_bundle(int *a1, int *a2, const char **a3)
+{
+  int v3;
+  int v8;
+  char v9[128];
+  v8 = 0;
+  if ( *(_DWORD *)(*a1 + 128) )
+    Curl_share_lock(*a1, 5, 2);
+  if ( a2 )
+  {
+    hashkey(a1, (int)v9, 128, a3);
+    v3 = strlen(v9);
+    v8 = Curl_hash_pick(a2, (int)v9, v3);
+  }
+  return v8;
+}
+/////
+__fastcall conncache_add_bundle(int a1, const char *a2, int a3)
+{
+  size_t v4;
+  v4 = strlen(a2);
+  return Curl_hash_add(a1, a2, v4, a3) != 0;
+}
+/////
+__fastcall conncache_remove_bundle(int a1, int a2)
+{
+  int i;
+  _DWORD v6[3];
+  if ( a1 )
+  {
+    Curl_hash_start_iterate(a1, v6);
+    for ( i = Curl_hash_next_element((int)v6); i; i = Curl_hash_next_element((int)v6) )
+    {
+      if ( a2 == *(_DWORD *)(i + 12) )
+      {
+        Curl_hash_delete(a1, i + 20, *(_DWORD *)(i + 16));
+        return _stack_chk_guard;
+      }
+    }
+  }
+  return _stack_chk_guard;
+}
+/////
+__fastcall Curl_conncache_remove_conn(int a1, int a2, unsigned __int8 a3)
+{
+  int result;
+  int v4;
+  int v5;
+  v4 = *(_DWORD *)(a2 + 1528);
+  v5 = *(_DWORD *)(a1 + 3136);
+  result = v4;
+  if ( v4 )
+  {
+    if ( a3 && *(_DWORD *)(a1 + 128) )
+      Curl_share_lock(a1, 5, 2);
+    bundle_remove_conn(v4, a2);
+    if ( !*(_DWORD *)(v4 + 4) )
+      conncache_remove_bundle(v5, v4);
+    *(_DWORD *)(a2 + 1528) = 0;
+    if ( v5 )
+      --*(_DWORD *)(v5 + 24);
+    result = a3;
+    if ( a3 )
+    {
+      result = *(_DWORD *)(a1 + 128);
+      if ( result )
+        result = Curl_share_unlock(a1, 5);
+    }
+  }
+  return result;
+}
+/////
+__fastcall conncache_find_first_connection(int a1)
+{
+  int i;
+  int v3;
+  _DWORD v4[3];
+  Curl_hash_start_iterate(a1, v4);
+  for ( i = Curl_hash_next_element((int)v4); i; i = Curl_hash_next_element((int)v4) )
+  {
+    v3 = *(_DWORD *)(*(_DWORD *)(i + 12) + 8);
+    if ( v3 )
+      return *(_DWORD *)v3;
+  }
+  return 0;
+}
+/////
+__fastcall Curl_conncache_extract_bundle(int a1, int a2)
+{
+  __int64 v2;
+  _DWORD *i;
+  _DWORD *v7;
+  _DWORD *v8;
+  __int64 v9;
+  __time_t v10[2];
+  LODWORD(v9) = -1;
+  HIDWORD(v9) = -1;
+  v7 = 0;
+  Curl_now(v10);
+  for ( i = *(_DWORD **)(a2 + 8); i; i = (_DWORD *)i[2] )
+  {
+    v8 = (_DWORD *)*i;
+    if ( !*(_DWORD *)(*i + 1300) && !*v8 )
+    {
+      v2 = Curl_timediff(v10[0], v10[1], v8[256], v8[257]);
+      if ( v9 < v2 )
+      {
+        v9 = v2;
+        v7 = v8;
+      }
+    }
+  }
+  if ( v7 )
+  {
+    bundle_remove_conn(a2, (int)v7);
+    --*(_DWORD *)(*(_DWORD *)(a1 + 3136) + 24);
+    *v7 = a1;
+  }
+  return v7;
+}
+/////
+__fastcall Curl_conncache_extract_oldest(int a1)
+{
+  __int64 v1;
+  int **j;
+  int i;
+  int *v6;
+  int v7;
+  int v8;
+  int v9;
+  int *v10;
+  __int64 v11;
+  __time_t v12[2];
+  _DWORD v13[3];
+  v8 = *(_DWORD *)(a1 + 3136);
+  LODWORD(v11) = -1;
+  HIDWORD(v11) = -1;
+  v6 = 0;
+  v7 = 0;
+  Curl_now(v12);
+  if ( *(_DWORD *)(a1 + 128) )
+    Curl_share_lock(a1, 5, 2);
+  Curl_hash_start_iterate(v8, v13);
+  for ( i = Curl_hash_next_element((int)v13); i; i = Curl_hash_next_element((int)v13) )
+  {
+    v9 = *(_DWORD *)(i + 12);
+    for ( j = *(int ***)(v9 + 8); j; j = (int **)j[2] )
+    {
+      v10 = *j;
+      if ( !(*j)[325] && !*v10 && (v10[305] & 0x4000000) == 0 && (v10[305] & 8) == 0 )
+      {
+        v1 = Curl_timediff(v12[0], v12[1], v10[256], v10[257]);
+        if ( v11 < v1 )
+        {
+          v11 = v1;
+          v6 = v10;
+          v7 = v9;
+        }
+      }
+    }
+  }
+  if ( v6 )
+  {
+    bundle_remove_conn(v7, (int)v6);
+    --*(_DWORD *)(v8 + 24);
+    *v6 = a1;
+  }
+  if ( *(_DWORD *)(a1 + 128) )
+    Curl_share_unlock(a1, 5);
+  return v6;
+}
+/////
+__fastcall Curl_conncache_close_all_connections(int a1)
+{
+  int v1;
+  int *i;
+  char v5;
+  if ( *(_DWORD *)(a1 + 40) )
+  {
+    *(_DWORD *)(*(_DWORD *)(a1 + 40) + 3168) = &v5;
+    *(_DWORD *)(*(_DWORD *)(a1 + 40) + 2288) = 1024;
+    for ( i = (int *)conncache_find_first_connection(a1); i; i = (int *)conncache_find_first_connection(a1) )
+    {
+      *i = *(_DWORD *)(a1 + 40);
+      Curl_conncontrol((int)i, 1);
+      Curl_conncache_remove_conn(*i, (int)i, 1u);
+      Curl_disconnect(*(_DWORD *)(a1 + 40), (int)i, 0, v1);
+    }
+    *(_DWORD *)(*(_DWORD *)(a1 + 40) + 3168) = 0;
+    if ( *(_DWORD *)(a1 + 40) )
+    {
+      Curl_hostcache_clean(*(_DWORD *)(a1 + 40), *(_DWORD **)(*(_DWORD *)(a1 + 40) + 112));
+      Curl_close(a1 + 40);
+    }
+  }
+  return _stack_chk_guard;
+}
+/////
+__fastcall verifyconnect(int a1, _DWORD *a2)
+{
+  bool v4;
+  int v5;
+  socklen_t optlen;
+  v5 = 0;
+  optlen = 4;
+  if ( getsockopt(a1, 0xFFFF, 4103, &v5, &optlen) )
+    v5 = *_errno_location();
+  v4 = !v5 || v5 == 133;
+  if ( a2 )
+    *a2 = v5;
+  return v4;
+}
+/////
+__fastcall trynextip(int *a1, int a2, int a3)
+{
+  int v4;
+  int i;
+  int v6;
+  v4 = 7;
+  v6 = a1[a3 + 260];
+  a1[a3 + 260] = -1;
+  if ( !a2 )
+  {
+    for ( i = a1[a3 + 175]; i; i = ainext((int)a1, a3, 1) )
+    {
+      v4 = singleipconnect(a1, i, a3);
+      if ( v4 != 7 )
+        break;
+    }
+  }
+  if ( v6 != -1 )
+    Curl_closesocket((int)a1, v6);
+  return v4;
+}
+/////
+__fastcall Curl_persistconninfo(int *a1)
+{
+  int result;
+  memcpy((void *)(*a1 + 4040), (char *)a1 + 882, 0x2Eu);
+  memcpy((void *)(*a1 + 4092), a1 + 233, 0x2Eu);
+  *(_DWORD *)(*a1 + 4144) = *(_DWORD *)a1[314];
+  *(_DWORD *)(*a1 + 4148) = *(_DWORD *)(a1[314] + 64);
+  *(_DWORD *)(*a1 + 4088) = a1[232];
+  result = *a1;
+  *(_DWORD *)(*a1 + 4140) = a1[245];
+  return result;
+}
+/////
+__fastcall Curl_updateconninfo(int a1, int a2)
+{
+  char *v2;
+  char *v3;
+  int v4;
+  int *v5;
+  char *v6;
+  int v7;
+  int *v8;
+  char *v9;
+  socklen_t v12;
+  socklen_t v13;
+  int v14;
+  int v15;
+  int v16;
+  struct sockaddr v17[8];
+  struct sockaddr v18[8];
+  char v19[256];
+  if ( *(_DWORD *)(a1 + 760) != 3 || (*(_DWORD *)(a1 + 1220) & 0x2000000) != 0 || (*(_DWORD *)(a1 + 1220) & 0x40) != 0 )
+    goto LABEL_12;
+  v14 = *(_DWORD *)a1;
+  v12 = 128;
+  if ( !getpeername(a2, v17, &v12) )
+  {
+    v13 = 128;
+    memset(v18, 0, sizeof(v18));
+    if ( getsockname(a2, v18, &v13) )
+    {
+      v15 = *_errno_location();
+      v3 = Curl_strerror(v15, v19, 256);
+      Curl_failf(v14, "getsockname() failed with errno %d: %s", v15, (int)v3);
+      return _stack_chk_guard;
+    }
+    if ( (unsigned __int8)Curl_addr2string((uint16_t *)v17, v12, (char *)(a1 + 882), (_DWORD *)(a1 + 928)) != 1 )
+    {
+      v4 = *_errno_location();
+      v5 = _errno_location();
+      v6 = Curl_strerror(*v5, v19, 256);
+      Curl_failf(v14, "ssrem inet_ntop() failed with errno %d: %s", v4, (int)v6);
+      return _stack_chk_guard;
+    }
+    memcpy((void *)(a1 + 708), (const void *)(a1 + 882), 0x2Eu);
+    if ( (unsigned __int8)Curl_addr2string((uint16_t *)v18, v13, (char *)(a1 + 932), (_DWORD *)(a1 + 980)) != 1 )
+    {
+      v7 = *_errno_location();
+      v8 = _errno_location();
+      v9 = Curl_strerror(*v8, v19, 256);
+      Curl_failf(v14, "ssloc inet_ntop() failed with errno %d: %s", v7, (int)v9);
+      return _stack_chk_guard;
+    }
+LABEL_12:
+    Curl_persistconninfo((int *)a1);
+    return _stack_chk_guard;
+  }
+  v16 = *_errno_location();
+  v2 = Curl_strerror(v16, v19, 256);
+  Curl_failf(v14, "getpeername() failed with errno %d: %s", v16, (int)v2);
+  return _stack_chk_guard;
+}
+/////
+__fastcall connect_SOCKS(int a1, int a2, _BYTE *a3, int a4)
+{
+  const char *v4;
+  int v5;
+  unsigned int v6;
+  int v8;
+  const char *v9;
+  int v10;
+  v8 = 0;
+  if ( (*(_DWORD *)(a1 + 1220) & 0x40000000) == 0 )
+  {
+    *a3 = 1;
+    return v8;
+  }
+  if ( *(int *)(a1 + 1220) >= 0 )
+  {
+    if ( (*(_DWORD *)(a1 + 1220) & 0x800000) != 0 )
+    {
+      v4 = *(const char **)(a1 + 796);
+    }
+    else if ( a2 == 1 )
+    {
+      v4 = *(const char **)(a1 + 784);
+    }
+    else
+    {
+      v4 = *(const char **)(a1 + 772);
+    }
+  }
+  else
+  {
+    v4 = *(const char **)(a1 + 844);
+  }
+  v9 = v4;
+  if ( *(int *)(a1 + 1220) >= 0 )
+  {
+    if ( a2 == 1 )
+    {
+      v5 = *(unsigned __int16 *)(a1 + 880);
+    }
+    else if ( (*(_DWORD *)(a1 + 1220) & 0x400000) != 0 )
+    {
+      v5 = *(_DWORD *)(a1 + 876);
+    }
+    else
+    {
+      v5 = *(_DWORD *)(a1 + 872);
+    }
+  }
+  else
+  {
+    v5 = *(_DWORD *)(a1 + 852);
+  }
+  v10 = v5;
+  v6 = *(_DWORD *)(a1 + 824);
+  if ( v6 != 5 )
+  {
+    if ( v6 < 6 )
+    {
+      if ( v6 != 4 )
+        goto LABEL_24;
+      return Curl_SOCKS4(*(const char **)(a1 + 828), v9, v10, a2, a1, a3);
+    }
+    if ( v6 == 6 )
+      return Curl_SOCKS4(*(const char **)(a1 + 828), v9, v10, a2, a1, a3);
+    if ( v6 != 7 )
+    {
+LABEL_24:
+      Curl_failf(*(_DWORD *)a1, "unknown proxytype option given", (int)a3, a4);
+      return 7;
+    }
+  }
+  return Curl_SOCKS5(*(const char **)(a1 + 828), *(const char **)(a1 + 832), v9, v10, a2, a1, a3);
+}
+/////
+__fastcall post_SOCKS(int *a1, int a2, _BYTE *a3)
+{
+  int result;
+  *((_BYTE *)a1 + a2 + 1216) = 1;
+  *a3 = 1;
+  if ( !a2 )
+    Curl_pgrsTime(*a1, 4);
+  Curl_updateconninfo((int)a1, a1[a2 + 258]);
+  Curl_verboseconnect(a1);
+  result = *a1;
+  ++*(_DWORD *)(*a1 + 4016);
+  return result;
+}
+/////
+__fastcall tcpnodelay(int *a1, int a2)
+{
+  int *v2;
+  char *v3;
+  int v4;
+  int v6[2];
+  int v7;
+  char v8[256];
+  v6[0] = 1;
+  v6[1] = 6;
+  v7 = *a1;
+  if ( setsockopt(a2, 6, 1, v6, 4u) < 0 )
+  {
+    v2 = _errno_location();
+    v3 = Curl_strerror(*v2, v8, 256);
+    Curl_infof(v7, "Could not set TCP_NODELAY: %s\n", (int)v3, v4);
+  }
+  return _stack_chk_guard;
+}
+/////
+__fastcall conn_is_conn(int a1, int a2)
+{
+  if ( a1 != *(_DWORD *)a2 )
+    return 0;
+  *(_BYTE *)(a2 + 4) = 1;
+  return 1;
+}
+/////
+__fastcall Curl_closesocket(int a1, int a2)
+{
+  int v3;
+  if ( a1 && *(_DWORD *)(a1 + 680) )
+  {
+    if ( a2 != *(_DWORD *)(a1 + 1036) || *(int *)(a1 + 1224) >= 0 )
+    {
+      Curl_multi_closed(*(_DWORD *)a1, a2);
+      Curl_set_in_callback(*(_DWORD *)a1, 1);
+      v3 = (*(int (__fastcall **)(_DWORD, int))(a1 + 680))(*(_DWORD *)(a1 + 684), a2);
+      Curl_set_in_callback(*(_DWORD *)a1, 0);
+      return v3;
+    }
+    *(_DWORD *)(a1 + 1224) &= 0x7FFFFFFFu;
+  }
+  if ( a1 )
+    Curl_multi_closed(*(_DWORD *)a1, a2);
+  close(a2);
+  return 0;
+}
+/////
+__fastcall Curl_conncontrol(int a1, int a2)
+{
+  bool v2;
+  unsigned int result;
+  bool v4;
+  v2 = a2 == 1 || a2 == 2 && (*(_DWORD *)(*(_DWORD *)(a1 + 1256) + 68) & 0x200) == 0;
+  v4 = v2;
+  if ( a2 != 2 || (result = *(_DWORD *)(*(_DWORD *)(a1 + 1256) + 68) & 0x200) == 0 )
+  {
+    result = (*(_DWORD *)(a1 + 1220) & 0x4000000) != 0;
+    if ( v4 != result )
+    {
+      result = *(_DWORD *)(a1 + 1220) & 0xFBFFFFFF | (v4 << 26);
+      *(_DWORD *)(a1 + 1220) = result;
+    }
+  }
+  return result;
+}
+/////
+__fastcall cookie_list(int a1)
+{
+  _DWORD *v2;
+  _DWORD *j;
+  unsigned int i;
+  int v5;
+  _DWORD *v6;
+  v2 = 0;
+  if ( !*(_DWORD *)(a1 + 2836) || !*(_DWORD *)(*(_DWORD *)(a1 + 2836) + 1032) )
+    return 0;
+  for ( i = 0; i < 0x100; ++i )
+  {
+    for ( j = *(_DWORD **)(*(_DWORD *)(a1 + 2836) + 4 * i); j; j = (_DWORD *)*j )
+    {
+      if ( j[5] )
+      {
+        v5 = get_netscape_format((int)j);
+        if ( !v5 )
+        {
+          curl_slist_free_all(v2);
+          return 0;
+        }
+        v6 = Curl_slist_append_nodup((int)v2, v5);
+        if ( !v6 )
+        {
+          Curl_cfree(v5);
+          curl_slist_free_all(v2);
+          return 0;
+        }
+        v2 = v6;
+      }
+    }
+  }
+  return v2;
+}
+/////
+__fastcall Curl_cookie_list(int a1)
+{
+  _DWORD *v2;
+  Curl_share_lock(a1, 2, 2);
+  v2 = cookie_list(a1);
+  Curl_share_unlock(a1, 2);
+  return v2;
+}
+/////
+__fastcall Curl_flush_cookies(_DWORD *a1, char a2)
+{
+  int v2;
+  if ( a1[596] )
+  {
+    if ( a1[706] )
+      Curl_cookie_loadfiles(a1);
+    Curl_share_lock((int)a1, 2, 2);
+    if ( cookie_output((int)a1, a1[709], (const char *)a1[596]) )
+      Curl_infof((int)a1, "WARNING: failed to save cookies in %s\n", a1[596], v2);
+  }
+  else
+  {
+    if ( a2 && a1[706] )
+    {
+      curl_slist_free_all((_DWORD *)a1[706]);
+      a1[706] = 0;
+    }
+    Curl_share_lock((int)a1, 2, 2);
+  }
+  if ( a2 && (!a1[32] || a1[709] != *(_DWORD *)(a1[32] + 88)) )
+  {
+    Curl_cookie_cleanup(a1[709]);
+    a1[709] = 0;
+  }
+  return Curl_share_unlock((int)a1, 2);
+}
+/////
+__fastcall Curl_freeaddrinfo(int a1)
+{
+  int result;
+  int v3;
+  while ( 1 )
+  {
+    result = a1;
+    if ( !a1 )
+      break;
+    v3 = *(_DWORD *)(a1 + 28);
+    Curl_cfree(a1);
+    a1 = v3;
+  }
+  return result;
+}
+/////
+__fastcall Curl_getaddrinfo_ex(const char *a1, const char *a2, const struct addrinfo *a3, _DWORD *a4)
+{
+  size_t v5;
+  struct addrinfo *v7;
+  struct addrinfo *i;
+  int v9;
+  int v10;
+  size_t n;
+  int v12;
+  size_t v13;
+  int v14;
+  v9 = 0;
+  v10 = 0;
+  *a4 = 0;
+  v12 = getaddrinfo(a1, a2, a3, &v7);
+  if ( v12 )
+    return v12;
+  for ( i = v7; i; i = i->ai_next )
+  {
+    if ( i->ai_canonname )
+      v5 = strlen(i->ai_canonname) + 1;
+    else
+      v5 = 0;
+    v13 = v5;
+    if ( i->ai_family == 2 )
+    {
+      n = 16;
+    }
+    else
+    {
+      if ( i->ai_family != 10 )
+        continue;
+      n = 28;
+    }
+    if ( i->ai_addr && i->ai_addrlen && i->ai_addrlen >= n )
+    {
+      v14 = Curl_cmalloc(n + v13 + 32);
+      if ( !v14 )
+      {
+        v12 = -10;
+        break;
+      }
+      *(_DWORD *)v14 = i->ai_flags;
+      *(_DWORD *)(v14 + 4) = i->ai_family;
+      *(_DWORD *)(v14 + 8) = i->ai_socktype;
+      *(_DWORD *)(v14 + 12) = i->ai_protocol;
+      *(_DWORD *)(v14 + 16) = n;
+      *(_DWORD *)(v14 + 24) = 0;
+      *(_DWORD *)(v14 + 20) = 0;
+      *(_DWORD *)(v14 + 28) = 0;
+      *(_DWORD *)(v14 + 24) = v14 + 32;
+      memcpy(*(void **)(v14 + 24), i->ai_addr, n);
+      if ( v13 )
+      {
+        *(_DWORD *)(v14 + 20) = *(_DWORD *)(v14 + 24) + n;
+        memcpy(*(void **)(v14 + 20), i->ai_canonname, v13);
+      }
+      if ( !v9 )
+        v9 = v14;
+      if ( v10 )
+        *(_DWORD *)(v10 + 28) = v14;
+      v10 = v14;
+    }
+  }
+  if ( v7 )
+    freeaddrinfo(v7);
+  if ( v12 )
+  {
+    Curl_freeaddrinfo(v9);
+    v9 = 0;
+  }
+  else if ( !v9 )
+  {
+    v12 = -2;
+  }
+  *a4 = v9;
+  return v12;
+}
+/////
+__fastcall Curl_he2ai(int a1, uint16_t a2)
+{
+  int v3;
+  int v4;
+  int v5;
+  int v6;
+  int i;
+  int v8;
+  void *src;
+  size_t n;
+  int v11;
+  _WORD *v12;
+  _WORD *v13;
+  v4 = 0;
+  v5 = 0;
+  v6 = 0;
+  if ( !a1 )
+    return 0;
+  for ( i = 0; ; ++i )
+  {
+    src = *(void **)(*(_DWORD *)(a1 + 16) + 4 * i);
+    if ( !src )
+      break;
+    n = strlen(*(const char **)a1) + 1;
+    if ( *(_DWORD *)(a1 + 8) == 10 )
+      v8 = 28;
+    else
+      v8 = 16;
+    v11 = Curl_ccalloc(1, v8 + n + 32);
+    if ( !v11 )
+    {
+      v6 = 27;
+      break;
+    }
+    *(_DWORD *)(v11 + 24) = v11 + 32;
+    *(_DWORD *)(v11 + 20) = *(_DWORD *)(v11 + 24) + v8;
+    memcpy(*(void **)(v11 + 20), *(const void **)a1, n);
+    if ( !v5 )
+      v5 = v11;
+    if ( v4 )
+      *(_DWORD *)(v4 + 28) = v11;
+    *(_DWORD *)(v11 + 4) = *(_DWORD *)(a1 + 8);
+    *(_DWORD *)(v11 + 8) = 2;
+    *(_DWORD *)(v11 + 16) = v8;
+    v3 = *(_DWORD *)(v11 + 4);
+    if ( v3 == 2 )
+    {
+      v13 = *(_WORD **)(v11 + 24);
+      memcpy(v13 + 2, src, 4u);
+      *v13 = *(_DWORD *)(a1 + 8);
+      v13[1] = htons(a2);
+    }
+    else if ( v3 == 10 )
+    {
+      v12 = *(_WORD **)(v11 + 24);
+      memcpy(v12 + 4, src, 0x10u);
+      *v12 = *(_DWORD *)(a1 + 8);
+      v12[1] = htons(a2);
+    }
+    v4 = v11;
+  }
+  if ( v6 )
+  {
+    Curl_freeaddrinfo(v5);
+    v5 = 0;
+  }
+  return v5;
+}
+/////
+__fastcall Curl_ip2addr(int a1, const void *a2, int a3, uint16_t a4)
+{
+  void *dest;
+  __int16 v6;
+  int v7;
+  int v8;
+  int v9;
+  v7 = Curl_cmalloc(44);
+  if ( !v7 )
+    return 0;
+  v8 = Curl_cstrdup(a3);
+  if ( !v8 )
+  {
+    Curl_cfree(v7);
+    return 0;
+  }
+  if ( a1 == 2 )
+  {
+    v6 = 4;
+    dest = (void *)(v7 + 20);
+    memcpy((void *)(v7 + 20), a2, 4u);
+  }
+  else
+  {
+    if ( a1 != 10 )
+    {
+      Curl_cfree(v8);
+      Curl_cfree(v7);
+      return 0;
+    }
+    v6 = 16;
+    dest = (void *)(v7 + 20);
+    memcpy((void *)(v7 + 20), a2, 0x10u);
+  }
+  *(_DWORD *)v7 = v8;
+  *(_QWORD *)(v7 + 4) = (unsigned int)(__int16)a1;
+  *(_DWORD *)(v7 + 12) = v6;
+  *(_DWORD *)(v7 + 16) = v7 + 36;
+  **(_DWORD **)(v7 + 16) = dest;
+  *(_DWORD *)(*(_DWORD *)(v7 + 16) + 4) = 0;
+  v9 = Curl_he2ai(v7, a4);
+  Curl_cfree(v8);
+  Curl_cfree(v7);
+  return v9;
+}
+/////
+__fastcall Curl_unix2addr(const char *a1, _BYTE *a2, char a3)
+{
+  _DWORD *result;
+  _DWORD *v4;
+  _WORD *v5;
+  size_t n;
+  *a2 = 0;
+  v4 = (_DWORD *)Curl_ccalloc(1, 142);
+  if ( !v4 )
+    return 0;
+  v4[6] = v4 + 8;
+  v5 = (_WORD *)v4[6];
+  *v5 = 1;
+  n = strlen(a1) + 1;
+  if ( n < 0x6D )
+  {
+    v4[1] = 1;
+    v4[2] = 2;
+    v4[4] = (n + 2) & 0x7FFFFFFF;
+    if ( a3 )
+      memcpy((char *)v5 + 3, a1, n - 1);
+    else
+      memcpy(v5 + 1, a1, n);
+    result = v4;
+  }
+  else
+  {
+    Curl_cfree(v4);
+    *a2 = 1;
+    result = 0;
+  }
+  return result;
+}
+/////
+__fastcall Curl_isdigit(int a1)
+{
+  int result;
+  if ( a1 >= 0 && a1 < 128 )
+    result = ascii[a1] & 4;
+  else
+    result = 0;
+  return result;
+}
+/////
+__fastcall unescape_word(int a1, const char *a2)
+{
+  int v3;
+  int v4;
+  char v5;
+  char *v6;
+  int v7;
+  char *i;
+  int v9;
+  int v10;
+  int v11;
+  v6 = 0;
+  v10 = Curl_urldecode(a1, a2, 0, &v6, &v7, 2);
+  if ( !v6 || v10 )
+    return 0;
+  v11 = Curl_cmalloc(2 * v7 + 1);
+  if ( v11 )
+  {
+    v9 = 0;
+    for ( i = v6; ; ++i )
+    {
+      v5 = *i;
+      if ( !*i )
+        break;
+      if ( v5 < 33 || v5 == 127 || v5 == 39 || v5 == 34 || v5 == 92 )
+      {
+        v3 = v9++;
+        *(_BYTE *)(v11 + v3) = 92;
+      }
+      v4 = v9++;
+      *(_BYTE *)(v11 + v4) = v5;
+    }
+    *(_BYTE *)(v11 + v9) = 0;
+  }
+  Curl_cfree(v6);
+  return v11;
+}
+/////
+__fastcall Curl_doh(int a1, const char *a2, int a3, _DWORD *a4)
+{
+  int i;
+  int *v6;
+  v6 = *(int **)a1;
+  *a4 = 1;
+  memset(v6 + 70, 0, 0x448u);
+  *(_DWORD *)(a1 + 1220) = *(_DWORD *)(a1 + 1220) & 0xFFFFFFFB | 4;
+  v6[342] = (int)a2;
+  v6[343] = a3;
+  v6[70] = (int)curl_slist_append(0, (int)"Content-Type: application/dns-message");
+  if ( !v6[70] )
+    goto LABEL_9;
+  if ( *(_DWORD *)(a1 + 1264) != 2 )
+  {
+    if ( dohprobe((int)v6, (int)(v6 + 71), 1, a2, v6[659], v6[30], v6[70]) )
+      goto LABEL_9;
+    ++v6[341];
+  }
+  if ( *(_DWORD *)(a1 + 1264) == 1 )
+    return 0;
+  if ( !dohprobe((int)v6, (int)(v6 + 206), 28, a2, v6[659], v6[30], v6[70]) )
+  {
+    ++v6[341];
+    return 0;
+  }
+LABEL_9:
+  curl_slist_free_all((_DWORD *)v6[70]);
+  v6[70] = 0;
+  for ( i = 0; i < 2; ++i )
+    Curl_close(&v6[135 * i + 71]);
+  return 0;
+}
+/////
+__fastcall skipqname(int a1, unsigned int a2, _DWORD *a3)
+{
+  unsigned __int8 v4;
+  while ( 1 )
+  {
+    if ( a2 < *a3 + 1 )
+      return 2;
+    v4 = *(_BYTE *)(a1 + *a3);
+    if ( (v4 & 0xC0) == 192 )
+      break;
+    if ( (v4 & 0xC0) != 0 )
+      return 1;
+    if ( a2 < *a3 + (unsigned int)v4 + 1 )
+      return 2;
+    *a3 += v4 + 1;
+    if ( !v4 )
+      return 0;
+  }
+  if ( a2 < *a3 + 2 )
+    return 2;
+  *a3 += 2;
+  return 0;
+}
+/////
+__fastcall store_aaaa(int a1, int a2, int a3)
+{
+  _DWORD *v4;
+  if ( *(int *)(a3 + 544) < 24 )
+  {
+    v4 = (_DWORD *)(a3 + 20 * *(_DWORD *)(a3 + 544) + 64);
+    *v4 = 28;
+    memcpy(v4 + 1, (const void *)(a1 + a2), 0x10u);
+    ++*(_DWORD *)(a3 + 544);
+  }
+  return 0;
+}
+/////
+__fastcall bindlocal(int *a1, int a2, int a3, int a4)
+{
+  int result;
+  const char *v5;
+  size_t v6;
+  int v7;
+  const char *v8;
+  size_t v9;
+  size_t v10;
+  int v11;
+  char *v12;
+  int v13;
+  int v14;
+  int v15;
+  char *v16;
+  char *v17;
+  char v19;
+  char v20;
+  uint16_t v21;
+  int *v22;
+  socklen_t v23;
+  socklen_t len;
+  int v25;
+  char *s;
+  int v27;
+  char *nptr;
+  int v29;
+  struct sockaddr *addr;
+  char *v31;
+  char *v32;
+  int v33;
+  int v34;
+  int v35;
+  char v36[128];
+  struct sockaddr v37[8];
+  int v38;
+  char v39[252];
+  v29 = *a1;
+  addr = (struct sockaddr *)v36;
+  len = 0;
+  v31 = v36;
+  v32 = v36;
+  v22 = 0;
+  v21 = *(_WORD *)(v29 + 1464);
+  v25 = *(_DWORD *)(v29 + 1468);
+  s = *(char **)(v29 + 2396);
+  if ( !s && !v21 )
+    return 0;
+  memset(v36, 0, sizeof(v36));
+  if ( s && strlen(s) < 0xFF )
+  {
+    v38 = 0;
+    memset(v39, 0, sizeof(v39));
+    v27 = 0;
+    v19 = 0;
+    v20 = 0;
+    v5 = if_prefix_8775[0];
+    v6 = strlen(if_prefix_8775[0]);
+    if ( strncmp(v5, s, v6) )
+    {
+      v8 = host_prefix_8776;
+      v9 = strlen(host_prefix_8776);
+      if ( !strncmp(v8, s, v9) )
+      {
+        s += strlen(host_prefix_8776);
+        v20 = 1;
+      }
+    }
+    else
+    {
+      s += strlen(if_prefix_8775[0]);
+      v19 = 1;
+    }
+    if ( v20 != 1 )
+    {
+      v10 = strlen(s);
+      if ( !setsockopt(a2, 0xFFFF, 25, s, v10 + 1) )
+        return 0;
+      v11 = Curl_if2ip(a3, a4, a1[189], s, (int)&v38, 256);
+      if ( v11 == 1 )
+        return 1;
+      if ( v11 )
+      {
+        if ( v11 == 2 )
+        {
+          v19 = 1;
+          Curl_infof(v29, "Local Interface %s is ip %s using address family %i\n", (int)s, (int)&v38);
+          v27 = 1;
+        }
+      }
+      else if ( v19 )
+      {
+        Curl_failf(v29, "Couldn't bind to interface '%s'", (int)s, v7);
+        return 45;
+      }
+    }
+    if ( v19 != 1 )
+    {
+      v33 = a1[316];
+      if ( a3 == 2 )
+      {
+        a1[316] = 1;
+      }
+      else if ( a3 == 10 )
+      {
+        a1[316] = 2;
+      }
+      v34 = Curl_resolv(a1, s, 0, 0, &v22);
+      if ( v34 == 1 )
+        Curl_resolver_wait_resolv((int)a1, &v22);
+      a1[316] = v33;
+      if ( v22 )
+      {
+        Curl_printable_address(*v22, (char *)&v38, 0x100u);
+        Curl_infof(v29, "Name '%s' family %i resolved to '%s' family %i\n", (int)s, a3);
+        Curl_resolv_unlock(v29, v22);
+        if ( a3 != *(_DWORD *)(*v22 + 4) )
+          return 1;
+        v27 = 1;
+      }
+      else
+      {
+        v27 = -1;
+      }
+    }
+    if ( v27 > 0 )
+    {
+      if ( a3 == 10 )
+      {
+        nptr = strchr((const char *)&v38, 37);
+        if ( nptr )
+        {
+          v12 = nptr++;
+          *v12 = 0;
+        }
+        if ( inet_pton(10, (const char *)&v38, v32 + 8) > 0 )
+        {
+          *(_WORD *)v32 = 10;
+          *((_WORD *)v32 + 1) = htons(v21);
+          if ( nptr )
+          {
+            v13 = atoi(nptr);
+            *((_DWORD *)v32 + 6) = v13;
+          }
+        }
+        len = 28;
+      }
+      else if ( a3 == 2 && inet_pton(2, (const char *)&v38, v31 + 4) > 0 )
+      {
+        *(_WORD *)v31 = 2;
+        *((_WORD *)v31 + 1) = htons(v21);
+        len = 16;
+      }
+    }
+    if ( v27 > 0 )
+      goto LABEL_50;
+    *(_WORD *)(v29 + 3932) &= 0xEFFFu;
+    Curl_failf(v29, "Couldn't bind to '%s'", (int)s, v7);
+    result = 45;
+  }
+  else
+  {
+    if ( a3 == 10 )
+    {
+      *(_WORD *)v32 = 10;
+      *((_WORD *)v32 + 1) = htons(v21);
+      len = 28;
+    }
+    else if ( a3 == 2 )
+    {
+      *(_WORD *)v31 = 2;
+      *((_WORD *)v31 + 1) = htons(v21);
+      len = 16;
+    }
+LABEL_50:
+    while ( bind(a2, addr, len) < 0 )
+    {
+      if ( --v25 <= 0 )
+      {
+        v35 = *_errno_location();
+        *(_DWORD *)(v29 + 3268) = v35;
+        v17 = Curl_strerror(v35, (char *)&v38, 256);
+        Curl_failf(v29, "bind failed with errno %d: %s", v35, (int)v17);
+        return 45;
+      }
+      Curl_infof(v29, "Bind to local port %hu failed, trying next\n", v21++, v14);
+      if ( addr->sa_family == 2 )
+        *((_WORD *)v31 + 1) = ntohs(v21);
+      else
+        *((_WORD *)v32 + 1) = ntohs(v21);
+    }
+    v23 = 128;
+    memset(v37, 0, sizeof(v37));
+    if ( getsockname(a2, v37, &v23) >= 0 )
+    {
+      Curl_infof(v29, "Local port: %hu\n", v21, v15);
+      a1[305] = a1[305] & 0xFFFFFEFF | 0x100;
+      result = 0;
+    }
+    else
+    {
+      v35 = *_errno_location();
+      *(_DWORD *)(v29 + 3268) = v35;
+      v16 = Curl_strerror(v35, (char *)&v38, 256);
+      Curl_failf(v29, "getsockname() failed with errno %d: %s", v35, (int)v16);
+      result = 45;
+    }
+  }
+  return result;
+}
+/////
+__fastcall singleipconnect(int *a1, int a2, int a3)
+{
+  int result;
+  int v4;
+  int *v5;
+  char *v6;
+  bool v7;
+  int v8;
+  int v9;
+  int v10;
+  int *v11;
+  int v12;
+  __time_t v13;
+  int v14;
+  int v15;
+  char *v16;
+  __time_t v17[2];
+  int v18;
+  int *v19;
+  char v20;
+  bool v21;
+  int v22;
+  int v23;
+  int v24;
+  int v25;
+  int v26;
+  int *v28;
+  int *v29;
+  int v30[3];
+  unsigned int v31;
+  struct sockaddr v32[8];
+  char v33[48];
+  char v34[256];
+  v19 = a1;
+  v18 = a2;
+  v25 = -1;
+  v26 = 0;
+  v20 = 0;
+  v28 = (int *)*a1;
+  v24 = 1;
+  v29 = &a1[a3 + 260];
+  *v29 = -1;
+  v27 = Curl_socket(v19, v18, (char *)v30, &v22);
+  if ( v27 )
+    return v27;
+  if ( (unsigned __int8)Curl_addr2string((uint16_t *)v32, v31, v33, &v23) != 1 )
+  {
+    v4 = *_errno_location();
+    v5 = _errno_location();
+    v6 = Curl_strerror(*v5, v34, 256);
+    Curl_failf((int)v28, "sa_addr inet_ntop() failed with errno %d: %s", v4, (int)v6);
+    Curl_closesocket((int)v19, v22);
+    return 0;
+  }
+  Curl_infof((int)v28, "  Trying %s:%ld...\n", (int)v33, v23);
+  v7 = (v30[0] == 2 || v30[0] == 10) && v30[1] == 2;
+  v21 = v7;
+  if ( v7 && (v28[702] & 0x10000000) != 0 )
+    tcpnodelay(v19, v22);
+  if ( v21 && (v28[702] & 0x100000) != 0 )
+    tcpkeepalive(v28, v22);
+  if ( v28[376] )
+  {
+    Curl_set_in_callback((int)v28, 1);
+    v26 = ((int (__fastcall *)(int, int, _DWORD))v28[376])(v28[377], v22, 0);
+    Curl_set_in_callback((int)v28, 0);
+    if ( v26 == 2 )
+    {
+      v20 = 1;
+    }
+    else if ( v26 )
+    {
+      Curl_closesocket((int)v19, v22);
+      return 42;
+    }
+  }
+  if ( (v30[0] == 2 || v30[0] == 10)
+    && (v8 = v22, v9 = v30[0], v10 = Curl_ipv6_scope((int)v32), (v27 = bindlocal(v19, v8, v9, v10)) != 0) )
+  {
+    Curl_closesocket((int)v19, v22);
+    if ( v27 == 1 )
+      result = 7;
+    else
+      result = v27;
+  }
+  else
+  {
+    curlx_nonblock(v22, 1);
+    v11 = v19;
+    Curl_now(v17);
+    v13 = v17[1];
+    v11[307] = v17[0];
+    v11[308] = v13;
+    if ( v19[309] >= 2 )
+    {
+      Curl_expire((int)v28, v12, *((_QWORD *)v19 + 155), 3);
+      Curl_expire((int)v28, v14, *((_QWORD *)v19 + 156), 4);
+    }
+    if ( v20 == 1 || v19[190] == 4 )
+    {
+      *v29 = v22;
+      result = 0;
+    }
+    else
+    {
+      if ( (v19[305] & 0x40) != 0 && setsockopt(v22, 6, 30, &v24, 4u) < 0 )
+        Curl_infof((int)v28, "Failed to enable TCP Fast Open on fd %d\n", v22, v15);
+      v25 = connect(v22, v32, v31);
+      if ( v25 == -1 )
+        v26 = *_errno_location();
+      if ( v25 == -1 )
+      {
+        if ( v26 == 11 || v26 == 150 )
+        {
+          v27 = 0;
+        }
+        else
+        {
+          v16 = Curl_strerror(v26, v34, 256);
+          Curl_infof((int)v28, "Immediate connect fail for %s: %s\n", (int)v33, (int)v16);
+          v28[817] = v26;
+          Curl_closesocket((int)v19, v22);
+          v27 = 7;
+        }
+      }
+      if ( !v27 )
+        *v29 = v22;
+      result = v27;
+    }
+  }
+  return result;
+}
+/////
+__fastcall cookie_output(int a1, int a2, const char *a3)
+{
+  int v4;
+  size_t v5;
+  char v9;
+  unsigned __int8 v10;
+  _DWORD *j;
+  struct _IO_FILE *s;
+  char *name;
+  unsigned int i;
+  size_t k;
+  size_t nmemb;
+  _DWORD *base;
+  const char *v18;
+  char v19[12];
+  v9 = 0;
+  name = 0;
+  v10 = 0;
+  if ( !a2 )
+    return 0;
+  remove_expired(a2);
+  if ( strcmp("-", a3) )
+  {
+    if ( Curl_rand_hex(a1, v19, 9u) )
+      return 2;
+    name = (char *)curl_maprintf("%s.%s.tmp", (int)a3, (int)v19, v4);
+    if ( !name )
+      return 1;
+    s = (struct _IO_FILE *)fopen64(name, "w");
+    if ( !s )
+      goto LABEL_30;
+    fwrite(
+      "# Netscape HTTP Cookie File\n"
+      "# https:
+      "# This file was generated by libcurl! Edit at your own risk.\n"
+      "\n",
+      1u,
+      0x88u,
+      s);
+  }
+  else
+  {
+    s = stdout;
+    v9 = 1;
+    fwrite(
+      "# Netscape HTTP Cookie File\n"
+      "# https:
+      "# This file was generated by libcurl! Edit at your own risk.\n"
+      "\n",
+      1u,
+      0x88u,
+      stdout);
+  }
+  if ( *(_DWORD *)(a2 + 1032) )
+  {
+    nmemb = 0;
+    base = (_DWORD *)Curl_ccalloc(1, 4 * *(_DWORD *)(a2 + 1032));
+    if ( !base )
+      goto LABEL_30;
+    for ( i = 0; i < 0x100; ++i )
+    {
+      for ( j = *(_DWORD **)(a2 + 4 * i); j; j = (_DWORD *)*j )
+      {
+        if ( j[5] )
+        {
+          v5 = nmemb++;
+          base[v5] = j;
+        }
+      }
+    }
+    qsort(base, nmemb, 4u, (__compar_fn_t)cookie_sort_ct);
+    for ( k = 0; k < nmemb; ++k )
+    {
+      v18 = (const char *)get_netscape_format(base[k]);
+      if ( !v18 )
+      {
+        curl_mfprintf((int)s, "#\n# Fatal libcurl error\n");
+        Curl_cfree(base);
+        goto LABEL_30;
+      }
+      curl_mfprintf((int)s, "%s\n", v18);
+      Curl_cfree(v18);
+    }
+    Curl_cfree(base);
+  }
+  if ( v9 == 1 )
+    goto LABEL_31;
+  fclose(s);
+  s = 0;
+  if ( !Curl_rename(name, a3) )
+    goto LABEL_31;
+  unlink(name);
+LABEL_30:
+  v10 = 1;
+LABEL_31:
+  if ( s )
+  {
+    if ( v9 != 1 )
+      fclose(s);
+  }
+  Curl_cfree(name);
+  return v10;
+}
+/////
+__fastcall dict_do(int *a1, _BYTE *a2)
+{
+  int v2;
+  int v3;
+  const char *v4;
+  const char *v5;
+  int v7;
+  int v8;
+  int v9;
+  int v10;
+  const char *v11;
+  const char *v12;
+  const char *v13;
+  const char *v14;
+  const char *v15;
+  int i;
+  char *v17;
+  char *v18;
+  int v19;
+  _DWORD *v20;
+  int v21;
+  char *s;
+  char *v23;
+  const char *v24;
+  const char *v25;
+  const char *v26;
+  v14 = 0;
+  v15 = 0;
+  v20 = (_DWORD *)*a1;
+  v21 = a1[258];
+  s = *(char **)(*a1 + 3856);
+  *a2 = 1;
+  if ( Curl_strncasecompare(s, "/MATCH:", 7)
+    || Curl_strncasecompare(s, "/M:", 3)
+    || Curl_strncasecompare(s, "/FIND:", 6) )
+  {
+    v12 = strchr(s, 58);
+    if ( v12 )
+    {
+      v14 = strchr(++v12, 58);
+      if ( v14 )
+      {
+        v4 = v14++;
+        *v4 = 0;
+        v15 = strchr(v14, 58);
+        if ( v15 )
+        {
+          v5 = v15++;
+          *v5 = 0;
+          v17 = strchr(v15, 58);
+          if ( v17 )
+            *v17 = 0;
+        }
+      }
+    }
+    if ( !v12 || !*v12 )
+    {
+      Curl_infof((int)v20, "lookup word is missing\n", v3, v2);
+      v12 = "default";
+    }
+    if ( !v14 || !*v14 )
+      v14 = "!";
+    if ( !v15 || !*v15 )
+      v15 = ".";
+    v25 = (const char *)unescape_word((int)v20, v12);
+    if ( !v25 )
+      return 27;
+    v19 = Curl_sendf(v21, a1, "CLIENT libcurl 7.71.1\r\nMATCH %s %s %s\r\nQUIT\r\n", v14, v15, v25);
+    Curl_cfree(v25);
+    if ( v19 )
+      goto LABEL_47;
+    goto LABEL_48;
+  }
+  if ( Curl_strncasecompare(s, "/DEFINE:", 8)
+    || Curl_strncasecompare(s, "/D:", 3)
+    || Curl_strncasecompare(s, "/LOOKUP:", 8) )
+  {
+    v13 = strchr(s, 58);
+    if ( v13 )
+    {
+      v14 = strchr(++v13, 58);
+      if ( v14 )
+      {
+        v11 = v14++;
+        *v11 = 0;
+        v18 = strchr(v14, 58);
+        if ( v18 )
+          *v18 = 0;
+      }
+    }
+    if ( !v13 || !*v13 )
+    {
+      Curl_infof((int)v20, "lookup word is missing\n", v10, v9);
+      v13 = "default";
+    }
+    if ( !v14 || !*v14 )
+      v14 = "!";
+    v26 = (const char *)unescape_word((int)v20, v13);
+    if ( !v26 )
+      return 27;
+    v19 = Curl_sendf(v21, a1, "CLIENT libcurl 7.71.1\r\nDEFINE %s %s\r\nQUIT\r\n", v14, v26);
+    Curl_cfree(v26);
+    if ( v19 )
+      goto LABEL_47;
+LABEL_48:
+    Curl_setup_transfer(v20, 0, -1LL, 0, -1);
+    return 0;
+  }
+  v23 = strchr(s, 47);
+  if ( v23 )
+  {
+    v24 = v23 + 1;
+    for ( i = 0; v24[i]; ++i )
+    {
+      if ( v24[i] == 58 )
+        v24[i] = 32;
+    }
+    v19 = Curl_sendf(v21, a1, "CLIENT libcurl 7.71.1\r\n%s\r\nQUIT\r\n", v24);
+    if ( v19 )
+    {
+LABEL_47:
+      Curl_failf((int)v20, "Failed sending DICT request", v8, v7);
+      return v19;
+    }
+    goto LABEL_48;
+  }
+  return 0;
+}

@@ -1,0 +1,1921 @@
+__cdecl agentf_got_response(int a1, void *a2, int a3)
+{
+  *(_DWORD *)(a1 + 24) = 0;
+  if ( !a2 )
+  {
+    a2 = &unk_9C288;
+    a3 = 5;
+  }
+  return sshfwd_write(*(int (__cdecl ****)(_DWORD, _DWORD, int, int))a1, (int)a2, a3);
+}
+/////
+__cdecl agentf_try_forward(int a1)
+{
+  char *v1;
+  void *ptr;
+  int v4;
+  unsigned int v5;
+  unsigned int v6;
+  void **v7;
+  unsigned int v8;
+  unsigned int v9;
+  v9 = __readgsdword(0x14u);
+  if ( !*(_DWORD *)(a1 + 24) && *(_BYTE *)(a1 + 28) == 1 )
+  {
+    while ( 1 )
+    {
+      v5 = bufchain_size(a1 + 4);
+      if ( v5 <= 3 )
+        break;
+      bufchain_fetch((int ***)(a1 + 4), (char *)&v8, 4);
+      v6 = GET_32BIT_MSB_FIRST(&v8);
+      if ( v6 > (unsigned int)&loc_3FFFC )
+      {
+        agentf_got_response(a1, 0, 0);
+        sshfwd_write_eof(*(_DWORD *)a1);
+        return __readgsdword(0x14u) ^ v9;
+      }
+      if ( v6 > v5 - 4 )
+        break;
+      bufchain_consume((_DWORD *)(a1 + 4), 4);
+      v7 = strbuf_new_for_agent_query();
+      v1 = (char *)strbuf_append(v7, v6);
+      bufchain_fetch_consume((int ***)(a1 + 4), v1, v6);
+      *(_DWORD *)(a1 + 24) = agent_query(v7, &ptr, &v4, (int)agentf_callback, a1);
+      strbuf_free(v7);
+      if ( *(_DWORD *)(a1 + 24) )
+        return __readgsdword(0x14u) ^ v9;
+      agentf_got_response(a1, ptr, v4);
+      safefree(ptr);
+    }
+    if ( *(_BYTE *)(a1 + 29) )
+      sshfwd_write_eof(*(_DWORD *)a1);
+  }
+  return __readgsdword(0x14u) ^ v9;
+}
+/////
+__cdecl agentf_callback(int a1, void *ptr, int a3)
+{
+  agentf_got_response(a1, ptr, a3);
+  safefree(ptr);
+  return agentf_try_forward(a1);
+}
+/////
+__cdecl agent_query_synchronous(_DWORD *a1, _DWORD *a2, _DWORD *a3)
+{
+  int *result;
+  result = agent_query(a1, a2, a3, 0, 0);
+  if ( result )
+    __assert_fail("!pending", "aqsync.c", 0x13u, "agent_query_synchronous");
+  return result;
+}
+/////
+__cdecl psb_init(int a1)
+{
+  int result;
+  result = a1;
+  *(_DWORD *)(a1 + 0x2000) = 0;
+  return result;
+}
+/////
+__cdecl log_proxy_stderr(int a1, void *dest, int a3, int a4)
+{
+  void *result;
+  char *src;
+  unsigned int n;
+  unsigned int v7;
+  unsigned int i;
+  _BYTE *v9;
+  char *ptr;
+  char *v11;
+  size_t v12;
+  result = (void *)a3;
+  src = (char *)a3;
+  while ( a4 )
+  {
+    if ( *((_DWORD *)dest + 2048) > 0x1FFFu )
+      __assert_fail("psb->size < lenof(psb->buf)", "be_misc.c", 0x5Au, "log_proxy_stderr");
+    n = 0x2000 - *((_DWORD *)dest + 2048);
+    if ( n > a4 )
+      n = a4;
+    memcpy((char *)dest + *((_DWORD *)dest + 2048), src, n);
+    src += n;
+    a4 -= n;
+    *((_DWORD *)dest + 2048) += n;
+    v7 = 0;
+    while ( v7 < *((_DWORD *)dest + 2048) )
+    {
+      v9 = memchr((char *)dest + v7, 10, *((_DWORD *)dest + 2048) - v7);
+      if ( !v9 )
+        break;
+      for ( i = v9 - (_BYTE *)dest; i > v7 && (*((_BYTE *)dest + i - 1) == 10 || *((_BYTE *)dest + i - 1) == 13); --i )
+        ;
+      ptr = dupprintf("proxy: %.*s", i - v7, (char *)dest + v7);
+      plug_log((int (__cdecl ***)(_DWORD, int, int, int, int, int))a1, 2, 0, 0, (int)ptr, 0);
+      safefree(ptr);
+      v7 = v9 - (_BYTE *)dest + 1;
+      if ( v7 > *((_DWORD *)dest + 2048) )
+        __assert_fail("pos <= psb->size", "be_misc.c", 0x79u, "log_proxy_stderr");
+    }
+    if ( !v7 && *((_DWORD *)dest + 2048) == 0x2000 )
+    {
+      v11 = dupprintf("proxy (partial line): %.*s", *((_DWORD *)dest + 2048), dest);
+      plug_log((int (__cdecl ***)(_DWORD, int, int, int, int, int))a1, 2, 0, 0, (int)v11, 0);
+      safefree(v11);
+      *((_DWORD *)dest + 2048) = 0;
+      v7 = *((_DWORD *)dest + 2048);
+    }
+    v12 = *((_DWORD *)dest + 2048) - v7;
+    if ( v12 )
+      memmove(dest, (char *)dest + v7, v12);
+    result = dest;
+    *((_DWORD *)dest + 2048) = v12;
+  }
+  return result;
+}
+/////
+int random_save_seed()
+{
+  size_t n;
+  void *ptr;
+  unsigned int v3;
+  v3 = __readgsdword(0x14u);
+  if ( random_active )
+  {
+    random_get_savedata(&ptr, &n);
+    write_random_seed(ptr, n);
+    safefree(ptr);
+  }
+  return __readgsdword(0x14u) ^ v3;
+}
+/////
+__cdecl get_random_data(int a1, char *file)
+{
+  char *result;
+  int *v3;
+  char *v4;
+  int *v5;
+  char *v6;
+  int j;
+  unsigned int i;
+  char *ptr;
+  int fd;
+  ssize_t v11;
+  ptr = (char *)safemalloc(a1, 1u, 0);
+  if ( file )
+    goto LABEL_9;
+  for ( i = 0; i <= 1; ++i )
+  {
+    if ( !access(*(const char **)((char *)default_devices_6498 + (_DWORD)&dword_0[i]), 4) )
+    {
+      file = *(char **)((char *)default_devices_6498 + (_DWORD)&dword_0[i]);
+      break;
+    }
+  }
+  if ( file )
+  {
+LABEL_9:
+    fd = open(file, 0);
+    if ( fd >= 0 )
+    {
+      for ( j = 0; j < a1; j += v11 )
+      {
+        v11 = read(fd, &ptr[j], a1 - j);
+        if ( v11 < 0 )
+        {
+          close(fd);
+          safefree(ptr);
+          v5 = __errno_location();
+          v6 = strerror(*v5);
+          fprintf(stderr, "puttygen: %s: read: %s\n", file, v6);
+          return 0;
+        }
+      }
+      close(fd);
+      result = ptr;
+    }
+    else
+    {
+      safefree(ptr);
+      v3 = __errno_location();
+      v4 = strerror(*v3);
+      fprintf(stderr, "puttygen: %s: open: %s\n", file, v4);
+      result = 0;
+    }
+  }
+  else
+  {
+    safefree(ptr);
+    fwrite("puttygen: cannot find a readable random number source; use --random-device\n", 1u, 0x4Bu, stderr);
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl console_get_userpass_input(int a1)
+{
+  char v2;
+  FILE *stream;
+  int fd;
+  unsigned int j;
+  unsigned int i;
+  int v7;
+  size_t nbytes;
+  int v9;
+  void *buf;
+  ssize_t v11;
+  void *s2[2];
+  void *v13[2];
+  void *v14[2];
+  void *v15[2];
+  void *v16[2];
+  void *ptr;
+  size_t n;
+  struct termios termios_p;
+  struct termios v20;
+  unsigned int v21;
+  v21 = __readgsdword(0x14u);
+  stream = 0;
+  for ( i = 0; *(_DWORD *)(a1 + 20) > i; ++i )
+    prompt_set_result(*(_DWORD *)(4 * i + *(_DWORD *)(a1 + 28)), (const char *)&unk_AA723);
+  if ( *(_DWORD *)(a1 + 20) && console_batch_mode )
+    return 0;
+  console_open(&stream, &fd);
+  if ( *(_BYTE *)(a1 + 8) )
+  {
+    if ( *(_DWORD *)(a1 + 4) )
+    {
+      ptrlen_from_asciz_7(&ptr, *(const char **)(a1 + 4));
+      console_write(stream, ptr, n);
+      make_ptrlen_25(s2, (int)"\n", 1);
+      if ( (unsigned __int8)ptrlen_endswith((int)ptr, n, s2[0], (size_t)s2[1], 0) != 1 )
+      {
+        make_ptrlen_25(v13, (int)"\n", 1);
+        console_write(stream, v13[0], (size_t)v13[1]);
+      }
+    }
+  }
+  if ( *(_DWORD *)(a1 + 12) )
+  {
+    ptrlen_from_asciz_7(&ptr, *(const char **)(a1 + 12));
+    console_write(stream, ptr, n);
+    make_ptrlen_25(v14, (int)"\n", 1);
+    if ( (unsigned __int8)ptrlen_endswith((int)ptr, n, v14[0], (size_t)v14[1], 0) != 1 )
+    {
+      make_ptrlen_25(v15, (int)"\n", 1);
+      console_write(stream, v15[0], (size_t)v15[1]);
+    }
+  }
+  for ( j = 0; j < *(_DWORD *)(a1 + 20); ++j )
+  {
+    v7 = *(_DWORD *)(4 * j + *(_DWORD *)(a1 + 28));
+    tcgetattr(fd, &termios_p);
+    v20.c_iflag = termios_p.c_iflag;
+    v20.c_oflag = termios_p.c_oflag;
+    v20.c_cflag = termios_p.c_cflag;
+    *(_DWORD *)&v20.c_line = *(_DWORD *)&termios_p.c_line;
+    *(_DWORD *)&v20.c_cc[3] = *(_DWORD *)&termios_p.c_cc[3];
+    *(_DWORD *)&v20.c_cc[7] = *(_DWORD *)&termios_p.c_cc[7];
+    *(_DWORD *)&v20.c_cc[11] = *(_DWORD *)&termios_p.c_cc[11];
+    *(_DWORD *)&v20.c_cc[15] = *(_DWORD *)&termios_p.c_cc[15];
+    *(_DWORD *)&v20.c_cc[19] = *(_DWORD *)&termios_p.c_cc[19];
+    *(_DWORD *)&v20.c_cc[23] = *(_DWORD *)&termios_p.c_cc[23];
+    *(_DWORD *)&v20.c_cc[27] = *(_DWORD *)&termios_p.c_cc[27];
+    *(_DWORD *)&v20.c_cc[31] = *(_DWORD *)&termios_p.c_cc[31];
+    v20.c_ispeed = termios_p.c_ispeed;
+    v20.c_ospeed = termios_p.c_ospeed;
+    v20.c_lflag = termios_p.c_lflag | 3;
+    if ( *(_BYTE *)(v7 + 4) != 1 )
+      v20.c_lflag &= 0xFFFFFFF7;
+    else
+      v20.c_lflag |= 8u;
+    tcsetattr(fd, 0, &v20);
+    ptrlen_from_asciz_7(v16, *(const char **)v7);
+    console_write(stream, v16[0], (size_t)v16[1]);
+    v2 = 0;
+    while ( 1 )
+    {
+      nbytes = 0x10000;
+      v9 = *(_DWORD *)(*(_DWORD *)(v7 + 8) + 8);
+      buf = (void *)strbuf_append(*(void ***)(v7 + 8), 0x10000);
+      v11 = read(fd, buf, nbytes);
+      if ( v11 <= 0 )
+        break;
+      strbuf_shrink_to(*(_DWORD **)(v7 + 8), v9 + v11);
+      if ( (unsigned __int8)strbuf_chomp(*(_DWORD **)(v7 + 8), 10) )
+        goto LABEL_22;
+    }
+    v2 = 1;
+LABEL_22:
+    tcsetattr(fd, 0, &termios_p);
+    if ( *(_BYTE *)(v7 + 4) != 1 )
+    {
+      make_ptrlen_25(&ptr, (int)"\n", 1);
+      console_write(stream, ptr, n);
+    }
+    if ( v2 )
+    {
+      console_close(stream);
+      return 0;
+    }
+  }
+  console_close(stream);
+  return 1;
+}
+/////
+__cdecl progress_update(int *a1, int a2, int a3, int a4)
+{
+  int result;
+  result = (int)a1;
+  if ( a2 == 6 )
+  {
+    if ( a3 > *a1 )
+    {
+      if ( *a1 >= 0 )
+        fputc(10, stderr);
+      *a1 = a3;
+      if ( a4 < 0 )
+        a1[1] = a4;
+      else
+        a1[1] = a4 - 1;
+    }
+    while ( a4 > a1[1] )
+    {
+      fputc(43, stdout);
+      ++a1[1];
+    }
+    result = fflush(stdout);
+  }
+  return result;
+}
+/////
+int sk_cleanup()
+{
+  int result;
+  int v1;
+  result = sktree;
+  if ( sktree )
+  {
+    v1 = 0;
+    for ( result = index234((int *)sktree, 0); result; result = index234((int *)sktree, v1) )
+    {
+      close(*(_DWORD *)(result + 4));
+      ++v1;
+    }
+  }
+  return result;
+}
+/////
+__cdecl move(char *old, char *newa)
+{
+  int v3;
+  v3 = rename(old, newa);
+  if ( v3 )
+  {
+    remove(newa);
+    v3 = rename(old, newa);
+  }
+  if ( !v3 )
+    return 1;
+  perror("puttygen: cannot move new file on to old one");
+  return 0;
+}
+/////
+__cdecl readpassphrase(char *filename)
+{
+  int *v1;
+  char *v2;
+  char *result;
+  int *v4;
+  char *v5;
+  char *s;
+  FILE *stream;
+  stream = fopen(filename, "r");
+  if ( stream )
+  {
+    s = (char *)fgetline(stream);
+    if ( s )
+    {
+      s[strcspn(s, "\r\n")] = 0;
+    }
+    else if ( ferror(stream) )
+    {
+      v4 = __errno_location();
+      v5 = strerror(*v4);
+      fprintf(stderr, "puttygen: error reading from %s: %s\n", filename, v5);
+    }
+    else
+    {
+      s = dupstr((char *)&unk_4E42D);
+    }
+    fclose(stream);
+    result = s;
+  }
+  else
+  {
+    v1 = __errno_location();
+    v2 = strerror(*v1);
+    fprintf(stderr, "puttygen: cannot open %s: %s\n", filename, v2);
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl cmdline_save_param(char *s, char *a2, int a3)
+{
+  char **v3;
+  int v4;
+  _DWORD *result;
+  *((_DWORD *)&saves + 3 * a3) = safegrowarray(
+                                   *((void **)&saves + 3 * a3),
+                                   (int)&saves + 12 * a3 + 8,
+                                   8u,
+                                   *((_DWORD *)&unk_CB720 + 3 * a3),
+                                   1,
+                                   0);
+  v3 = (char **)(*((_DWORD *)&saves + 3 * a3) + 8 * *((_DWORD *)&unk_CB720 + 3 * a3));
+  *v3 = dupstr(s);
+  v4 = *((_DWORD *)&saves + 3 * a3) + 8 * *((_DWORD *)&unk_CB720 + 3 * a3);
+  *(_DWORD *)(v4 + 4) = dupstr(a2);
+  result = (_DWORD *)((char *)&unk_CB720 + 12 * a3);
+  ++*result;
+  return result;
+}
+/////
+void cmdline_cleanup()
+{
+  size_t v0;
+  int i;
+  if ( cmdline_password )
+  {
+    v0 = strlen((const char *)cmdline_password);
+    smemclr((void *)cmdline_password, v0);
+    safefree((void *)cmdline_password);
+    cmdline_password = 0;
+  }
+  for ( i = 0; i <= 1; ++i )
+  {
+    safefree(*((void **)&saves + 3 * i));
+    *((_DWORD *)&saves + 3 * i) = 0;
+    dword_CB724[3 * i] = 0;
+    *((_DWORD *)&unk_CB720 + 3 * i) = 0;
+  }
+}
+/////
+__cdecl cmdline_get_passwd_input(int a1)
+{
+  size_t v2;
+  if ( !cmdline_password || *(_DWORD *)(a1 + 20) != 1 || *(_BYTE *)(**(_DWORD **)(a1 + 28) + 4) )
+    return -1;
+  if ( tried_once_5864 )
+    return 0;
+  prompt_set_result(**(_DWORD **)(a1 + 28), (const char *)cmdline_password);
+  v2 = strlen((const char *)cmdline_password);
+  smemclr((void *)cmdline_password, v2);
+  safefree((void *)cmdline_password);
+  cmdline_password = 0;
+  tried_once_5864 = 1;
+  return 1;
+}
+/////
+__cdecl cmdline_run_saved(int *a1)
+{
+  _DWORD *result;
+  int i;
+  unsigned int j;
+  for ( i = 0; i <= 1; ++i )
+  {
+    for ( j = 0; *((_DWORD *)&unk_CB720 + 3 * i) > j; ++j )
+    {
+      cmdline_process_param(
+        *(_DWORD *)(8 * j + *((_DWORD *)&saves + 3 * i)),
+        *(char **)(8 * j + *((_DWORD *)&saves + 3 * i) + 4),
+        0,
+        a1);
+      safefree(*(void **)(8 * j + *((_DWORD *)&saves + 3 * i)));
+      safefree(*(void **)(8 * j + *((_DWORD *)&saves + 3 * i) + 4));
+    }
+    result = (_DWORD *)((char *)&unk_CB720 + 12 * i);
+    *result = 0;
+  }
+  return result;
+}
+/////
+__cdecl conf_cmp_constkey(int a1, int a2)
+{
+  int result;
+  int v3;
+  if ( *(_DWORD *)a1 < *(_DWORD *)a2 )
+    return -1;
+  if ( *(_DWORD *)a1 > *(_DWORD *)a2 )
+    return 1;
+  v3 = *(int *)((char *)&subkeytypes + (_DWORD)&dword_0[*(_DWORD *)a1]);
+  if ( v3 == 2 )
+  {
+    if ( *(_DWORD *)(a1 + 4) >= *(_DWORD *)(a2 + 4) )
+      result = *(_DWORD *)(a1 + 4) > *(_DWORD *)(a2 + 4);
+    else
+      result = -1;
+  }
+  else if ( v3 == 3 )
+  {
+    result = strcmp(*(const char **)(a1 + 4), *(const char **)(a2 + 4));
+  }
+  else
+  {
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl copy_key(_DWORD *a1, int a2)
+{
+  Elf32_Dyn **result;
+  int v3;
+  char *v4;
+  result = &GLOBAL_OFFSET_TABLE_;
+  *a1 = *(_DWORD *)a2;
+  v3 = *(int *)((char *)&subkeytypes + (_DWORD)&dword_0[*a1]);
+  if ( v3 == 2 )
+  {
+    result = (Elf32_Dyn **)a1;
+    a1[1] = *(_DWORD *)(a2 + 4);
+  }
+  else if ( v3 == 3 )
+  {
+    v4 = dupstr(*(char **)(a2 + 4));
+    result = (Elf32_Dyn **)a1;
+    a1[1] = v4;
+  }
+  return result;
+}
+/////
+__cdecl conf_clear(int **a1)
+{
+  void *result;
+  while ( 1 )
+  {
+    result = (void *)delpos234(*a1, 0);
+    if ( !result )
+      break;
+    free_entry(result);
+  }
+  return result;
+}
+/////
+__cdecl conf_copy_into(int **a1, int **a2)
+{
+  int result;
+  int v3;
+  int v4;
+  _BYTE *v5;
+  conf_clear(a1);
+  v3 = 0;
+  for ( result = index234(*a2, 0); ; result = index234(*a2, v3) )
+  {
+    v4 = result;
+    if ( !result )
+      break;
+    v5 = safemalloc(1u, 0xCu, 0);
+    copy_key(v5, v4);
+    copy_value(v5 + 8, (char **)(v4 + 8), *(int *)((char *)valuetypes + (_DWORD)&dword_0[*(_DWORD *)v4]));
+    add234((int)*a1, (int)v5);
+    ++v3;
+  }
+  return result;
+}
+/////
+__cdecl conf_get_str_strs(int **a1, int a2, void *a3, _DWORD *a4)
+{
+  _DWORD *v5;
+  int v6;
+  void *v7;
+  unsigned int v8;
+  v8 = __readgsdword(0x14u);
+  if ( *(int *)((char *)&subkeytypes + (_DWORD)&dword_0[a2]) != 3 )
+    __assert_fail("subkeytypes[primary] == TYPE_STR", "conf.c", 0x158u, "conf_get_str_strs");
+  if ( *(int *)((char *)valuetypes + (_DWORD)&dword_0[a2]) != 3 )
+    __assert_fail("valuetypes[primary] == TYPE_STR", "conf.c", 0x159u, "conf_get_str_strs");
+  v6 = a2;
+  if ( a3 )
+  {
+    v7 = a3;
+    v5 = (_DWORD *)findrel234(*a1, (int)&v6, 0, 3);
+  }
+  else
+  {
+    v7 = &unk_9C9A1;
+    v5 = (_DWORD *)findrel234(*a1, (int)&v6, conf_cmp_constkey, 4);
+  }
+  if ( !v5 || a2 != *v5 )
+    return 0;
+  *a4 = v5[1];
+  return v5[2];
+}
+/////
+__cdecl ecc_weierstrass_normalise(int a1)
+{
+  int v1;
+  int v3;
+  unsigned int *ptr;
+  unsigned int *v5;
+  unsigned int *v6;
+  v3 = *(_DWORD *)(a1 + 12);
+  ptr = monty_invert(*(_DWORD *)(v3 + 4), *(unsigned int **)(a1 + 8));
+  v5 = monty_mul(*(_DWORD *)(v3 + 4), ptr, ptr);
+  v6 = monty_mul(*(_DWORD *)(v3 + 4), v5, ptr);
+  monty_mul_into(*(_DWORD *)(v3 + 4), *(_DWORD *)a1, *(unsigned int **)a1, v5);
+  monty_mul_into(*(_DWORD *)(v3 + 4), *(_DWORD *)(a1 + 4), *(unsigned int **)(a1 + 4), v6);
+  mp_free(ptr);
+  mp_free(v5);
+  mp_free(v6);
+  v1 = monty_identity(*(_DWORD *)(v3 + 4));
+  return mp_copy_into(*(_DWORD *)(a1 + 8), v1);
+}
+/////
+__cdecl ecc_weierstrass_get_affine(int a1, Elf32_Dyn **a2, Elf32_Dyn **a3)
+{
+  Elf32_Dyn **result;
+  Elf32_Dyn *v4;
+  Elf32_Dyn *v5;
+  int v6;
+  v6 = *(_DWORD *)(a1 + 12);
+  result = ecc_weierstrass_normalise(a1);
+  if ( a2 )
+  {
+    v4 = (Elf32_Dyn *)monty_export(*(_DWORD *)(v6 + 4), *(unsigned int **)a1);
+    result = a2;
+    *a2 = v4;
+  }
+  if ( a3 )
+  {
+    v5 = (Elf32_Dyn *)monty_export(*(_DWORD *)(v6 + 4), *(unsigned int **)(a1 + 4));
+    result = a3;
+    *a3 = v5;
+  }
+  return result;
+}
+/////
+__cdecl ecc_montgomery_get_affine(int a1, Elf32_Dyn **a2)
+{
+  Elf32_Dyn **result;
+  Elf32_Dyn *v3;
+  int v4;
+  v4 = *(_DWORD *)(a1 + 8);
+  result = ecc_montgomery_normalise(a1);
+  if ( a2 )
+  {
+    v3 = (Elf32_Dyn *)monty_export(*(_DWORD *)(v4 + 4), *(unsigned int **)a1);
+    result = a2;
+    *a2 = v3;
+  }
+  return result;
+}
+/////
+__cdecl ecc_edwards_get_affine(int a1, _DWORD *a2, _DWORD *a3)
+{
+  unsigned int result;
+  _DWORD *v4;
+  _DWORD *v5;
+  int v6;
+  v6 = *(_DWORD *)(a1 + 16);
+  result = ecc_edwards_normalise(a1);
+  if ( a2 )
+  {
+    v4 = monty_export(*(_DWORD *)(v6 + 4), *(unsigned int **)a1);
+    result = (unsigned int)a2;
+    *a2 = v4;
+  }
+  if ( a3 )
+  {
+    v5 = monty_export(*(_DWORD *)(v6 + 4), *(unsigned int **)(a1 + 4));
+    result = (unsigned int)a3;
+    *a3 = v5;
+  }
+  return result;
+}
+/////
+__cdecl ldisc_send(int a1, const char *a2, int a3, char a4)
+{
+  char *v4;
+  int v5;
+  int v6;
+  int v7;
+  int v8;
+  int v9;
+  int v10;
+  int v11;
+  int result;
+  int v13;
+  int v14;
+  char *s;
+  int v16;
+  int v17;
+  unsigned int i;
+  s = (char *)a2;
+  v16 = 0;
+  if ( !*(_DWORD *)a1 )
+    __assert_fail("ldisc->term", "ldisc.c", 0x84u, "ldisc_send");
+  if ( a4 )
+    term_nopaste();
+  if ( a3 < 0 )
+  {
+    a3 = strlen(a2);
+    v16 = 256;
+  }
+  if ( !*(_DWORD *)(a1 + 24)
+    || *(_DWORD *)(a1 + 24) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 0) )
+  {
+    while ( 1 )
+    {
+      while ( 1 )
+      {
+        result = a3--;
+        if ( !result )
+          return result;
+        v4 = s++;
+        v17 = (unsigned __int8)*v4 + v16;
+        if ( a4 != 1 && v17 == 13 )
+          v17 = 269;
+        v5 = *(_BYTE *)(a1 + 40) ? 32 : v17;
+        if ( v5 != 22 )
+          break;
+        *(_BYTE *)(a1 + 40) = 1;
+      }
+      if ( v5 > 22 )
+      {
+        if ( v5 == 28 )
+          goto LABEL_57;
+        if ( v5 > 28 )
+        {
+          if ( v5 == 269 )
+            goto LABEL_84;
+          if ( v5 != 383 && v5 != 264 )
+            goto LABEL_97;
+          if ( *(_DWORD *)(a1 + 32) )
+          {
+            do
+            {
+              if ( !*(_DWORD *)(a1 + 20)
+                || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+              {
+                v6 = plen((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1));
+                bsb(a1, v6);
+              }
+              --*(_DWORD *)(a1 + 32);
+            }
+            while ( (unsigned __int8)char_start((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32))) != 1 );
+          }
+        }
+        else
+        {
+          if ( v5 != 23 )
+          {
+            if ( v5 != 26 )
+              goto LABEL_97;
+            goto LABEL_57;
+          }
+          while ( *(_DWORD *)(a1 + 32) )
+          {
+            if ( !*(_DWORD *)(a1 + 20)
+              || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+            {
+              v7 = plen((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1));
+              bsb(a1, v7);
+            }
+            if ( --*(_DWORD *)(a1 + 32) )
+            {
+              if ( ((*__ctype_b_loc())[*(unsigned __int8 *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1)] & 0x2000) != 0
+                && ((*__ctype_b_loc())[*(unsigned __int8 *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32))] & 0x2000) == 0 )
+              {
+                break;
+              }
+            }
+          }
+        }
+      }
+      else if ( v5 == 10 )
+      {
+        if ( *(_DWORD *)(a1 + 16)
+          || !*(_DWORD *)(a1 + 32)
+          || *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1) != 13 )
+        {
+          goto LABEL_97;
+        }
+        if ( !*(_DWORD *)(a1 + 20)
+          || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+        {
+          v9 = plen((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1));
+          bsb(a1, v9);
+        }
+        --*(_DWORD *)(a1 + 32);
+LABEL_84:
+        if ( *(_DWORD *)(a1 + 32) )
+          backend_send(*(_DWORD *)(a1 + 4), *(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 32));
+        if ( *(_DWORD *)(a1 + 16) )
+        {
+          if ( *(_DWORD *)(a1 + 16) == 1 && *(_BYTE *)(a1 + 13) )
+            backend_special(*(_DWORD *)(a1 + 4), 14, 0);
+          else
+            backend_send(*(_DWORD *)(a1 + 4), (int)"\r", 1);
+        }
+        else
+        {
+          backend_send(*(_DWORD *)(a1 + 4), (int)"\r\n", 2);
+        }
+        if ( !*(_DWORD *)(a1 + 20)
+          || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+        {
+          c_write(a1, (int)"\r\n", 2);
+        }
+        *(_DWORD *)(a1 + 32) = 0;
+      }
+      else if ( v5 > 10 )
+      {
+        if ( v5 != 18 )
+        {
+          if ( v5 != 21 )
+            goto LABEL_97;
+          goto LABEL_57;
+        }
+        if ( !*(_DWORD *)(a1 + 20)
+          || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+        {
+          c_write(a1, (int)"^R\r\n", 4);
+          for ( i = 0; *(_DWORD *)(a1 + 32) > i; ++i )
+            pwrite((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + i));
+        }
+      }
+      else if ( v5 == 3 )
+      {
+LABEL_57:
+        while ( *(_DWORD *)(a1 + 32) )
+        {
+          if ( !*(_DWORD *)(a1 + 20)
+            || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+          {
+            v8 = plen((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1));
+            bsb(a1, v8);
+          }
+          --*(_DWORD *)(a1 + 32);
+        }
+        backend_special(*(_DWORD *)(a1 + 4), 7, 0);
+        if ( *(_BYTE *)(a1 + 12) != 1 )
+        {
+LABEL_97:
+          *(_DWORD *)(a1 + 28) = safegrowarray(*(void **)(a1 + 28), a1 + 36, 1u, *(_DWORD *)(a1 + 32), 1, 0);
+          v10 = *(_DWORD *)(a1 + 28);
+          v11 = *(_DWORD *)(a1 + 32);
+          *(_DWORD *)(a1 + 32) = v11 + 1;
+          *(_BYTE *)(v10 + v11) = v17;
+          if ( !*(_DWORD *)(a1 + 20)
+            || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+          {
+            pwrite((int *)a1, v17);
+          }
+          *(_BYTE *)(a1 + 40) = 0;
+        }
+        else
+        {
+          if ( v17 == 3 )
+            backend_special(*(_DWORD *)(a1 + 4), 11, 0);
+          if ( v17 == 26 )
+            backend_special(*(_DWORD *)(a1 + 4), 12, 0);
+          if ( v17 == 28 )
+            backend_special(*(_DWORD *)(a1 + 4), 9, 0);
+        }
+      }
+      else
+      {
+        if ( v5 != 4 )
+          goto LABEL_97;
+        if ( *(_DWORD *)(a1 + 32) )
+        {
+          backend_send(*(_DWORD *)(a1 + 4), *(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 32));
+          *(_DWORD *)(a1 + 32) = 0;
+        }
+        else
+        {
+          backend_special(*(_DWORD *)(a1 + 4), 1, 0);
+        }
+      }
+    }
+  }
+  result = *(_DWORD *)(a1 + 32);
+  if ( result )
+  {
+    backend_send(*(_DWORD *)(a1 + 4), *(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 32));
+    while ( 1 )
+    {
+      result = *(_DWORD *)(a1 + 32);
+      if ( !result )
+        break;
+      v13 = plen((int *)a1, *(_BYTE *)(*(_DWORD *)(a1 + 28) + *(_DWORD *)(a1 + 32) - 1));
+      bsb(a1, v13);
+      --*(_DWORD *)(a1 + 32);
+    }
+  }
+  if ( a3 > 0 )
+  {
+    if ( !*(_DWORD *)(a1 + 20)
+      || *(_DWORD *)(a1 + 20) == 2 && (unsigned __int8)backend_ldisc_option_state(*(_DWORD *)(a1 + 4), 1) )
+    {
+      c_write(a1, (int)a2, a3);
+    }
+    if ( !v16 || *(_DWORD *)(a1 + 16) != 1 || a3 != 1 )
+      return backend_send(*(_DWORD *)(a1 + 4), (int)a2, a3);
+    v14 = *a2;
+    if ( v14 != 13 )
+    {
+      if ( v14 > 13 )
+      {
+        if ( v14 == 26 )
+          goto LABEL_132;
+        if ( v14 != 127 )
+          return backend_send(*(_DWORD *)(a1 + 4), (int)a2, a3);
+      }
+      else
+      {
+        if ( v14 == 3 )
+          goto LABEL_130;
+        if ( v14 != 8 )
+          return backend_send(*(_DWORD *)(a1 + 4), (int)a2, a3);
+      }
+      if ( *(_BYTE *)(a1 + 12) )
+        return backend_special(*(_DWORD *)(a1 + 4), 6, 0);
+LABEL_130:
+      if ( *(_BYTE *)(a1 + 12) )
+        return backend_special(*(_DWORD *)(a1 + 4), 11, 0);
+LABEL_132:
+      if ( *(_BYTE *)(a1 + 12) )
+        return backend_special(*(_DWORD *)(a1 + 4), 12, 0);
+      return backend_send(*(_DWORD *)(a1 + 4), (int)a2, a3);
+    }
+    if ( *(_DWORD *)(a1 + 16) == 1 && *(_BYTE *)(a1 + 13) )
+      result = backend_special(*(_DWORD *)(a1 + 4), 14, 0);
+    else
+      result = backend_send(*(_DWORD *)(a1 + 4), (int)"\r", 1);
+  }
+  return result;
+}
+/////
+__cdecl ldisc_echoedit_update(int *a1)
+{
+  bool v1;
+  unsigned __int8 v2;
+  bool v3;
+  v1 = !a1[6] || a1[6] == 2 && (unsigned __int8)backend_ldisc_option_state(a1[1], 0);
+  v2 = v1;
+  v3 = !a1[5] || a1[5] == 2 && (unsigned __int8)backend_ldisc_option_state(a1[1], 1);
+  return seat_echoedit_update(a1[2], v3, v2);
+}
+/////
+int nonfatal(const char *a1, ...)
+{
+  unsigned int v2;
+  va_list va;
+  va_start(va, a1);
+  v2 = __readgsdword(0x14u);
+  console_print_error_msg_fmt_v("ERROR", a1, va);
+  return __readgsdword(0x14u) ^ v2;
+}
+/////
+__cdecl platform_default_s(char *s1)
+{
+  char *v1;
+  char *result;
+  if ( !strcmp(s1, "TermType") )
+  {
+    v1 = getenv("TERM");
+    result = dupstr(v1);
+  }
+  else if ( !strcmp(s1, "SerialLine") )
+  {
+    result = dupstr("/dev/ttyS0");
+  }
+  else
+  {
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl random_add_noise(unsigned int a1, int a2, int a3)
+{
+  int v4[2];
+  unsigned int v5;
+  v5 = __readgsdword(0x14u);
+  if ( random_active )
+  {
+    make_ptrlen_20(v4, a2, a3);
+    prng_add_entropy(global_prng, a1, v4[0], v4[1]);
+  }
+  return __readgsdword(0x14u) ^ v5;
+}
+/////
+__cdecl BinarySink_put_ber_id_len(int a1, int a2, int a3, char a4)
+{
+  char v4;
+  int result;
+  int i;
+  int j;
+  if ( a2 > 30 )
+  {
+    BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), a4 | 0x1F);
+    for ( i = 1; a2 >> (7 * i) > 0; ++i )
+      ;
+    while ( i-- )
+    {
+      if ( i )
+        v4 = 0x80;
+      else
+        v4 = 0;
+      BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), v4 | (a2 >> (7 * i)) & 0x7F);
+    }
+  }
+  else
+  {
+    BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), a2 | a4);
+  }
+  if ( a3 <= 127 )
+    return BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), a3);
+  for ( j = 1; a3 >> (8 * j) > 0; ++j )
+    ;
+  BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), j | 0x80);
+  while ( 1 )
+  {
+    result = j--;
+    if ( !result )
+      break;
+    BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), a3 >> (8 * j));
+  }
+  return result;
+}
+/////
+__cdecl openssh_new_encrypted(int a1)
+{
+  bool v2;
+  void ***ptr;
+  ptr = (void ***)load_openssh_new_key(a1, 0);
+  if ( !ptr )
+    return 0;
+  v2 = *ptr != 0;
+  strbuf_free(ptr[9]);
+  smemclr(ptr, 0x28u);
+  safefree(ptr);
+  return v2;
+}
+/////
+__cdecl openssh_new_read(int a1, const char *a2, const char **a3)
+{
+  int v4;
+  int (__cdecl **v5)(int);
+  char v6;
+  char v7;
+  char v8;
+  void *ptr;
+  void *v10;
+  const char *v11;
+  int i;
+  void *v13;
+  int (__cdecl **v14)(int, int, int);
+  int v15;
+  unsigned int v16;
+  void *src[2];
+  void *s1[2];
+  _DWORD v19[4];
+  int *v20;
+  char s[32];
+  _DWORD v22[7];
+  v22[4] = __readgsdword(0x14u);
+  v13 = load_openssh_new_key(a1, a3);
+  ptr = 0;
+  v10 = 0;
+  if ( !v13 )
+    return 0;
+  if ( !*(_DWORD *)v13 )
+    goto LABEL_20;
+  if ( *(_DWORD *)v13 > 2u )
+    __assert_fail("false && \"Bad cipher enumeration value\"", "import.c", 0x53Au, "openssh_new_read");
+  v4 = *((_DWORD *)v13 + 1);
+  if ( v4 )
+  {
+    if ( v4 != 1 )
+      __assert_fail("false && \"Bad kdf enumeration value\"", "import.c", 0x549u, "openssh_new_read");
+    openssh_bcrypt(a2, *((char **)v13 + 3), *((_DWORD *)v13 + 4), *((_DWORD *)v13 + 2), (int)s, 48);
+  }
+  else
+  {
+    memset(s, 0, 0x30u);
+  }
+  if ( !*(_DWORD *)v13 )
+    goto LABEL_20;
+  if ( *(_DWORD *)v13 > 2u )
+    __assert_fail("false && \"Bad cipher enumeration value\"", "import.c", 0x563u, "openssh_new_read");
+  if ( (*((_DWORD *)v13 + 8) & 0xF) == 0 )
+  {
+    if ( *(_DWORD *)v13 == 1 )
+      v5 = &ssh_aes256_cbc;
+    else
+      v5 = &ssh_aes256_sdctr;
+    v15 = ssh_cipher_new(v5);
+    ssh_cipher_setkey(v15, (int)s);
+    ssh_cipher_setiv(v15, (int)v22);
+    ssh_cipher_decrypt(v15, *((_DWORD *)v13 + 7), *((_DWORD *)v13 + 8));
+    ssh_cipher_free(v15);
+LABEL_20:
+    BinarySource_INIT___0(v19, *((_DWORD *)v13 + 7), *((_DWORD *)v13 + 8));
+    v16 = BinarySource_get_uint32(v20);
+    if ( v16 == BinarySource_get_uint32(v20) && !v20[3] )
+    {
+      ptr = safemalloc(1u, 8u, 0);
+      *(_DWORD *)ptr = 0;
+      *((_DWORD *)ptr + 1) = 0;
+      for ( i = 0; i < *((_DWORD *)v13 + 5); ++i )
+      {
+        BinarySource_get_string(s1, v20);
+        v14 = find_pubkey_alg_len(s1[0], (int)s1[1]);
+        if ( !v14 )
+        {
+          v11 = "private key type not recognised\n";
+          goto LABEL_47;
+        }
+        *(_DWORD *)ptr = ssh_key_new_priv_openssh((int)v14, (int)v19);
+        if ( v20[3] )
+        {
+          v11 = "unable to read entire private key";
+          goto LABEL_47;
+        }
+        if ( !*(_DWORD *)ptr )
+        {
+          v11 = "unable to create key data structure";
+          goto LABEL_47;
+        }
+        if ( i != *((_DWORD *)v13 + 6) )
+        {
+          ssh_key_free_0(*(_DWORD *)ptr);
+          *(_DWORD *)ptr = 0;
+        }
+        BinarySource_get_string(src, v20);
+        if ( v20[3] )
+        {
+          v11 = "unable to read key comment";
+          goto LABEL_47;
+        }
+        if ( i == *((_DWORD *)v13 + 6) )
+        {
+          if ( !ptr )
+            __assert_fail("retkey", "import.c", 0x5A2u, "openssh_new_read");
+          *((_DWORD *)ptr + 1) = mkstr(src[0], (size_t)src[1]);
+        }
+      }
+      if ( *(_DWORD *)ptr )
+      {
+        v8 = 1;
+        while ( v20[2] != v20[1] )
+        {
+          v6 = BinarySource_get_byte(v20);
+          v7 = v8++;
+          if ( v6 != v7 )
+          {
+            v11 = "padding at end of private string did not match";
+            goto LABEL_47;
+          }
+        }
+        v11 = 0;
+        v10 = ptr;
+        ptr = 0;
+      }
+      else
+      {
+        v11 = "key index out of range";
+      }
+    }
+    else
+    {
+      v11 = "decryption check failed";
+    }
+    goto LABEL_47;
+  }
+  v11 = "private key container length is not a multiple of AES block size\n";
+LABEL_47:
+  if ( ptr )
+  {
+    safefree(*((void **)ptr + 1));
+    if ( *(_DWORD *)ptr )
+      ssh_key_free_0(*(_DWORD *)ptr);
+    safefree(ptr);
+  }
+  strbuf_free(*((void ***)v13 + 9));
+  smemclr(v13, 0x28u);
+  safefree(v13);
+  if ( a3 )
+    *a3 = v11;
+  return v10;
+}
+/////
+__cdecl sshcom_encrypted(int a1, char **a2)
+{
+  char *v2;
+  char *v3;
+  int v5;
+  char **v6;
+  int v7;
+  unsigned __int8 v8;
+  void *ptr;
+  void *s1[2];
+  int v11[2];
+  int v12[4];
+  int *v13;
+  unsigned int v14;
+  v7 = a1;
+  v6 = a2;
+  v14 = __readgsdword(0x14u);
+  ptr = load_sshcom_key(a1, 0);
+  v8 = 0;
+  *a2 = 0;
+  if ( ptr )
+  {
+    ptrlen_from_strbuf_0(v11, *((_DWORD *)ptr + 64));
+    BinarySource_INIT___0(v12, v11[0], v11[1]);
+    if ( BinarySource_get_uint32(v13) == 1064303083 )
+    {
+      BinarySource_get_uint32(v13);
+      BinarySource_get_string(&v5, v13);
+      BinarySource_get_string(s1, v13);
+      if ( !v13[3] && !ptrlen_eq_string(s1[0], (int)s1[1], "none") )
+        v8 = 1;
+    }
+  }
+  if ( ptr )
+  {
+    v2 = dupstr((char *)ptr);
+    *v6 = v2;
+    strbuf_free(*((void ***)ptr + 64));
+    smemclr(ptr, 0x104u);
+    safefree(ptr);
+  }
+  else
+  {
+    v3 = dupstr((char *)&unk_4F620);
+    *v6 = v3;
+  }
+  return v8;
+}
+/////
+__cdecl BinarySink_put_mp_sshcom_from_string(int a1, unsigned __int8 *a2, int a3)
+{
+  char v3;
+  int v6;
+  int i;
+  v6 = a3;
+  for ( i = 8 * a3 - 1; i > 0 && (((int)*a2 >> (i & 7)) & 1) == 0; --i )
+  {
+    v3 = i;
+    if ( (v3 & 7) == 0 )
+    {
+      ++a2;
+      --v6;
+    }
+  }
+  BinarySink_put_uint32(*(void (__cdecl ***)(_DWORD, char *, int))(a1 + 4), i + 1);
+  return BinarySink_put_data(*(int (__cdecl ***)(_DWORD, int, int))(a1 + 4), (int)a2, v6);
+}
+/////
+__cdecl pwrite(int *a1, unsigned __int8 a2)
+{
+  char v2;
+  char v4[4];
+  int *v5;
+  char s[5];
+  unsigned int v7;
+  v5 = a1;
+  v4[0] = a2;
+  v7 = __readgsdword(0x14u);
+  if ( a2 > 0x1Fu && v4[0] <= 0x7Eu
+    || (unsigned __int8)in_utf(*v5) != 1 && v4[0] > 0x9Fu
+    || (unsigned __int8)in_utf(*v5) && v4[0] < 0 )
+  {
+    c_write((int)v5, (int)v4, 1);
+  }
+  else if ( v4[0] < 0 )
+  {
+    sprintf(s, "<%02X>", (unsigned __int8)v4[0]);
+    c_write((int)v5, (int)s, 4);
+  }
+  else
+  {
+    if ( v4[0] == 127 )
+      v2 = 63;
+    else
+      v2 = v4[0] + 64;
+    s[1] = v2;
+    s[0] = 94;
+    c_write((int)v5, (int)s, 2);
+  }
+  return __readgsdword(0x14u) ^ v7;
+}
+/////
+__cdecl bsb(int a1, int a2)
+{
+  int result;
+  while ( 1 )
+  {
+    result = a2--;
+    if ( !result )
+      break;
+    c_write(a1, (int)"\b \b", 3);
+  }
+  return result;
+}
+/////
+__cdecl ldisc_free(void *ptr)
+{
+  if ( *(_DWORD *)ptr )
+    *(_DWORD *)(*(_DWORD *)ptr + 4180) = 0;
+  if ( *((_DWORD *)ptr + 1) )
+    backend_provide_ldisc(*((_DWORD *)ptr + 1), 0);
+  if ( *((_DWORD *)ptr + 7) )
+    safefree(*((void **)ptr + 7));
+  safefree(ptr);
+}
+/////
+__cdecl logwrite(int a1, void *ptr, size_t n)
+{
+  int result;
+  size_t v4;
+  if ( !*(_DWORD *)(a1 + 4) )
+    logfopen(a1);
+  if ( *(_DWORD *)(a1 + 4) == 1 )
+    return bufchain_add(a1 + 8, (char *)ptr, n);
+  result = *(_DWORD *)(a1 + 4);
+  if ( result == 2 )
+  {
+    if ( !*(_DWORD *)a1 )
+      __assert_fail("ctx->lgfp", "logging.c", 0x2Fu, "logwrite");
+    v4 = fwrite(ptr, 1u, n, *(FILE **)a1);
+    result = n;
+    if ( v4 < n )
+    {
+      logfclose(a1);
+      *(_DWORD *)(a1 + 4) = 3;
+      result = lp_eventlog(
+                 *(int (__cdecl ****)(_DWORD, int))(a1 + 32),
+                 (int)"Disabled writing session log due to error while writing");
+    }
+  }
+  return result;
+}
+/////
+__cdecl logtraffic(int a1, char a2, int a3)
+{
+  char v4[4];
+  int v5;
+  void *ptr[2];
+  unsigned int v7;
+  v5 = a1;
+  v4[0] = a2;
+  v7 = __readgsdword(0x14u);
+  if ( *(int *)(a1 + 40) > 0 && a3 == *(_DWORD *)(v5 + 40) )
+  {
+    make_ptrlen_0(ptr, (int)v4, 1);
+    logwrite(v5, ptr[0], (size_t)ptr[1]);
+  }
+  return __readgsdword(0x14u) ^ v7;
+}
+/////
+__cdecl mainchan_open_confirmation(int a1)
+{
+  char *v1;
+  int **v2;
+  char *v3;
+  char *v4;
+  int v5;
+  char *v6;
+  bool v8;
+  void *ptr;
+  int i;
+  int v11;
+  int v12;
+  _DWORD *v13;
+  int v14;
+  _BYTE *v15;
+  unsigned int v16;
+  v16 = __readgsdword(0x14u);
+  v11 = a1 - 52;
+  v12 = *(_DWORD *)(a1 - 52 + 8);
+  seat_update_specials_menu(*(_DWORD *)(*(_DWORD *)(a1 - 52 + 8) + 40));
+  v1 = dupprintf("Opened main channel");
+  logevent_and_free(*(_DWORD *)(v12 + 36), v1);
+  if ( *(_BYTE *)(a1 - 52 + 20) )
+    sshfwd_hint_channel_is_simple(*(_DWORD *)v11);
+  if ( *(_DWORD *)(v11 + 16) )
+  {
+    ssh_set_ldisc_option(*(_DWORD *)(v11 + 12), 1, 1u);
+    ssh_set_ldisc_option(*(_DWORD *)(v11 + 12), 0, 1u);
+    mainchan_ready(v11);
+  }
+  else
+  {
+    v8 = 0;
+    if ( (unsigned __int8)conf_get_bool(*(int ***)(v11 + 4), 163) )
+    {
+      v2 = *(int ***)(v11 + 4);
+      v3 = (char *)conf_get_str(v2, 164);
+      v13 = x11_setup_display(v3, (int)v2, (int)&ptr);
+      if ( v13 )
+      {
+        v5 = conf_get_int(*(int ***)(v11 + 4), 165);
+        v14 = ssh_add_x11_display(*(_DWORD *)(v11 + 12), v5, (int)v13);
+        sshfwd_request_x11_forwarding(*(_DWORD *)v11, 1u, *(_DWORD *)(v14 + 12), *(_DWORD *)(v14 + 16), v13[3], 0);
+        *(_BYTE *)(v11 + 21) = 1;
+      }
+      else
+      {
+        v4 = dupprintf("X11 forwarding not enabled: unable to initialise X display: %s", ptr);
+        logevent_and_free(*(_DWORD *)(v12 + 36), v4);
+        safefree(ptr);
+      }
+    }
+    if ( (unsigned __int8)ssh_agent_forwarding_permitted(*(_DWORD *)(v11 + 12)) )
+    {
+      sshfwd_request_agent_forwarding(*(_DWORD *)v11, 1u);
+      *(_BYTE *)(v11 + 22) = 1;
+    }
+    if ( (unsigned __int8)conf_get_bool(*(int ***)(v11 + 4), 22) != 1 )
+    {
+      sshfwd_request_pty(*(_DWORD *)v11, 1u, *(_DWORD *)(v11 + 4), *(_DWORD *)(v11 + 44), *(_DWORD *)(v11 + 48));
+      *(_BYTE *)(v11 + 23) = 1;
+    }
+    for ( i = conf_get_str_strs(*(int ***)(v11 + 4), 54, 0, &ptr);
+          i;
+          i = conf_get_str_strs(*(int ***)(v11 + 4), 54, ptr, &ptr) )
+    {
+      sshfwd_send_env_var(*(_DWORD *)v11, 1u, (int)ptr, i);
+      ++*(_DWORD *)(v11 + 28);
+    }
+    if ( *(_DWORD *)(v11 + 28) )
+    {
+      v6 = dupprintf("Sent %d environment variables", *(_DWORD *)(v11 + 28));
+      logevent_and_free(*(_DWORD *)(v12 + 36), v6);
+    }
+    v15 = (_BYTE *)conf_get_str(*(int ***)(v11 + 4), 20);
+    if ( (unsigned __int8)conf_get_bool(*(int ***)(v11 + 4), 46) )
+    {
+      v8 = (unsigned __int8)sshfwd_start_subsystem(*(_DWORD *)v11, 1u, (int)v15) == 0;
+    }
+    else if ( *v15 )
+    {
+      sshfwd_start_command(*(_DWORD *)v11, 1u, (int)v15);
+    }
+    else
+    {
+      sshfwd_start_shell(*(_DWORD *)v11, 1u);
+    }
+    if ( v8 )
+      mainchan_try_fallback_command(v11);
+    else
+      *(_BYTE *)(v11 + 24) = 1;
+  }
+  return __readgsdword(0x14u) ^ v16;
+}
+/////
+__cdecl mainchan_try_fallback_command(int a1)
+{
+  int result;
+  int v2;
+  v2 = conf_get_str(*(int ***)(a1 + 4), 21);
+  if ( (unsigned __int8)conf_get_bool(*(int ***)(a1 + 4), 47) )
+    sshfwd_start_subsystem(*(_DWORD *)a1, 1u, v2);
+  else
+    sshfwd_start_command(*(_DWORD *)a1, 1u, v2);
+  result = a1;
+  *(_BYTE *)(a1 + 25) = 1;
+  return result;
+}
+/////
+__cdecl BinarySource_data_avail(_DWORD *a1, unsigned int a2)
+{
+  if ( a1[3] )
+    return 0;
+  if ( a2 <= a1[2] - a1[1] )
+    return 1;
+  a1[3] = 1;
+  return 0;
+}
+/////
+__cdecl add_prompt(int a1, int a2, char a3)
+{
+  int v3;
+  int v4;
+  _DWORD *v5;
+  _BYTE *result;
+  _BYTE *v7;
+  v7 = safemalloc(1u, 0xCu, 0);
+  *(_DWORD *)v7 = a2;
+  v7[4] = a3;
+  *((_DWORD *)v7 + 2) = strbuf_new_nm();
+  *(_DWORD *)(a1 + 28) = safegrowarray(*(void **)(a1 + 28), a1 + 24, 4u, *(_DWORD *)(a1 + 20), 1, 0);
+  v3 = *(_DWORD *)(a1 + 28);
+  v4 = *(_DWORD *)(a1 + 20);
+  *(_DWORD *)(a1 + 20) = v4 + 1;
+  v5 = (_DWORD *)(v3 + 4 * v4);
+  result = v7;
+  *v5 = v7;
+  return result;
+}
+/////
+__cdecl mp_cond_swap(unsigned int *a1, _DWORD *a2, char a3)
+{
+  unsigned int result;
+  unsigned int i;
+  int v5;
+  if ( *a1 != *a2 )
+    __assert_fail("x0->nw == x1->nw", "mpint.c", 0x92u, "mp_cond_swap");
+  for ( i = 0; ; ++i )
+  {
+    result = *a1;
+    if ( i >= *a1 )
+      break;
+    v5 = (*(_DWORD *)(4 * i + a2[1]) ^ *(_DWORD *)(4 * i + a1[1])) & -(a3 & 1);
+    *(_DWORD *)(4 * i + a1[1]) ^= v5;
+    *(_DWORD *)(4 * i + a2[1]) ^= v5;
+  }
+  return result;
+}
+/////
+__cdecl mp_set_bit(unsigned int *a1, unsigned int a2, char a3)
+{
+  _DWORD *result;
+  unsigned int v4;
+  v4 = a2 >> 5;
+  if ( a2 >> 5 >= *a1 )
+    __assert_fail("word < x->nw", "mpint.c", 0x12Cu, "mp_set_bit");
+  *(_DWORD *)(4 * v4 + a1[1]) &= ~(1 << (a2 & 0x1F));
+  result = (_DWORD *)(4 * v4 + a1[1]);
+  *result |= (a3 & 1) << (a2 & 0x1F);
+  return result;
+}
+/////
+__cdecl mp_find_highest_nonzero_word_pair(unsigned int *a1, char a2, _DWORD *a3, int a4, int a5)
+{
+  unsigned int result;
+  int v6;
+  unsigned __int64 v7;
+  int v8;
+  unsigned __int64 v9;
+  unsigned int i;
+  unsigned int v11;
+  unsigned int v12;
+  unsigned __int64 v13;
+  unsigned __int64 v14;
+  v13 = 0LL;
+  HIDWORD(v14) = 0;
+  for ( i = 0; ; ++i )
+  {
+    result = *a1;
+    if ( i >= *a1 )
+      break;
+    v11 = *(_DWORD *)(a1[1] + 4 * i);
+    v12 = normalise_to_1(v11);
+    v14 = __PAIR64__(v13, HIDWORD(v14));
+    v13 = ((unsigned __int64)v11 << a2) | HIDWORD(v13);
+    if ( a4 )
+    {
+      v9 = v13 ^ *(_QWORD *)a4;
+      v8 = HIDWORD(v9) & ((unsigned __int64)-(__int64)v12 >> 32) ^ *(_DWORD *)(a4 + 4);
+      *(_DWORD *)a4 ^= -v12 & v9;
+      *(_DWORD *)(a4 + 4) = v8;
+    }
+    if ( a5 )
+    {
+      v7 = v14 ^ *(_QWORD *)a5;
+      v6 = HIDWORD(v7) & ((unsigned __int64)-(__int64)v12 >> 32) ^ *(_DWORD *)(a5 + 4);
+      *(_DWORD *)a5 ^= -v12 & v7;
+      *(_DWORD *)(a5 + 4) = v6;
+    }
+    if ( a3 )
+      *a3 ^= (i ^ *a3) & -v12;
+  }
+  return result;
+}
+/////
+__cdecl trim_leading_zeroes(int a1, unsigned int a2, unsigned int a3)
+{
+  unsigned int result;
+  char v5;
+  unsigned int v6;
+  unsigned int i;
+  char j;
+  int k;
+  int v10;
+  v6 = a3;
+  if ( a3 )
+  {
+    for ( i = a3; i--; v6 ^= ~(((*(_BYTE *)(a1 + i) ^ 0x30) - 1) >> 31) & (i ^ v6) )
+      ;
+  }
+  for ( j = 0; ; ++j )
+  {
+    result = a2 >> j;
+    if ( !(a2 >> j) )
+      break;
+    v10 = 1 << j;
+    for ( k = 0; a2 > k + v10; ++k )
+    {
+      v5 = -((v6 >> j) & 1) & (*(_BYTE *)(a1 + k) ^ *(_BYTE *)(v10 + k + a1));
+      *(_BYTE *)(a1 + k) ^= v5;
+      *(_BYTE *)(v10 + k + a1) ^= v5;
+    }
+  }
+  return result;
+}
+/////
+__cdecl BinarySink_put_mp_ssh1(int a1, unsigned int *a2)
+{
+  char v2;
+  unsigned int result;
+  unsigned int v4;
+  unsigned int v5;
+  v5 = mp_get_nbits(a2);
+  if ( v5 > 0xFFFF )
+    __assert_fail("bits < 0x10000", "mpint.c", 0x246u, "BinarySink_put_mp_ssh1");
+  BinarySink_put_uint16(*(void (__cdecl ***)(_DWORD, char *, int))(a1 + 4), v5);
+  v4 = (v5 + 7) >> 3;
+  while ( 1 )
+  {
+    result = v4--;
+    if ( !result )
+      break;
+    v2 = mp_get_byte(a2, v4);
+    BinarySink_put_byte(*(int (__cdecl ***)(_DWORD, char *, int))(a1 + 4), v2);
+  }
+  return result;
+}
+/////
+__cdecl mp_add_masked_into(int a1, unsigned int a2, unsigned int *a3, unsigned int *a4, int a5, int a6, unsigned int a7)
+{
+  unsigned int i;
+  int v9;
+  int v10;
+  unsigned int v11;
+  for ( i = 0; i < a2; ++i )
+  {
+    v9 = mp_word(a3, i);
+    v10 = a6 ^ a5 & mp_word(a4, i);
+    v11 = a7 + v10 + v9;
+    a7 = (a7 + (unsigned int)v10 + (unsigned __int64)(unsigned int)v9) >> 32;
+    if ( a1 )
+      *(_DWORD *)(a1 + 4 * i) = v11;
+  }
+  return a7;
+}
+/////
+__cdecl mp_or_into(unsigned int *a1, unsigned int *a2, unsigned int *a3)
+{
+  unsigned int result;
+  unsigned int i;
+  int v5;
+  for ( i = 0; ; ++i )
+  {
+    result = *a1;
+    if ( i >= *a1 )
+      break;
+    v5 = mp_word(a2, i);
+    *(_DWORD *)(a1[1] + 4 * i) = mp_word(a3, i) | v5;
+  }
+  return result;
+}
+/////
+__cdecl mp_cond_negate(unsigned int *a1, unsigned int *a2, unsigned int a3)
+{
+  unsigned int result;
+  unsigned int v4;
+  unsigned int i;
+  int v6;
+  v4 = a3;
+  for ( i = 0; ; ++i )
+  {
+    result = *a1;
+    if ( i >= *a1 )
+      break;
+    v6 = -a3 ^ mp_word(a2, i);
+    *(_DWORD *)(a1[1] + 4 * i) = v4 + v6;
+    v4 = (v4 + (unsigned __int64)(unsigned int)v6) >> 32;
+  }
+  return result;
+}
+/////
+__cdecl mp_mul_integer_into(unsigned int *a1, unsigned int *a2, unsigned __int16 a3)
+{
+  unsigned int result;
+  unsigned int v4;
+  unsigned int i;
+  unsigned __int64 v6;
+  v4 = 0;
+  for ( i = 0; ; ++i )
+  {
+    result = *a1;
+    if ( i >= *a1 )
+      break;
+    v6 = v4 + (unsigned int)mp_word(a2, i) * (unsigned __int64)a3;
+    v4 = HIDWORD(v6);
+    *(_DWORD *)(a1[1] + 4 * i) = v6;
+  }
+  if ( v4 )
+    __assert_fail("!carry", "mpint.c", 0x34Cu, "mp_mul_integer_into");
+  return result;
+}
+/////
+__cdecl monty_mul_into(int a1, int a2, unsigned int *a3, unsigned int *a4)
+{
+  unsigned int *v4;
+  int v5;
+  unsigned int v7;
+  int v8;
+  unsigned int v9[2];
+  _DWORD v10[2];
+  unsigned int v11;
+  v11 = __readgsdword(0x14u);
+  if ( *a3 > *(_DWORD *)(a1 + 8) )
+    __assert_fail("x->nw <= mc->rw", "mpint.c", 0x57Fu, "monty_mul_into");
+  if ( *a4 > *(_DWORD *)(a1 + 8) )
+    __assert_fail("y->nw <= mc->rw", "mpint.c", 0x580u, "monty_mul_into");
+  v4 = *(unsigned int **)(a1 + 32);
+  v5 = v4[1];
+  v7 = *v4;
+  v8 = v5;
+  mp_alloc_from_scratch(v9, &v7, 2 * *(_DWORD *)(a1 + 8));
+  mp_mul_into(v9, a3, a4);
+  monty_reduce_internal(v10, a1, v9, v7, v8);
+  mp_copy_into(a2, (int)v10);
+  mp_clear(*(_DWORD *)(a1 + 32));
+  return __readgsdword(0x14u) ^ v11;
+}
+/////
+__cdecl mp_modadd_in_range(unsigned int *a1, unsigned int *a2, int *a3)
+{
+  char v3;
+  unsigned int *v5;
+  char v6;
+  v5 = mp_make_sized(*a3);
+  v6 = mp_add_into_internal((int)v5, a1, a2);
+  v3 = mp_cmp_hs(v5, (unsigned int *)a3);
+  mp_cond_sub_into((int)v5, v5, (unsigned int *)a3, v6 | v3);
+  return v5;
+}
+/////
+__cdecl proxy_socks5_handlechap(int a1)
+{
+  int v2;
+  const char *v3;
+  char v4[4];
+  int v5;
+  unsigned __int8 v6;
+  unsigned __int8 v7;
+  unsigned int v8;
+  v8 = __readgsdword(0x14u);
+  while ( !*(_DWORD *)(a1 + 128) || *(_DWORD *)(a1 + 132) < *(_DWORD *)(a1 + 128) )
+  {
+    if ( !*(_DWORD *)(a1 + 128) || *(_DWORD *)(a1 + 136) == -1 )
+    {
+      if ( (unsigned int)bufchain_size(a1 + 60) <= 1 )
+        return 1;
+      bufchain_fetch((int ***)(a1 + 60), (char *)&v6, 2);
+      bufchain_consume((_DWORD *)(a1 + 60), 2);
+    }
+    if ( *(_DWORD *)(a1 + 128) )
+    {
+      if ( *(_DWORD *)(a1 + 136) == -1 )
+      {
+        *(_DWORD *)(a1 + 136) = v6;
+        *(_DWORD *)(a1 + 140) = v7;
+      }
+      if ( (unsigned int)bufchain_size(a1 + 60) < *(_DWORD *)(a1 + 140) )
+        return 1;
+      bufchain_fetch((int ***)(a1 + 60), (char *)&v6, *(_DWORD *)(a1 + 140));
+      bufchain_consume((_DWORD *)(a1 + 60), *(_DWORD *)(a1 + 140));
+      v2 = *(_DWORD *)(a1 + 136);
+      switch ( v2 )
+      {
+        case 3:
+          v4[0] = 1;
+          v4[1] = 1;
+          v4[2] = 4;
+          v4[3] = 16;
+          v3 = (const char *)conf_get_str(*(int ***)(a1 + 124), 17);
+          hmacmd5_chap((int)&v6, *(_DWORD *)(a1 + 140), v3, (int)&v5);
+          sk_write(*(_DWORD *)(a1 + 4), (int)v4, 20);
+          break;
+        case 17:
+          if ( v6 != 0x85 )
+          {
+            plug_closing(
+              *(_DWORD *)(a1 + 8),
+              (int)"Proxy error: Server chose CHAP of other than HMAC-MD5 but we didn't offer it!",
+              8000,
+              0);
+            return 1;
+          }
+          break;
+        case 0:
+          if ( v6 )
+          {
+            plug_closing(*(_DWORD *)(a1 + 8), (int)"Proxy error: SOCKS proxy refused CHAP authentication", 8000, 0);
+            return 1;
+          }
+          *(_DWORD *)(a1 + 84) = 2;
+          break;
+      }
+      *(_DWORD *)(a1 + 136) = -1;
+      ++*(_DWORD *)(a1 + 132);
+    }
+    else
+    {
+      if ( v6 != 1 )
+      {
+        plug_closing(*(_DWORD *)(a1 + 8), (int)"Proxy error: SOCKS proxy wants a different CHAP version", 8000, 0);
+        return 1;
+      }
+      if ( !v7 )
+      {
+        plug_closing(*(_DWORD *)(a1 + 8), (int)"Proxy error: SOCKS proxy won't negotiate CHAP with us", 8000, 0);
+        return 1;
+      }
+      *(_DWORD *)(a1 + 128) = v7;
+    }
+    if ( *(_DWORD *)(a1 + 84) == 8 && *(_DWORD *)(a1 + 132) >= *(_DWORD *)(a1 + 128) )
+    {
+      *(_DWORD *)(a1 + 128) = 0;
+      *(_DWORD *)(a1 + 132) = 0;
+      *(_DWORD *)(a1 + 140) = 0;
+    }
+  }
+  return 0;
+}
+/////
+__cdecl proxy_socks5_selectchap(int a1)
+{
+  int n;
+  char *s;
+  _BYTE *v4;
+  char v5[7];
+  _BYTE v6[515];
+  *(_DWORD *)&v6[507] = __readgsdword(0x14u);
+  s = (char *)conf_get_str(*(int ***)(a1 + 124), 16);
+  v4 = (_BYTE *)conf_get_str(*(int ***)(a1 + 124), 17);
+  if ( *s || *v4 )
+  {
+    v5[0] = 1;
+    v5[1] = 2;
+    v5[2] = 17;
+    v5[3] = 1;
+    v5[4] = -123;
+    v5[5] = 2;
+    n = strlen(s);
+    if ( n > 255 )
+      n = 255;
+    if ( n <= 0 )
+      n = 1;
+    v5[6] = n;
+    memcpy(v6, s, n);
+    sk_write(*(_DWORD *)(a1 + 4), (int)v5, n + 7);
+    *(_DWORD *)(a1 + 128) = 0;
+    *(_DWORD *)(a1 + 132) = 0;
+    *(_DWORD *)(a1 + 136) = -1;
+    *(_DWORD *)(a1 + 140) = 0;
+    *(_DWORD *)(a1 + 84) = 8;
+  }
+  else
+  {
+    plug_closing(
+      *(_DWORD *)(a1 + 8),
+      (int)"Proxy error: Server chose CHAP authentication but we didn't offer it!",
+      8000,
+      0);
+  }
+  return 1;
+}
+/////
+__cdecl schedule_timer(int a1, int a2, int a3)
+{
+  int v4;
+  _DWORD *ptr;
+  init_timers();
+  now = getticks();
+  v4 = a1 + now;
+  if ( a1 + now == now )
+    v4 = now + 1;
+  ptr = safemalloc(1u, 0x10u, 0);
+  *ptr = a2;
+  ptr[1] = a3;
+  ptr[2] = v4;
+  ptr[3] = now;
+  if ( ptr == (_DWORD *)add234(timers, (int)ptr) )
+    add234(timer_contexts, ptr[1]);
+  else
+    safefree(ptr);
+  if ( (_DWORD *)index234((int *)timers, 0) == ptr )
+    timer_change_notify();
+  return v4;
+}

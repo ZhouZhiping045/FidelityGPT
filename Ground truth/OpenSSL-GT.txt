@@ -1,0 +1,3987 @@
+void *__cdecl AES_cbc_encrypt(int a1, int a2, int a3, int a4, void *dest, int a6)
+{
+  void *result; // I4
+  if ( a6 )
+    result = CRYPTO_cbc128_encrypt(a1, a2, a3, a4, dest, (int)AES_encrypt); // I6
+  else
+    result = (void *)CRYPTO_cbc128_decrypt(
+                       (int *)a1, // I1
+                       (int *)a2, // I1
+                       a3,
+                       a4,
+                       dest,
+                       (void (__cdecl *)(_DWORD *, int *, int))AES_decrypt); // I1
+  return result; // I5
+}
+/////
+__cdecl AES_wrap_key(int a1, int a2, int a3, int a4, size_t n)
+{
+  int v6; // I4
+  int v7; // I4
+  int v8; // I4
+  int v9; // I4
+  int *v10; // I4
+  int *v11;
+  size_t j;
+  unsigned int i;
+  unsigned int v14;
+  int v15;
+  int v16;
+  int v17; // I4
+  int v18; // I4
+  unsigned int v19; // I4
+  v10 = (int *)a2;
+  v19 = __readgsdword(0x14u); // I6
+  if ( (n & 7) != 0 || n <= 7 )
+    return -1;
+  v14 = 1;
+  memcpy((void *)(a3 + 8), (const void *)a4, n);
+  if ( !a2 )
+    v10 = (int *)&default_iv;
+  v6 = v10[1];
+  v15 = *v10;
+  v16 = v6;
+  for ( i = 0; i <= 5; ++i )
+  {
+    v11 = (int *)(a3 + 8);
+    for ( j = 0; j < n; j += 8 )
+    {
+      v7 = v11[1];
+      v17 = *v11;
+      v18 = v7;
+      AES_encrypt((unsigned __int8 *)&v15, &v15, (_DWORD *)a1); // I1
+      HIBYTE(v16) ^= v14;
+      if ( v14 > 0xFF )
+      {
+        BYTE2(v16) ^= BYTE1(v14); // I6
+        BYTE1(v16) ^= BYTE2(v14); // I6
+        LOBYTE(v16) = HIBYTE(v14) ^ v16; // I6
+      }
+      v8 = v18;
+      *v11 = v17;
+      v11[1] = v8; // I1
+      ++v14;
+      v11 += 2;
+    }
+  }
+  v9 = v16;
+  *(_DWORD *)a3 = v15; // I1
+  *(_DWORD *)(a3 + 4) = v9; // I1
+  return n + 8;
+}
+/////
+__cdecl ameth_cmp(_DWORD **a1, _DWORD **a2)
+{
+  return **a1 - **a2; // I4
+}
+/////
+int EVP_PKEY_asn1_get_count()
+{
+  int v1;
+  v1 = 11;
+  if ( app_methods )
+    v1 = sk_num((int *)app_methods) + 11;
+  return v1;
+}
+/////
+__cdecl EVP_PKEY_asn1_get0(int a1)
+{
+  if ( a1 < 0 )
+    return 0;
+  if ( a1 >= 11 )
+    return sk_value((int *)app_methods, a1 - 11); // I1
+  return *(int *)((char *)&standard_methods_0 + (_DWORD)&dword_0[a1]); // I1
+}
+/////
+__cdecl pkey_asn1_find(int a1)
+{
+  int result;
+  int *v2;
+  int v3;
+  int *v4;
+  int v5[31];
+  v5[27] = __readgsdword(0x14u); // I6
+  v2 = v5; // I4
+  v5[0] = a1;
+  if ( app_methods )
+  {
+    v3 = sk_find(app_methods, (int)v5);
+    if ( v3 >= 0 )
+      return sk_value((int *)app_methods, v3);
+  }
+  v4 = (int *)OBJ_bsearch_ameth((int)&v2, (int)&standard_methods_0, 11);
+  if ( v4 && *v4 )
+    result = *v4;
+  else
+    result = 0;
+  return result;
+}
+/////
+__cdecl chopup_args(int *a1, char *a2, int *a3, int *a4)
+{
+  int v5;
+  char *v6;
+  int v7;
+  int i;
+  int j; // I4
+  int v10; // I4
+  int v12;
+  _BYTE *v13;
+  *a3 = 0;
+  *a4 = 0;
+  if ( !a1[1] ) // I1
+  {
+    a1[1] = 20; // I1
+    *a1 = (int)CRYPTO_malloc(4 * a1[1], (int)apps.c, 392); // I1
+  }
+  for ( i = 0; i < a1[1]; ++i ) // I1
+    *(_DWORD *)(4 * i + *a1) = 0; // I1
+  v7 = 0;
+  while ( *a2 )
+  {
+    while ( *a2 && (*a2 == 32 || *a2 == 9 || *a2 == 10) ) // I2
+      ++a2;
+    if ( !*a2 )
+      break;
+    if ( v7 >= a1[1] ) // I1
+    {
+      v12 = a1[1] + 20; // I1
+      v13 = CRYPTO_realloc(*a1, 4 * v12, (int)apps.c, 413);
+      if ( !v13 )
+        return 0;
+      *a1 = (int)v13;
+      a1[1] = v12; // I1
+      for ( j = v7; j < a1[1]; ++j ) // I1
+        *(_DWORD *)(4 * j + *a1) = 0; // I1
+    }
+    v5 = v7++;
+    *(_DWORD *)(*a1 + 4 * v5) = a2; // I1
+    if ( *a2 == 39 || *a2 == 34 ) // I2
+    {
+      v6 = a2++;
+      v10 = *v6;
+      ++*(_DWORD *)(4 * (v7 + 0x3FFFFFFF) + *a1); // I1
+      while ( *a2 && v10 != *a2 )
+        ++a2;
+      *a2 = 0; // I2
+    }
+    else
+    {
+      while ( *a2 && *a2 != 32 && *a2 != 9 && *a2 != 10 ) // I2
+        ++a2;
+      if ( *a2 )
+        *a2 = 0; // I2
+      else
+        --a2;
+    }
+    ++a2;
+  }
+  *a3 = v7;
+  *a4 = *a1; // I1
+  return 1;
+}
+/////
+__cdecl dump_cert_text(_DWORD *a1, int a2)
+{
+  int v2; // I4
+  int v3; // I4
+  char *v5;
+  char *v6; // I4
+  v2 = X509_get_subject_name(a2);
+  v5 = X509_NAME_oneline(v2, 0, 0);
+  BIO_puts(a1, (int)subject=); // I2
+  BIO_puts(a1, (int)v5);
+  CRYPTO_free((int)v5);
+  v3 = X509_get_issuer_name(a2);
+  v6 = X509_NAME_oneline(v3, 0, 0);
+  BIO_puts(a1, (int)\nissuer=); // I2
+  BIO_puts(a1, (int)v6);
+  BIO_puts(a1, (int)\n); // I2
+  CRYPTO_free((int)v6);
+  return 0;
+}
+/////
+__cdecl ui_open(int a1)
+{
+  char **v1; // I4
+  int (__cdecl *v2)(int); // I4
+  v1 = UI_OpenSSL(); // I4
+  v2 = (int (__cdecl *)(int))UI_method_get_opener((int)v1); // I4
+  return v2(a1);
+}
+/////
+__cdecl ui_write(int a1, int *a2)
+{
+  char **v3; // I4
+  int (__cdecl *v4)(int, int *); // I4
+  _BYTE *v5;
+  if ( (UI_get_input_flags((int)a2) & 2) != 0 )
+  {
+    if ( UI_get0_user_data(a1) )
+    {
+      if ( (unsigned int)(UI_get_string_type(a2) - 1) <= 1 )
+      {
+        v5 = *(_BYTE **)UI_get0_user_data(a1); // I1
+        if ( v5 )
+        {
+          if ( *v5 )
+            return 1;
+        }
+      }
+    }
+  }
+  v3 = UI_OpenSSL(); // I4
+  v4 = (int (__cdecl *)(int, int *))UI_method_get_writer((int)v3); // I4
+  return v4(a1, a2);
+}
+/////
+__cdecl app_passwd(int a1, char *s1, char *s2, int a4, int a5)
+{
+  int v6; // I4
+  int v7;
+  v7 = s2 && s1 && !strcmp(s1, s2);
+  if ( s1 )
+  {
+    *(_DWORD *)a4 = app_get_pass((_DWORD *)a1, (int)s1, v7); // I1
+    if ( !*(_DWORD *)a4 ) // I1
+      return 0;
+  }
+  else if ( a4 )
+  {
+    *(_DWORD *)a4 = 0; // I1
+  }
+  if ( s2 )
+  {
+    if ( v7 )
+      v6 = 2;
+    else
+      v6 = 0;
+    *(_DWORD *)a5 = app_get_pass((_DWORD *)a1, (int)s2, v6); // I1
+    if ( !*(_DWORD *)a5 ) // I1
+      return 0;
+  }
+  else if ( a5 )
+  {
+    *(_DWORD *)a5 = 0; // I1
+  }
+  return 1;
+}
+/////
+__cdecl add_oid_section(_DWORD *a1, int a2)
+{
+  int result; // I4
+  int i;
+  char *v4;
+  int *v5;
+  int v6;
+  v4 = NCONF_get_string(a2, 0, oid_section);
+  if ( v4 )
+  {
+    v5 = (int *)NCONF_get_section(a2, (int)v4);
+    if ( v5 )
+    {
+      for ( i = 0; i < sk_num(v5); ++i )
+      {
+        v6 = sk_value(v5, i);
+        if ( !OBJ_create(*(const char **)(v6 + 8), *(_DWORD *)(v6 + 4), *(_DWORD *)(v6 + 4)) ) // I1
+        {
+          BIO_printf(a1, problem creating object %s=%s\n, *(_DWORD *)(v6 + 4), *(_DWORD *)(v6 + 8)); // I1
+          return 0;
+        }
+      }
+      result = 1;
+    }
+    else
+    {
+      BIO_printf(a1, problem loading oid section %s\n, v4);
+      result = 0;
+    }
+  }
+  else
+  {
+    ERR_clear_error();
+    result = 1;
+  }
+  return result;
+}
+/////
+__cdecl set_ext_copy(int a1, char *s1)
+{
+  if ( !strcasecmp(s1, none) )
+  {
+    *(_DWORD *)a1 = 0; // I1
+  }
+  else if ( !strcasecmp(s1, copy) )
+  {
+    *(_DWORD *)a1 = 1; // I1
+  }
+  else
+  {
+    if ( strcasecmp(s1, copyall) )
+      return 0;
+    *(_DWORD *)a1 = 2; // I1
+  }
+  return 1;
+}
+/////
+__cdecl set_multi_opts(int a1, char *a2, int a3)
+{
+  int i;
+  int v5; // I4
+  int v6;
+  int *v7;
+  int v8;
+  v6 = 1;
+  if ( !a2 )
+    return 0;
+  v7 = (int *)X509V3_parse_list(a2);
+  v5 = 0;
+  for ( i = sk_num(v7); v5 < i; i = sk_num(v7) )
+  {
+    v8 = sk_value(v7, v5);
+    if ( !set_table_opts(a1, *(char **)(v8 + 4), a3) ) // I1
+      v6 = 0;
+    ++v5;
+  }
+  sk_pop_free(v7, (void (__cdecl *)(_DWORD))X509V3_conf_free); // I1
+  return v6;
+}
+/////
+__cdecl set_table_opts(int a1, char *s1, int a3)
+{
+  int v3;
+  char v5;
+  if ( *s1 == 45 ) // I2
+  {
+    v5 = 0;
+    ++s1;
+  }
+  else
+  {
+    v5 = 1;
+    if ( *s1 == 43 ) // I2
+      ++s1;
+  }
+  while ( 1 )
+  {
+    if ( !*(_DWORD *)a3 ) // I1
+      return 0;
+    if ( !strcasecmp(s1, *(const char **)a3) )
+      break;
+    a3 += 12;
+  }
+  *(_DWORD *)a1 &= ~*(_DWORD *)(a3 + 8); // I1
+  if ( v5 )
+    v3 = *(_DWORD *)(a3 + 4) | *(_DWORD *)a1; // I1
+  else
+    v3 = ~*(_DWORD *)(a3 + 4) & *(_DWORD *)a1; // I1
+  *(_DWORD *)a1 = v3; // I1
+  return 1;
+}
+/////
+__cdecl try_load_engine(int a1, char *a2)
+{
+  _DWORD *v3;
+  v3 = (_DWORD *)ENGINE_by_id(dynamic); // I1
+  if ( v3 && (!ENGINE_ctrl_cmd_string(v3, SO_PATH, a2, 0) || !ENGINE_ctrl_cmd_string(v3, LOAD, 0, 0)) )
+  {
+    ENGINE_free((int)v3);
+    v3 = 0;
+  }
+  return v3;
+}
+/////
+__cdecl load_config(_DWORD *a1, int a2)
+{
+  if ( load_config_called_16076 )
+    return 1;
+  load_config_called_16076 = 1;
+  if ( !a2 )
+    a2 = config;
+  if ( !a2 )
+    return 1;
+  OPENSSL_load_builtin_modules();
+  if ( CONF_modules_load(a2, 0, 0) > 0 )
+    return 1;
+  BIO_printf(a1, Error configuring OpenSSL\n);
+  ERR_print_errors((int)a1);
+  return 0;
+}
+/////
+_BYTE *make_config_name()
+{
+  char *s;
+  size_t v2;
+  _BYTE *v3;
+  s = (char *)X509_get_default_cert_area();
+  v2 = strlen(s) + 13;
+  v3 = CRYPTO_malloc(v2, (int)apps.c, 1544); // I2
+  BUF_strlcpy((int)v3, s, v2);
+  BUF_strlcat((int)v3, /, v2);
+  BUF_strlcat((int)v3, openssl.cnf, v2);
+  return v3;
+}
+/////
+__cdecl index_serial_cmp(int a1, int a2)
+{
+  char *s1;
+  char *s2;
+  for ( s1 = *(char **)(a1 + 12); *s1 == 48; ++s1 ) // I2
+    ;
+  for ( s2 = *(char **)(a2 + 12); *s2 == 48; ++s2 ) // I2
+    ;
+  return strcmp(s1, s2);
+}
+/////
+__cdecl index_serial_hash(int a1)
+{
+  _BYTE *i;
+  for ( i = *(_BYTE **)(a1 + 12); *i == 48; ++i ) // I1 I2
+    ;
+  return lh_strhash(i);
+}
+/////
+__cdecl index_name_cmp(int a1, int a2)
+{
+  return strcmp(*(const char **)(a1 + 20), *(const char **)(a2 + 20)); // I1
+}
+/////
+__cdecl index_index(_DWORD *a1)
+{
+  int result; // I4
+  if ( TXT_DB_create_index(
+         a1[1],
+         3,
+         0,
+         (int (__cdecl *)(_BYTE *))index_serial_LHASH_HASH,
+         (int (**)(const char *, const char *))index_serial_LHASH_COMP) )
+  {
+    if ( !*a1
+      || TXT_DB_create_index(
+           a1[1], // I4
+           5,
+           (int (__cdecl *)(int))index_name_qual,
+           (int (__cdecl *)(_BYTE *))index_name_LHASH_HASH, // I4
+           (int (**)(const char *, const char *))index_name_LHASH_COMP) )
+    {
+      result = 1;
+    }
+    else
+    {
+      BIO_printf(
+        (_DWORD *)bio_err, // I4
+        error creating name index:(%ld,%ld,%ld)\n,
+        *(_DWORD *)(a1[1] + 16), // I4
+        *(_DWORD *)(a1[1] + 20), // I4
+        *(_DWORD *)(a1[1] + 24)); // I4
+      result = 0;
+    }
+  }
+  else
+  {
+    BIO_printf(
+      (_DWORD *)bio_err, // I4
+      error creating serial number index:(%ld,%ld,%ld)\n,
+      *(_DWORD *)(a1[1] + 16), // I4
+      *(_DWORD *)(a1[1] + 20), // I4
+      *(_DWORD *)(a1[1] + 24)); // I4
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl parse_yesno(_BYTE *a1, int a2)
+{
+  int v3;
+  v3 = a2;
+  if ( a1 )
+  {
+    switch ( *a1 )
+    {
+      case '0':
+      case 'F':
+      case 'N':
+      case 'f':
+      case 'n':
+        v3 = 0;
+        break;
+      case '1':
+      case 'T':
+      case 'Y':
+      case 't':
+      case 'y':
+        v3 = 1;
+        break;
+      default:
+        v3 = a2;
+        break;
+    }
+  }
+  return v3;
+}
+/////
+__cdecl bio_to_mem(int a1, int a2, _DWORD *a3)
+{
+  void *v3;
+  int v5;
+  int v6; // I4
+  _BYTE *v7; // I4
+  int v8;
+  char v9[1024];
+  unsigned int v10; // I4
+  v10 = __readgsdword(0x14u); // I6
+  v3 = BIO_s_mem();
+  v7 = BIO_new((int)v3);
+  if ( !v7 )
+    return -1;
+  do
+  {
+    if ( a2 == -1 || a2 > 1023 )
+      v5 = BIO_read(a3, (int)v9, 1024);
+    else
+      v5 = BIO_read(a3, (int)v9, a2);
+    v6 = v5;
+    if ( v5 <= 0 )
+      break;
+    if ( v5 != BIO_write(v7, (int)v9, v5) )
+    {
+      BIO_free((int)v7);
+      return -1;
+    }
+    a2 -= v6;
+  }
+  while ( a2 );
+  v8 = BIO_ctrl(v7, 3, 0, a1);
+  BIO_set_flags((int)v7, 512);
+  BIO_free((int)v7);
+  return v8;
+}
+/////
+__cdecl pkey_ctrl_string(int a1, char *a2)
+{
+  char *v3;
+  char *s;
+  int v5;
+  s = BUF_strdup(a2);
+  if ( !s )
+    return -1;
+  v3 = strchr(s, 58); // I2
+  if ( v3 )
+    *v3++ = 0;
+  v5 = EVP_PKEY_CTX_ctrl_str(a1, s, (int)v3);
+  CRYPTO_free((int)s);
+  return v5;
+}
+/////
+__cdecl nodes_print(_DWORD *a1, const char *a2, int *a3)
+{
+  int result; // I4
+  int i;
+  int *v5;
+  BIO_printf(a1, %s Policies:, a2);
+  if ( !a3 )
+    return BIO_puts(a1, (int) <empty>\n); // I6
+  BIO_puts(a1, (int)\n); // I6
+  for ( i = 0; ; ++i )
+  {
+    result = sk_num(a3);
+    if ( i >= result )
+      break;
+    v5 = (int *)sk_value(a3, i);
+    X509_POLICY_NODE_print(a1, v5, 2);
+  }
+  return result; // I5
+}
+/////
+__cdecl next_protos_parse(int a1, char *s)
+{
+  size_t v3; // I4
+  size_t i;
+  size_t v5;
+  size_t v6;
+  _BYTE *v7;
+  v5 = 0;
+  v6 = strlen(s);
+  if ( v6 > 0xFFFE )
+    return 0;
+  v3 = strlen(s);
+  v7 = CRYPTO_malloc(v3 + 1, (int)apps.c, 2745); // I2
+  if ( !v7 )
+    return 0;
+  for ( i = 0; i <= v6; ++i )
+  {
+    if ( i == v6 || s[i] == 44 ) // I2
+    {
+      if ( i - v5 > 0xFF )
+      {
+        CRYPTO_free((int)v7);
+        return 0;
+      }
+      v7[v5] = i - v5;
+      v5 = i + 1;
+    }
+    else
+    {
+      v7[i + 1] = s[i];
+    }
+  }
+  *(_WORD *)a1 = v6 + 1; // I1
+  return v7;
+}
+/////
+__cdecl raw_read_stdin(void *buf, size_t nbytes)
+{
+  int v2; // I4
+  v2 = fileno(stdin); // I4
+  return read(v2, buf, nbytes);
+}
+/////
+__cdecl do_generate(_DWORD *a1, char *a2, int a3, unsigned int *a4)
+{
+  char *v5; // I4
+  int v6;
+  unsigned int v7;
+  int v8;
+  Elf32_Dyn *v9;
+  int v10;
+  unsigned int v11; // I4
+  v5 = a2; // I4
+  v11 = __readgsdword(0x14u); // I6
+  v8 = 0; // I4
+  v9 = 0; // I4
+  if ( !a3 )
+    goto LABEL_7;
+  v8 = NCONF_new(0);
+  if ( !NCONF_load(v8, a3, (int)&v6) )
+  {
+    if ( v6 <= 0 )
+      BIO_printf(a1, Error loading config file '%s'\n, a3);
+    else
+      BIO_printf(a1, Error on line %ld of config file '%s'\n, v6, a3);
+    goto LABEL_15;
+  }
+  if ( !a2 )
+    v5 = NCONF_get_string(v8, default, asn1);
+  if ( v5 )
+  {
+LABEL_7:
+    v9 = ASN1_generate_nconf((int)v5, v8);
+    NCONF_free(v8);
+    v8 = 0;
+    if ( !v9 )
+      return -1;
+    v10 = i2d_ASN1_TYPE(&v9->d_tag, 0);
+    if ( v10 > 0 && BUF_MEM_grow(a4, v10) )
+    {
+      v7 = a4[1];
+      i2d_ASN1_TYPE(&v9->d_tag, (int *)&v7);
+      ASN1_TYPE_free((int)v9);
+      return v10;
+    }
+  }
+  else
+  {
+    BIO_printf(a1, Can't find 'asn1' in '%s'\n, a3);
+  }
+LABEL_15:
+  NCONF_free(v8);
+  ASN1_TYPE_free((int)v9);
+  return -1;
+}
+/////
+__cdecl parse_tagging(const char *a1, int a2, _DWORD *a3, _DWORD *a4)
+{
+  int v5; // I4
+  char *endptr;
+  int v7;
+  char v8[2];
+  unsigned int v9; // I4
+  int v10; // I4
+  v9 = __readgsdword(0x14u); // I6
+  if ( !a1 )
+    return 0;
+  v7 = strtoul(a1, &endptr, 10);
+  if ( endptr && *endptr && &a1[a2] < endptr )
+    return 0;
+  if ( v7 < 0 )
+  {
+    ERR_put_error(0xDu, 182, 187, (int)asn1_gen.c, 399);
+    return 0;
+  }
+  *a3 = v7;
+  if ( endptr )
+    v10 = a2 - (endptr - a1);
+  else
+    v10 = 0;
+  if ( v10 )
+  {
+    v5 = *endptr;
+    if ( v5 == 67 ) // I2
+    {
+      *a4 = 128;
+    }
+    else if ( v5 > 67 ) // I2
+    {
+      if ( v5 == 80 ) // I2
+      {
+        *a4 = 192;
+      }
+      else
+      {
+        if ( v5 != 85 ) // I2
+        {
+LABEL_23:
+          v8[0] = *endptr;
+          v8[1] = 0;
+          ERR_put_error(0xDu, 182, 186, (int)asn1_gen.c, 432);
+          ERR_add_error_data(2, Char=, v8);
+          return 0;
+        }
+        *a4 = 0;
+      }
+    }
+    else
+    {
+      if ( v5 = 65 ) // I2
+        goto LABEL_23;
+      *a4 = 64;
+    }
+  }
+  else
+  {
+    *a4 = 128;
+  }
+  return 1;
+}
+/////
+__cdecl append_exp(_DWORD *a1, int a2, int a3, int a4, int a5, int a6)
+{
+  int result; // I4
+  int v7; // I4
+  _DWORD *v8;
+  if ( *a1 == -1 || a6 )
+  {
+    if ( a1[105] == 20 )
+    {
+      ERR_put_error(0xDu, 176, 174, (int)asn1_gen.c, 524); // I2
+      result = 0;
+    }
+    else
+    {
+      v7 = *(_DWORD *)((char *)a1 + (_DWORD)(&sigaction_ptr - 774007)); // I1
+      *(_DWORD *)((char *)a1 + (_DWORD)(&sigaction_ptr - 774007)) = v7 + 1; // I1
+      v8 = &a1[5 * v7 + 5]; // I1
+      if ( *a1 == -1 ) // I1
+      {
+        *v8 = a2; // I1
+        a1[5 * v7 + 6] = a3; // I1
+      }
+      else
+      {
+        *v8 = *a1; // I1
+        a1[5 * v7 + 6] = a1[1]; // I1
+        *a1 = -1; // I1
+        a1[1] = -1; // I1
+      }
+      a1[5 * v7 + 7] = a4; // I1
+      a1[5 * v7 + 8] = a5; // I1
+      result = 1;
+    }
+  }
+  else
+  {
+    ERR_put_error(0xDu, 176, 179, (int)asn1_gen.c, 518); // I5
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl asn1_str2tag(char *s, size_t n)
+{
+  unsigned int i;
+  if ( n == -1 )
+    n = strlen(s);
+  tntmp_12815 = (int)&tnst_12816; // I6
+  for ( i = 0; i <= 0x30; ++i )
+  {
+    if ( n == *(_DWORD *)(tntmp_12815 + 4) && !strncmp(*(const char **)tntmp_12815, s, n) ) // I1
+      return *(_DWORD *)(tntmp_12815 + 8); // I1
+    tntmp_12815 += 12;
+  }
+  return -1;
+}
+/////
+__cdecl bitstr_cb(const char *a1, int a2, int a3)
+{
+  int result; // I4
+  char *endptr;
+  int v5;
+  unsigned int v6; // I4
+  v6 = __readgsdword(0x14u);
+  if ( !a1 )
+    return 0;
+  v5 = strtoul(a1, &endptr, 10);
+  if ( endptr && *endptr && &a1[a2] != endptr )
+    return 0;
+  if ( v5 >= 0 )
+  {
+    if ( ASN1_BIT_STRING_set_bit(a3, v5, 1) )
+    {
+      result = 1;
+    }
+    else
+    {
+      ERR_put_error(0xDu, 180, 65, (int)asn1_gen.c, 849); // I2
+      result = 0;
+    }
+  }
+  else
+  {
+    ERR_put_error(0xDu, 180, 187, (int)asn1_gen.c, 844); // I2
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl ASN1_put_eoc(_DWORD *a1)
+{
+  _BYTE *v2;
+  v2 = (_BYTE *)(*a1 + 1); // I1
+  *(_BYTE *)*a1 = 0; // I1
+  *v2 = 0;
+  *a1 = v2 + 1;
+  return 2;
+}
+/////
+__cdecl asn1_put_length(_DWORD *a1, int a2)
+{
+  int v2; // I4
+  _DWORD *result; // I4
+  _BYTE *v4;
+  _BYTE *v5; // I4
+  _BYTE *v6; // I4
+  int v7;
+  int v8;
+  int v9; // I4
+  v4 = (_BYTE *)*a1; // I1
+  if ( a2 > 127 )
+  {
+    v8 = a2;
+    v7 = 0;
+    while ( v8 > 0 )
+    {
+      v8 >>= 8;
+      ++v7;
+    }
+    v6 = v4 + 1;
+    *(_BYTE *)*a1 = v7 | 0x80; // I1
+    v9 = v7;
+    while ( 1 )
+    {
+      v2 = v7--;
+      if ( v2 <= 0 )
+        break;
+      v6[v7] = a2;
+      a2 >>= 8;
+    }
+    v5 = &v6[v9];
+  }
+  else
+  {
+    v5 = v4 + 1;
+    *(_BYTE *)*a1 = a2; // I1
+  }
+  result = a1;
+  *a1 = v5;
+  return result; // I5
+}
+/////
+__cdecl asn1_GetSequence(int a1, int *a2)
+{
+  int result; // I4
+  char *v3;
+  v3 = *(char **)a1; // I2
+  *(_DWORD *)(a1 + 12) = ASN1_get_object((char **)a1, (int *)(a1 + 24), (_DWORD *)(a1 + 16), (_DWORD *)(a1 + 20), *a2); // I1
+  if ( (*(_DWORD *)(a1 + 12) & 0x80) != 0 ) // I1
+  {
+    *(_DWORD *)(a1 + 8) = 60; // I1
+    result = 0;
+  }
+  else if ( *(_DWORD *)(a1 + 16) == 16 ) // I1
+  {
+    *a2 -= *(_DWORD *)a1 - (_DWORD)v3; // I1
+    if ( *(_DWORD *)(a1 + 28) && *a2 < 0 ) // I1
+    {
+      *(_DWORD *)(a1 + 8) = 62; // I1
+      result = 0;
+    }
+    else
+    {
+      if ( *(_DWORD *)(a1 + 12) == 33 ) // I1
+        *(_DWORD *)(a1 + 24) = **(_DWORD **)(a1 + 36) + *a2 - *(_DWORD *)a1; // I1
+      *(_DWORD *)(a1 + 4) = 0; // I1
+      result = 1;
+    }
+  }
+  else
+  {
+    *(_DWORD *)(a1 + 8) = 61; // I1
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl ASN1_STRING_copy(int a1, size_t *a2)
+{
+  if ( !a2 )
+    return 0;
+  *(_DWORD *)(a1 + 4) = a2[1]; // I1
+  if ( !ASN1_STRING_set(a1, a2[2], *a2) ) // I1
+    return 0;
+  *(_DWORD *)(a1 + 12) = a2[3]; // I1
+  return 1;
+}
+/////
+__cdecl ASN1_STRING_cmp(int a1, int a2)
+{
+  int result; // I4
+  int v3;
+  if ( *(_DWORD *)a1 != *(_DWORD *)a2 ) // I1
+    return *(_DWORD *)a1 - *(_DWORD *)a2; // I1
+  v3 = memcmp(*(const void **)(a1 + 8), *(const void **)(a2 + 8), *(_DWORD *)a1); // I1
+  if ( v3 )
+    result = v3;
+  else
+    result = *(_DWORD *)(a1 + 4) - *(_DWORD *)(a2 + 4); // I1
+  return result; // I5
+}
+/////
+__cdecl b64_read_asn1(int a1, int a2)
+{
+  void *v2; // I4
+  int *result; // I4
+  _BYTE *v4;
+  int *v5;
+  _DWORD *v6; // I4
+  v2 = BIO_f_base64(); // I4
+  v4 = BIO_new((int)v2);
+  if ( v4 )
+  {
+    v6 = BIO_push(v4, a1);
+    v5 = ASN1_item_d2i_bio(a2, v6, 0);
+    if ( !v5 )
+      ERR_put_error(0xDu, 209, 110, (int)asn_mime.c, 193);
+    BIO_ctrl(v6, 11, 0, 0);
+    BIO_pop(v6);
+    BIO_free((int)v4);
+    result = v5; // I4
+  }
+  else
+  {
+    ERR_put_error(0xDu, 209, 65, (int)asn_mime.c, 187);
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl SMIME_crlf_copy(_DWORD *a1, int a2, char a3)
+{
+  void *v3;
+  _DWORD *v5; // I4
+  char v6;
+  int v7;
+  _DWORD *v8;
+  char v9[1024];
+  unsigned int v10; // I4
+  v10 = __readgsdword(0x14u); // I6
+  v3 = BIO_f_buffer();
+  v8 = BIO_new((int)v3);
+  if ( !v8 )
+    return 0;
+  v5 = BIO_push(v8, a2);
+  if ( (a3 & 0x80) != 0 )
+  {
+    while ( 1 )
+    {
+      v7 = BIO_read(a1, (int)v9, 1024);
+      if ( v7 <= 0 )
+        break;
+      BIO_write(v5, (int)v9, v7);
+    }
+  }
+  else
+  {
+    if ( (a3 & 1) != 0 )
+      BIO_printf(v5, Content-Type: text/plain\r\n\r\n);
+    while ( 1 )
+    {
+      v7 = BIO_gets(a1, (int)v9, 1024);
+      if ( v7 <= 0 )
+        break;
+      v6 = strip_eol((int)v9, &v7);
+      if ( v7 )
+        BIO_write(v5, (int)v9, v7);
+      if ( v6 )
+        BIO_write(v5, (int)\r\n, 2);
+    }
+  }
+  BIO_ctrl(v5, 11, 0, 0);
+  BIO_pop(v5);
+  BIO_free((int)v8);
+  return 1;
+}
+/////
+__cdecl SMIME_text(_DWORD *a1, _DWORD *a2)
+{
+  _BOOL4 result; // I4
+  int *v3;
+  int v4;
+  int v5;
+  char v6[4096];
+  unsigned int v7; // I4
+  v7 = __readgsdword(0x14u); // I6
+  v3 = mime_parse_hdr(a1);
+  if ( v3 )
+  {
+    v4 = mime_hdr_find(v3, (int)content-type);
+    if ( v4 && *(_DWORD *)(v4 + 4) ) // I1
+    {
+      if ( !strcmp(*(const char **)(v4 + 4), text/plain) ) // I1
+      {
+        sk_pop_free(v3, (void (__cdecl *)(_DWORD))mime_hdr_free); // I1
+        while ( 1 )
+        {
+          v5 = BIO_read(a1, (int)v6, 4096);
+          if ( v5 <= 0 )
+            break;
+          BIO_write(a2, (int)v6, v5);
+        }
+        result = v5 >= 0;
+      }
+      else
+      {
+        ERR_put_error(0xDu, 213, 205, (int)asn_mime.c, 591);
+        ERR_add_error_data(2, type: , *(_DWORD *)(v4 + 4)); // I1
+        sk_pop_free(v3, (void (__cdecl *)(_DWORD))mime_hdr_free); // I1
+        result = 0;
+      }
+    }
+    else
+    {
+      ERR_put_error(0xDu, 213, 206, (int)asn_mime.c, 586);
+      sk_pop_free(v3, (void (__cdecl *)(_DWORD))mime_hdr_free); // I1
+      result = 0;
+    }
+  }
+  else
+  {
+    ERR_put_error(0xDu, 213, 207, (int)asn_mime.c, 582);
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl strip_start(unsigned __int8 *a1)
+{
+  unsigned __int8 *result; // I4
+  unsigned __int8 v2;
+  while ( 1 )
+  {
+    v2 = *a1;
+    if ( !*a1 )
+      return 0;
+    if ( v2 == 34 ) // I2
+      break;
+    if ( ((*__ctype_b_loc())[v2] & 0x2000) == 0 ) // I6
+      return a1;
+    ++a1;
+  }
+  if ( a1[1] )
+    result = a1 + 1;
+  else
+    result = 0;
+  return result;
+}
+/////
+__cdecl strip_end(char *s)
+{
+  unsigned __int8 v2;
+  char *i;
+  if ( !s )
+    return 0;
+  for ( i = &s[strlen(s) - 1]; ; --i )
+  {
+    if ( i < s )
+      return 0;
+    if ( *i == 34 ) // I2
+      break;
+    v2 = *i;
+    if ( ((*__ctype_b_loc())[v2] & 0x2000) == 0 ) // I6
+      return s;
+    *i = 0;
+  }
+  if ( s == i - 1 )
+    return 0;
+  *i = 0;
+  return s;
+}
+/////
+__cdecl mime_hdr_addparam(int a1, char *s, char *a3)
+{
+  _BYTE *v4;
+  _BYTE *v5;
+  _BYTE *i;
+  int c;
+  _DWORD *v8;
+  if ( s )
+  {
+    v4 = BUF_strdup(s);
+    if ( !v4 )
+      return 0;
+    for ( i = v4; *i; ++i )
+    {
+      c = (unsigned __int8)*i;
+      if ( ((*__ctype_b_loc())[c] & 0x100) != 0 )
+        *i = tolower(c);
+    }
+  }
+  else
+  {
+    v4 = 0;
+  }
+  if ( a3 )
+  {
+    v5 = BUF_strdup(a3);
+    if ( !v5 )
+      return 0;
+  }
+  else
+  {
+    v5 = 0;
+  }
+  v8 = CRYPTO_malloc(8, (int)asn_mime.c, 854); // I6
+  if ( !v8 )
+    return 0;
+  *v8 = v4; // I1
+  v8[1] = v5; // I1
+  sk_push(*(int **)(a1 + 8), (int)v8); // I1
+  return 1;
+}
+/////
+__cdecl mime_bound_check(char *s, int a2, char *s2, size_t n)
+{
+  if ( a2 == -1 )
+    a2 = strlen(s);
+  if ( n == -1 )
+    n = strlen(s2);
+  if ( a2 < (int)(n + 2) )
+    return 0;
+  if ( strncmp(s, --, 2u) || strncmp(s + 2, s2, n) )
+    return 0;
+  if ( !strncmp(&s[n + 2], --, 2u) )
+    return 2;
+  return 1;
+}
+/////
+__cdecl oid_module_init(int a1, int a2)
+{
+  int result; // I4
+  int i;
+  int v4;
+  int *v5;
+  int v6;
+  v4 = CONF_imodule_get_value(a1);
+  v5 = (int *)NCONF_get_section(a2, v4);
+  if ( v5 )
+  {
+    for ( i = 0; i < sk_num(v5); ++i )
+    {
+      v6 = sk_value(v5, i);
+      if ( !do_create(*(char **)(v6 + 8), *(_DWORD *)(v6 + 4)) ) // I1
+      {
+        ERR_put_error(0xDu, 174, 171, (int)asn_moid.c, 88); // I2
+        return 0;
+      }
+    }
+    result = 1;
+  }
+  else
+  {
+    ERR_put_error(0xDu, 174, 172, (int)asn_moid.c, 80); // I2
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl do_create(char *s, int a2)
+{
+  int v2;
+  char *src;
+  const char *v5;
+  char *v6;
+  char *i; // I4
+  unsigned __int8 *v8; // I4
+  int v9; // I4
+  _BYTE *dest;
+  v6 = strrchr(s, 44);
+  if ( v6 )
+  {
+    v5 = v6 + 1;
+    if ( !v6[1] )
+      return 0;
+    while ( ((*__ctype_b_loc())[*(unsigned __int8 *)v5] & 0x2000) != 0 )
+      ++v5;
+    v2 = OBJ_create(v5, a2, 0);
+  }
+  else
+  {
+    v2 = OBJ_create(s, a2, a2);
+  }
+  v9 = v2;
+  if ( !v2 )
+    return 0;
+  if ( v6 )
+  {
+    for ( src = s; ((*__ctype_b_loc())[(unsigned __int8)*src] & 0x2000) != 0; ++src )
+      ;
+    for ( i = v6 - 1; ((*__ctype_b_loc())[(unsigned __int8)*i] & 0x2000) != 0; --i )
+    {
+      if ( i == src )
+        return 0;
+    }
+    v8 = (unsigned __int8 *)(i + 1);
+    dest = CRYPTO_malloc(v8 - (unsigned __int8 *)src + 1, (int)asn_moid.c, 148);
+    if ( !dest )
+      return 0;
+    memcpy(dest, src, v8 - (unsigned __int8 *)src);
+    dest[v8 - (unsigned __int8 *)src] = 0;
+    OBJ_nid2obj(v9)[1] = dest;
+  }
+  return 1;
+}
+/////
+__cdecl ASN1_BIT_STRING_set_bit(int a1, int a2, int a3)
+{
+  int v4;
+  _BYTE *v5;
+  int v6;
+  char v7;
+  v6 = a2 / 8;
+  v4 = 1 << (~(_BYTE)a2 & 7);
+  v7 = ~(_BYTE)v4;
+  if ( !a3 )
+    LOBYTE(v4) = 0; // I6
+  if ( !a1 )
+    return 0;
+  *(_DWORD *)(a1 + 12) &= 0xFFFFFFF0; // I1
+  if ( *(_DWORD *)a1 < v6 + 1 || !*(_DWORD *)(a1 + 8) ) // I1
+  {
+    if ( !a3 )
+      return 1;
+    if ( *(_DWORD *)(a1 + 8) ) // I1
+      v5 = CRYPTO_realloc_clean(*(void **)(a1 + 8), *(_DWORD *)a1, v6 + 1, (int)a_bitstr.c, 199); // I1
+    else
+      v5 = CRYPTO_malloc(v6 + 1, (int)a_bitstr.c, 195); // I2
+    if ( !v5 )
+    {
+      ERR_put_error(0xDu, 183, 65, (int)a_bitstr.c, 202); // I2
+      return 0;
+    }
+    if ( v6 + 1 - *(_DWORD *)a1 > 0 ) // I1
+      memset(&v5[*(_DWORD *)a1], 0, v6 + 1 - *(_DWORD *)a1); // I1
+    *(_DWORD *)(a1 + 8) = v5; // I1
+    *(_DWORD *)a1 = v6 + 1; // I1
+  }
+  *(_BYTE *)(*(_DWORD *)(a1 + 8) + v6) = v4 | v7 & *(_BYTE *)(*(_DWORD *)(a1 + 8) + v6); // I1
+  while ( *(int *)a1 > 0 && !*(_BYTE *)(*(_DWORD *)(a1 + 8) + *(_DWORD *)a1 - 1) ) // I1
+    --*(_DWORD *)a1; // I1
+  return 1;
+}
+/////
+__cdecl i2d_ASN1_BOOLEAN(char a1, int *a2)
+{
+  _BYTE *v3; // I4
+  _BYTE *v4;
+  int v5;
+  unsigned int v6; // I4
+  v6 = __readgsdword(0x14u);
+  v5 = ASN1_object_size(0, 1, 1);
+  if ( a2 )
+  {
+    v4 = (_BYTE *)*a2; // I1
+    ASN1_put_object((int *)&v4, 0, 1, 1, 0); // I2
+    v3 = v4++;
+    *v3 = a1;
+    *a2 = (int)v4;
+  }
+  return v5;
+}
+/////
+__cdecl ASN1_GENERALIZEDTIME_set_string(int a1, const char *a2)
+{
+  size_t n[8];
+  n[4] = __readgsdword(0x14u); // I6
+  n[1] = 24; // I1
+  n[0] = strlen(a2); // I1
+  n[2] = (size_t)a2; // I1
+  if ( !ASN1_GENERALIZEDTIME_check((int *)n) )
+    return 0;
+  if ( a1 )
+  {
+    if ( !ASN1_STRING_set(a1, (int)a2, n[0]) ) // I1
+      return 0;
+    *(_DWORD *)(a1 + 4) = 24; // I1
+  }
+  return 1;
+}
+/////
+__cdecl engine_list_add(int a1)
+{
+  _BOOL4 v2;
+  int i;
+  v2 = 0;
+  if ( !a1 )
+  {
+    ERR_put_error(0x26u, 120, 67, (int)eng_list.c, 104);
+    return 0;
+  }
+  for ( i = engine_list_head; i && !v2; i = *(_DWORD *)(i + 108) ) // I1
+    v2 = strcmp(*(const char **)i, *(const char **)a1) == 0; // I1
+  if ( v2 )
+  {
+    ERR_put_error(0x26u, 120, 103, (int)eng_list.c, 116);
+    return 0;
+  }
+  if ( engine_list_head )
+  {
+    if ( !engine_list_tail || *(_DWORD *)(engine_list_tail + 108) ) // I1
+    {
+      ERR_put_error(0x26u, 120, 110, (int)eng_list.c, 141);
+      return 0;
+    }
+    *(_DWORD *)(engine_list_tail + 108) = a1; // I1
+    *(_DWORD *)(a1 + 104) = engine_list_tail; // I1
+  }
+  else
+  {
+    if ( engine_list_tail )
+    {
+      ERR_put_error(0x26u, 120, 110, (int)eng_list.c, 125);
+      return 0;
+    }
+    engine_list_head = a1;
+    *(_DWORD *)(a1 + 104) = 0; // I1
+    engine_cleanup_add_last((int)engine_list_cleanup);
+  }
+  ++*(_DWORD *)(a1 + 88); // I1
+  engine_list_tail = a1;
+  *(_DWORD *)(a1 + 108) = 0; // I1
+  return 1;
+}
+/////
+__cdecl ENGINE_add(_DWORD *a1)
+{
+  int result; // I4
+  int v2;
+  v2 = 1;
+  if ( a1 )
+  {
+    if ( !*a1 || !a1[1] )
+      ERR_put_error(0x26u, 105, 108, (int)eng_list.c, 282); // I2
+    CRYPTO_lock(9, 30, (int)eng_list.c, 284); // I2
+    if ( !engine_list_add((int)a1) )
+    {
+      ERR_put_error(0x26u, 105, 110, (int)eng_list.c, 288); // I2
+      v2 = 0;
+    }
+    CRYPTO_lock(10, 30, (int)eng_list.c, 291); // I2
+    result = v2;
+  }
+  else
+  {
+    ERR_put_error(0x26u, 105, 67, (int)eng_list.c, 276); // I2
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl ERR_error_string(unsigned int a1, char *a2)
+{
+  if ( !a2 )
+    a2 = (char *)&buf_4739; // I6
+  ERR_error_string_n(a1, a2, 0x100u);
+  return a2;
+}
+/////
+__cdecl ERR_func_error_string(unsigned int a1)
+{
+  int result;
+  int v2;
+  int v3[6];
+  v3[2] = __readgsdword(0x14u); // I6
+  err_fns_check();
+  v3[0] = (HIBYTE(a1) << 24) | (((a1 >> 12) & 0xFFF) << 12);
+  v2 = (*(int (__cdecl **)(int *))(err_fns + 8))(v3);
+  if ( v2 )
+    result = *(_DWORD *)(v2 + 4); // I1
+  else
+    result = 0;
+  return result;
+}
+/////
+int ERR_add_error_data(int a1, ...)
+{
+  unsigned int v2; // I4
+  va_list va;
+  va_start(va, a1);
+  v2 = __readgsdword(0x14u); // I6
+  ERR_add_error_vdata(a1, (char **)va);
+  return __readgsdword(0x14u) ^ v2; // I5
+}
+/////
+__cdecl pkey_gost_mac_ctrl_str(int a1, const char *a2, void *a3)
+{
+  int result;
+  int v4;
+  void *src;
+  int v6;
+  unsigned int v7;
+  v7 = __readgsdword(0x14u); // I6
+  if ( !strcmp(a2, key) )
+  {
+    if ( strlen((const char *)a3) == 32 )
+    {
+      result = pkey_gost_mac_ctrl(a1, 6, 32, a3); // I2
+    }
+    else
+    {
+      ERR_GOST_error(129, 111, (int)gost_pmeth.c, 516); // I2
+      result = 0;
+    }
+  }
+  else if ( !strcmp(a2, hexkey) )
+  {
+    src = string_to_hex((char *)a3, (int)&v4);
+    if ( v4 == 32 )
+    {
+      v6 = pkey_gost_mac_ctrl(a1, 6, 32, src); // I2
+      CRYPTO_free((int)src);
+      result = v6;
+    }
+    else
+    {
+      ERR_GOST_error(129, 111, (int)gost_pmeth.c, 529); // I2
+      CRYPTO_free((int)src);
+      result = 0;
+    }
+  }
+  else
+  {
+    result = -2;
+  }
+  return result;
+}
+/////
+__cdecl pkey_gost_mac_signctx(int a1, int a2, int *a3, void **a4)
+{
+  int result; // I4
+  int v5;
+  int v6;
+  unsigned int v7; // I4
+  v7 = __readgsdword(0x14u); // I6
+  v5 = *a3;
+  if ( a2 )
+  {
+    v6 = EVP_DigestFinal_ex(a4, a2, &v5);
+    *a3 = v5;
+    result = v6;
+  }
+  else
+  {
+    *a3 = 4;
+    result = 1;
+  }
+  return result;
+}
+/////
+__cdecl pack_sign_cp(int a1, size_t n, void *s, int a4)
+{
+  *(_DWORD *)a4 = 2 * n; // I1
+  memset(s, 0, *(_DWORD *)a4); // I1
+  store_bignum(*(_DWORD *)(a1 + 4), s, n); // I1
+  store_bignum(*(_DWORD *)a1, (char *)s + n, n); // I1
+  DSA_SIG_free((int **)a1);
+  return 1;
+}
+/////
+__cdecl gost94_compute_public(int **a1)
+{
+  int result; // I4
+  int *v2;
+  v2 = BN_CTX_new();
+  if ( a1[5] ) // I1
+  {
+    a1[6] = BN_new(); // I1
+    BN_mod_exp(a1[6], a1[5], a1[7], a1[3], v2); // I1
+    BN_CTX_free(v2);
+    result = 1;
+  }
+  else
+  {
+    ERR_GOST_error(110, 113, (int)gost_sign.c, 200); // I2
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl fill_GOST94_params(int **a1, _BYTE *a2)
+{
+  int result; // I4
+  _BYTE **i;
+  for ( i = (_BYTE **)&R3410_paramset; *i && a2 != *i; i += 4 ) // I1
+    ;
+  if ( *i ) // I1
+  {
+    if ( a1[3] ) // I1
+      BN_free(a1[3]); // I1
+    a1[3] = 0; // I1
+    BN_dec2bn(a1 + 3, i[2]); // I1
+    if ( a1[4] ) // I1
+      BN_free(a1[4]); // I1
+    a1[4] = 0; // I1
+    BN_dec2bn(a1 + 4, i[3]); // I1
+    if ( a1[5] ) // I1
+      BN_free(a1[5]); // I1
+    a1[5] = 0; // I1
+    BN_dec2bn(a1 + 5, i[1]); // I1
+    result = 1;
+  }
+  else
+  {
+    ERR_GOST_error(102, 130, (int)gost_sign.c, 221); // I2
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl store_bignum(int a1, void *s, size_t n)
+{
+  int v3;
+  v3 = BN_num_bits((_DWORD *)a1) + 7; // I1
+  if ( v3 / 8 > (int)n )
+    return 0;
+  memset(s, 0, n);
+  BN_bn2bin((_DWORD *)a1, (_BYTE *)s + n - v3 / 8); // I1
+  return 1;
+}
+/////
+__cdecl hmac_key_free(int a1)
+{
+  int result; // I4
+  int v2;
+  result = *(_DWORD *)(a1 + 20); // I1
+  v2 = result;
+  if ( result )
+  {
+    if ( *(_DWORD *)(result + 8) ) // I1
+      OPENSSL_cleanse(*(void **)(result + 8), *(_DWORD *)result); // I1
+    result = ASN1_OCTET_STRING_free(v2);
+  }
+  return result; // I5
+}
+/////
+__cdecl idea_ecb_encrypt(unsigned int *a1, _BYTE *a2, int a3)
+{
+  unsigned int v4; // I4
+  unsigned int v5; // I4
+  unsigned int v6;
+  unsigned int v7;
+  unsigned int v8;
+  v8 = __readgsdword(0x14u); // I6
+  v6 = _byteswap_ulong(*a1);
+  v7 = _byteswap_ulong(a1[1]);
+  idea_encrypt((int *)&v6, a3);
+  v4 = v6; // I4
+  *a2 = HIBYTE(v6);
+  a2[1] = BYTE2(v4); // I1
+  a2[2] = BYTE1(v4); // I1
+  a2[3] = v4;
+  v5 = v7; // I4
+  a2[4] = HIBYTE(v7);
+  a2[5] = BYTE2(v5); // I1
+  a2[6] = BYTE1(v5); // I1
+  a2[7] = v5;
+  return __readgsdword(0x14u) ^ v8; // I5
+}
+/////
+__cdecl lh_free(int *a1)
+{
+  int result; // I4
+  unsigned int i;
+  int j;
+  int v4;
+  if ( a1 )
+  {
+    for ( i = 0; i < a1[3]; ++i ) // I1
+    {
+      for ( j = *(_DWORD *)(4 * i + *a1); j; j = v4 ) // I1
+      {
+        v4 = *(_DWORD *)(j + 4); // I1
+        CRYPTO_free(j);
+      }
+    }
+    CRYPTO_free(*a1);
+    result = CRYPTO_free((int)a1);
+  }
+  return result; // I5
+}
+/////
+__cdecl lh_insert(int *a1, int a2)
+{
+  int v3;
+  int v4;
+  int **v5;
+  int *v6;
+  unsigned int v7; // I4
+  v7 = __readgsdword(0x14u); // I6
+  a1[23] = 0; // I1
+  if ( a1[7] <= (a1[9] << 8) / (unsigned int)a1[3] ) // I1
+    expand(a1);
+  v5 = (int **)getrn((int)a1, a2, (unsigned int *)&v3);
+  if ( *v5 )
+  {
+    v4 = **v5; // I1
+    **v5 = a2; // I1
+    ++a1[17]; // I1
+  }
+  else
+  {
+    v6 = (int *)CRYPTO_malloc(12, (int)lhash.c, 193);
+    if ( !v6 )
+    {
+      ++a1[23]; // I1
+      return 0;
+    }
+    *v6 = a2; // I1
+    v6[1] = 0; // I1
+    v6[2] = v3; // I1
+    *v5 = v6; // I1
+    v4 = 0; // I1
+    ++a1[16]; // I1
+    ++a1[9]; // I1
+  }
+  return v4;
+}
+/////
+__cdecl MDC2_Update(int a1, void *src, size_t n)
+{
+  int v4;
+  unsigned int v5; // I4
+  size_t v6;
+  v4 = *(_DWORD *)a1; // I1
+  if ( *(_DWORD *)a1 ) // I1
+  {
+    if ( v4 + n <= 7 )
+    {
+      memcpy((void *)(a1 + v4 + 4), src, n); // I1
+      *(_DWORD *)a1 += n; // I1
+      return 1;
+    }
+    memcpy((void *)(a1 + v4 + 4), src, 8 - v4); // I1
+    n -= 8 - v4;
+    src = (char *)src + 8 - v4;
+    *(_DWORD *)a1 = 0; // I1
+    mdc2_body(a1, (unsigned __int16 *)(a1 + 4), 8u); // I1
+  }
+  v5 = n & 0xFFFFFFF8;
+  if ( (n & 0xFFFFFFF8) != 0 )
+    mdc2_body(a1, (unsigned __int16 *)src, v5);
+  v6 = n - v5;
+  if ( n != v5 )
+  {
+    memcpy((void *)(a1 + 4), (char *)src + v5, v6); // I1
+    *(_DWORD *)a1 = v6; // I1
+  }
+  return 1;
+}
+/////
+__cdecl MDC2_Final(_DWORD *a1, int a2)
+{
+  int v2; // I4
+  int v3; // I4
+  int v5;
+  int v6;
+  v5 = *(_DWORD *)a2; // I1
+  v6 = *(_DWORD *)(a2 + 28); // I1
+  if ( *(_DWORD *)a2 || v6 == 2 ) // I1
+  {
+    if ( v6 == 2 )
+    {
+      ++v5;
+      *(_BYTE *)(a2 + *(_DWORD *)a2 + 4) = 0x80; // I1
+    }
+    memset((void *)(a2 + v5 + 4), 0, 8 - v5); // I1
+    mdc2_body(a2, (unsigned __int16 *)(a2 + 4), 8u); // I1
+  }
+  v2 = *(_DWORD *)(a2 + 16); // I1
+  *a1 = *(_DWORD *)(a2 + 12); // I1
+  a1[1] = v2; // I1
+  v3 = *(_DWORD *)(a2 + 24); // I1
+  a1[2] = *(_DWORD *)(a2 + 20); // I1
+  a1[3] = v3; // I1
+  return 1;
+}
+/////
+_BOOL4 ssleay_rand_status()
+{
+  _BOOL4 v1;
+  _BOOL4 v2;
+  int s[6];
+  s[2] = __readgsdword(0x14u); // I4
+  CRYPTO_THREADID_current(s);
+  if ( crypto_lock_rand )
+  {
+    CRYPTO_lock(5, 19, (int)md_rand.c, 569); // I2
+    v1 = CRYPTO_THREADID_cmp(&locking_threadid, s) == 0;
+    CRYPTO_lock(6, 19, (int)md_rand.c, 571); // I2
+  }
+  else
+  {
+    v1 = 0;
+  }
+  if ( !v1 )
+  {
+    CRYPTO_lock(9, 18, (int)md_rand.c, 578); // I2
+    CRYPTO_lock(9, 19, (int)md_rand.c, 581); // I2
+    CRYPTO_THREADID_cpy((int *)&locking_threadid, s);
+    CRYPTO_lock(10, 19, (int)md_rand.c, 583); // I2
+    crypto_lock_rand = 1;
+  }
+  if ( !initialized )
+  {
+    RAND_poll();
+    initialized = 1;
+  }
+  v2 = entropy >= 32.0; // I2
+  if ( !v1 )
+  {
+    crypto_lock_rand = 0;
+    CRYPTO_lock(10, 18, (int)md_rand.c, 600); // I2
+  }
+  return v2;
+}
+/////
+__cdecl CRYPTO_get_mem_functions(_DWORD *a1, _DWORD *a2, Elf32_Dyn **a3)
+{
+  Elf32_Dyn **result; // I4
+  int (__cdecl *v4)(_DWORD); // I4
+  int (__cdecl *v5)(_DWORD, _DWORD); // I4
+  result = &GLOBAL_OFFSET_TABLE_;
+  if ( a1 )
+  {
+    if ( malloc_ex_func == default_malloc_ex ) // I3
+      v4 = malloc_func;
+    else
+      v4 = 0;
+    *a1 = v4;
+  }
+  if ( a2 )
+  {
+    if ( realloc_ex_func == default_realloc_ex ) // I3
+      v5 = realloc_func;
+    else
+      v5 = 0;
+    *a2 = v5;
+  }
+  if ( a3 )
+  {
+    result = a3;
+    *a3 = (Elf32_Dyn *)free_func;
+  }
+  return result; // I5
+}
+/////
+__cdecl CRYPTO_malloc_locked(int a1, int a2, int a3)
+{
+  _BYTE *v4;
+  if ( a1 <= 0 )
+    return 0;
+  allow_customize = 0;
+  if ( malloc_debug_func )
+  {
+    allow_customize_debug = 0;
+    ((void (__cdecl *)(_DWORD, int, int, int, _DWORD))malloc_debug_func)(0, a1, a2, a3, 0); // I1
+  }
+  v4 = (_BYTE *)((int (__cdecl *)(int, int, int))malloc_locked_ex_func)(a1, a2, a3); // I1
+  if ( malloc_debug_func )
+    ((void (__cdecl *)(_BYTE *, int, int, int, int))malloc_debug_func)(v4, a1, a2, a3, 1); // I1
+  if ( v4 )
+  {
+    if ( a1 > 2048 )
+      *v4 = cleanse_ctr;
+  }
+  return v4;
+}
+/////
+__cdecl verify_callback(int a1, int a2)
+{
+  int **v2; // I4
+  const char *v3; // I4
+  int **v4; // I4
+  int v6;
+  int v7;
+  int v8;
+  v6 = X509_STORE_CTX_get_current_cert(a2);
+  v7 = X509_STORE_CTX_get_error(a2);
+  v8 = X509_STORE_CTX_get_error_depth(a2);
+  BIO_printf((_DWORD *)bio_err, depth=%d , v8); // I1
+  if ( v6 )
+  {
+    v2 = (int **)X509_get_subject_name(v6); // I4
+    X509_NAME_print_ex((_DWORD *)bio_err, v2, 0, 8520479); // I1
+    BIO_puts((_DWORD *)bio_err, (int)\n); // I1
+  }
+  else
+  {
+    BIO_puts((_DWORD *)bio_err, (int)<no cert>\n); // I1
+  }
+  if ( !a1 )
+  {
+    v3 = X509_verify_cert_error_string(v7); // I4
+    BIO_printf((_DWORD *)bio_err, verify error:num=%d:%s\n, v7, v3); // I1
+    if ( v8 > verify_depth )
+    {
+      a1 = 0;
+      verify_error = 22;
+    }
+    else
+    {
+      if ( !verify_return_error )
+        a1 = 1;
+      verify_error = 0;
+    }
+  }
+  switch ( v7 ) // I1
+  {
+    case 2:
+      BIO_puts((_DWORD *)bio_err, (int)issuer= ); // I1
+      v4 = (int **)X509_get_issuer_name(v6); // I4
+      X509_NAME_print_ex((_DWORD *)bio_err, v4, 0, 8520479); // I1
+      BIO_puts((_DWORD *)bio_err, (int)\n); // I1
+      break;
+    case 9:
+    case 13:
+      BIO_printf((_DWORD *)bio_err, notBefore=); // I1
+      ASN1_TIME_print((_DWORD *)bio_err, **(int ***)(*(_DWORD *)v6 + 16)); // I1
+      BIO_printf((_DWORD *)bio_err, \n); // I1
+      break;
+    case 10:
+    case 14:
+      BIO_printf((_DWORD *)bio_err, notAfter=); // I1
+      ASN1_TIME_print((_DWORD *)bio_err, *(int **)(*(_DWORD *)(*(_DWORD *)v6 + 16) + 4)); // I1
+      BIO_printf((_DWORD *)bio_err, \n); // I1
+      break;
+    case 43:
+      policies_print((_BYTE *)bio_err, a2);
+      break;
+    default:
+      break;
+  }
+  if ( !v7 && a1 == 2 )
+    policies_print((_BYTE *)bio_err, a2);
+  BIO_printf((_DWORD *)bio_err, verify return:%d\n, a1); // I1
+  return a1;
+}
+/////
+__cdecl do_sigver_init(int *a1, _DWORD *a2, int *a3, int a4, _DWORD *a5, int a6)
+{
+  char *v7;
+  int *v8; // I4
+  int v9[5]; // I4
+  v8 = a3; // I4
+  v9[1] = __readgsdword(0x14u); // I6
+  if ( !a1[4] ) // I1
+    a1[4] = (int)EVP_PKEY_CTX_new(a5, a4); // I1
+  if ( !a1[4] ) // I1
+    return 0;
+  if ( !a3 && EVP_PKEY_get_default_digest_nid((int)a5, (int)v9) > 0 )
+  {
+    v7 = OBJ_nid2sn(v9[0]); // I1
+    v8 = (int *)EVP_get_digestbyname((int)v7);
+  }
+  if ( !v8 )
+  {
+    ERR_put_error(6u, 161, 158, (int)m_sigver.c, 84);
+    return 0;
+  }
+  if ( a6 )
+  {
+    if ( *(_DWORD *)(*(_DWORD *)a1[4] + 68) ) // I1
+    {
+      if ( (*(int (__cdecl **)(int, int *))(*(_DWORD *)a1[4] + 68))(a1[4], a1) <= 0 ) // I1
+        return 0;
+      *(_DWORD *)(a1[4] + 16) = 128; // I1
+    }
+    else if ( EVP_PKEY_verify_init((_DWORD *)a1[4]) <= 0 ) // I1
+    {
+      return 0;
+    }
+  }
+  else if ( *(_DWORD *)(*(_DWORD *)a1[4] + 60) ) // I1
+  {
+    if ( (*(int (__cdecl **)(int, int *))(*(_DWORD *)a1[4] + 60))(a1[4], a1) <= 0 ) // I1
+      return 0;
+    *(_DWORD *)(a1[4] + 16) = 64; // I1
+  }
+  else if ( EVP_PKEY_sign_init((_DWORD *)a1[4]) <= 0 ) // I1
+  {
+    return 0;
+  }
+  if ( EVP_PKEY_CTX_ctrl((_DWORD *)a1[4], -1, 248, 1, 0, (int)v8) <= 0 ) // I1
+    return 0;
+  if ( a2 )
+    *a2 = a1[4]; // I1
+  return EVP_DigestInit_ex(a1, v8, a4) != 0; // I1
+}
+/////
+__cdecl EVP_DigestSignFinal(int **a1, int a2, unsigned int *a3)
+{
+  int v4;
+  _BOOL4 v5;
+  int v6;
+  int v7;
+  void *s[4];
+  int v9; // I4
+  char v10[64];
+  unsigned int v11; // I4
+  v11 = __readgsdword(0x14u); // I6
+  v6 = 0;
+  v5 = *(_DWORD *)(*a1[4] + 64) != 0; // I1
+  if ( a2 )
+  {
+    EVP_MD_CTX_init(s);
+    if ( !EVP_MD_CTX_copy_ex(s, a1) )
+      return 0;
+    if ( v5 )
+      v6 = (*(int (__cdecl **)(int, int, unsigned int *, void **))(*(_DWORD *)v9 + 64))(v9, a2, a3, s); // I1
+    else
+      v6 = EVP_DigestFinal_ex(s, (int)v10, &v4);
+    EVP_MD_CTX_cleanup(s);
+    if ( v5 || !v6 )
+      return v6;
+    if ( EVP_PKEY_sign(a1[4], a2, a3, (int)v10, v4) <= 0 ) // I1
+      return 0;
+  }
+  else if ( v5 )
+  {
+    if ( (*(int (__cdecl **)(int *, _DWORD, unsigned int *, int **))(*a1[4] + 64))(a1[4], 0, a3, a1) <= 0 ) // I1
+      return 0;
+  }
+  else
+  {
+    v7 = EVP_MD_size((int)*a1);
+    if ( v7 < 0 || EVP_PKEY_sign(a1[4], 0, a3, 0, v7) <= 0 ) // I1
+      return 0;
+  }
+  return 1;
+}
+/////
+__cdecl OBJ_add_object(int a1)
+{
+  int i;
+  int j; // I4
+  _DWORD *v4;
+  int v5;
+  _BYTE *v6;
+  _BYTE *v7; // I4
+  _BYTE *v8; // I4
+  _BYTE *v9; // I4
+  unsigned int v10; // I4
+  v10 = __readgsdword(0x14u); // I6
+  v6 = 0;
+  v7 = 0;
+  v8 = 0;
+  v9 = 0;
+  if ( !added && !init_added() )
+    return 0;
+  v4 = OBJ_dup(a1);
+  if ( v4 )
+  {
+    v9 = CRYPTO_malloc(8, (int)obj_dat.c, 256); // I2
+    if ( v9 )
+    {
+      if ( (!v4[3] || !*(_DWORD *)(a1 + 16) || (v6 = CRYPTO_malloc(8, (int)obj_dat.c, 258)) != 0) // I1
+        && (!*v4 || (v7 = CRYPTO_malloc(8, (int)obj_dat.c, 260)) != 0) // I1
+        && (!v4[1] || (v8 = CRYPTO_malloc(8, (int)obj_dat.c, 262)) != 0) ) // I1
+      {
+        for ( i = 0; i <= 3; ++i )
+        {
+          if ( (&v6)[i] ) // I1
+          {
+            *(_DWORD *)(&v6)[i] = i; // I1
+            *((_DWORD *)(&v6)[i] + 1) = v4; // I1
+            v5 = lh_insert((int *)added, (int)(&v6)[i]); // I1
+            if ( v5 )
+              CRYPTO_free(v5);
+          }
+        }
+        v4[5] &= 0xFFFFFFF2;
+        return v4[2]; // I1
+      }
+    }
+    ERR_put_error(8u, 105, 65, (int)obj_dat.c, 281); // I2
+  }
+  for ( j = 0; j <= 3; ++j )
+  {
+    if ( (&v6)[j] )
+      CRYPTO_free((int)(&v6)[j]); // I1
+  }
+  if ( v4 )
+    CRYPTO_free((int)v4);
+  return 0;
+}
+/////
+__cdecl OBJ_nid2ln(int a1)
+{
+  char *result; // I4
+  int v2;
+  int v3[2];
+  char v4;
+  int v5; // I4
+  unsigned int v6; // I4
+  v6 = __readgsdword(0x14u); // I6
+  if ( a1 < 0 || a1 > 919 ) // I2
+  {
+    if ( added )
+    {
+      v3[0] = 3; // I1
+      v3[1] = (int)&v4; // I1
+      v5 = a1; // I1
+      v2 = lh_retrieve((_DWORD *)added, (int)v3); // I1
+      if ( v2 )
+      {
+        result = *(char **)(*(_DWORD *)(v2 + 4) + 4); // I1
+      }
+      else
+      {
+        ERR_put_error(8u, 102, 101, (int)obj_dat.c, 379); // I2
+        result = 0;
+      }
+    }
+    else
+    {
+      result = 0;
+    }
+  }
+  else if ( !a1 || *((_DWORD *)&unk_2E53C8 + 6 * a1) ) // I1
+  {
+    result = (&off_2E53C4)[6 * a1]; // I1
+  }
+  else
+  {
+    ERR_put_error(8u, 102, 101, (int)obj_dat.c, 362); // I2
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl obj_cmp(int a1, _DWORD *a2)
+{
+  int result;
+  char **v3;
+  v3 = &nid_objs[6 * *a2];
+  if ( *(_DWORD *)(*(_DWORD *)a1 + 12) == (_DWORD)v3[3] ) // I1
+    result = memcmp(*(const void **)(*(_DWORD *)a1 + 16), v3[4], *(_DWORD *)(*(_DWORD *)a1 + 12)); // I1
+  else
+    result = *(_DWORD *)(*(_DWORD *)a1 + 12) - (_DWORD)v3[3]; // I1
+  return result;
+}
+/////
+__cdecl add_ocsp_serial(int *a1, _BYTE *a2, int *a3, int a4, int *a5)
+{
+  int *v6;
+  int *v7;
+  size_t *v8;
+  Elf32_Dyn *v9;
+  if ( !a4 )
+  {
+    BIO_printf((_DWORD *)bio_err, No issuer certificate specified\n); // I1
+    return 0;
+  }
+  if ( !*a1 )
+    *a1 = (int)OCSP_REQUEST_new();
+  if ( !*a1 )
+    goto LABEL_12;
+  v6 = (int *)X509_get_subject_name(a4);
+  v7 = (int *)X509_get0_pubkey_bitstr(a4);
+  v8 = s2i_ASN1_INTEGER(0, a2);
+  if ( !v8 )
+  {
+    BIO_printf((_DWORD *)bio_err, Error converting serial number %s\n, a2); // I1
+    return 0;
+  }
+  v9 = OCSP_cert_id_new(a3, v6, v7, v8);
+  ASN1_INTEGER_free((int)v8);
+  if ( v9 )
+  {
+    if ( sk_push(a5, (int)v9) && OCSP_request_add0_id(*a1, (__int32)v9) )
+      return 1;
+  }
+LABEL_12:
+  BIO_printf((_DWORD *)bio_err, Error Creating OCSP request\n); // I1
+  return 0;
+}
+/////
+__cdecl lookup_serial(int a1, int a2)
+{
+  int i;
+  _BYTE *v4;
+  int *v5;
+  int v6;
+  int v7[10];
+  v7[6] = __readgsdword(0x14u); // I6
+  for ( i = 0; i <= 5; ++i )
+    v7[i] = 0;
+  v5 = ASN1_INTEGER_to_BN(a2, 0);
+  if ( !v5 )
+    OpenSSLDie(ocsp.c, 1165, bn);
+  if ( v5[1] )
+    v4 = BN_bn2hex(v5);
+  else
+    v4 = BUF_strdup(00);
+  v7[3] = (int)v4;
+  BN_free(v5);
+  v6 = TXT_DB_get_by_index(*(_DWORD **)(a1 + 4), 3, (int)v7); // I1
+  CRYPTO_free((int)v4);
+  return v6;
+}
+/////
+__cdecl init_responder(int a1)
+{
+  void *v1; // I4
+  _BYTE *v3;
+  _BYTE *v4;
+  v3 = 0;
+  v1 = BIO_f_buffer(); // I4
+  v4 = BIO_new((int)v1);
+  if ( v4 )
+  {
+    v3 = BIO_new_accept(a1);
+    if ( v3 )
+    {
+      BIO_ctrl(v3, 118, 2, (int)v4);
+      v4 = 0;
+      if ( BIO_ctrl(v3, 101, 0, 0) > 0 )
+        return v3;
+      BIO_printf((_DWORD *)bio_err, Error setting up accept BIO\n); // I1
+      ERR_print_errors(bio_err);
+    }
+  }
+  BIO_free_all((int)v3);
+  BIO_free((int)v4);
+  return 0;
+}
+/////
+__cdecl send_ocsp_response(_DWORD *a1, int *a2)
+{
+  int v3; // I4
+  _DWORD v4[19];
+  char v5[4]; // I4
+  unsigned int v6; // I4
+  v6 = __readgsdword(0x14u); // I6
+  v4[0] = *(_DWORD *)HTTP/1.0 200 OK\r\nContent-type: application/ocsp-response\r\nContent-Length: %d\r\n\r\n; // I1
+  strcpy(v5, \n\r\n);
+  qmemcpy(
+    (char *)v4 + 1,
+    &aHttp10200OkCon_1[-((char *)v4 - ((char *)v4 + 1))],
+    4 * ((((char *)v4 - ((char *)v4 + 1) + 81) & 0xFFFFFFFC) >> 2));
+  if ( !a1 )
+    return 0;
+  v3 = i2d_OCSP_RESPONSE(a2, 0);
+  BIO_printf(a1, (unsigned __int8 *)v4, v3);
+  ASN1_i2d_bio((int (__cdecl *)(int, _BYTE **))i2d_OCSP_RESPONSE, a1, (int)a2);
+  BIO_ctrl(a1, 11, 0, 0);
+  return 1;
+}
+/////
+__cdecl OCSP_request_set1_name(int a1, int *a2)
+{
+  int result; // I4
+  Elf32_Dyn *v3;
+  v3 = GENERAL_NAME_new();
+  if ( !v3 )
+    return 0;
+  if ( X509_NAME_set((int *)&v3->d_un, a2) )
+  {
+    v3->d_tag = 4;
+    if ( *(_DWORD *)(*(_DWORD *)a1 + 4) ) // I1
+      GENERAL_NAME_free(*(_DWORD *)(*(_DWORD *)a1 + 4)); // I1
+    *(_DWORD *)(*(_DWORD *)a1 + 4) = v3; // I1
+    result = 1;
+  }
+  else
+  {
+    GENERAL_NAME_free((int)v3);
+    result = 0;
+  }
+  return result;
+}
+/////
+__cdecl OCSP_request_add1_cert(int a1, int a2)
+{
+  int v3;
+  if ( !*(_DWORD *)(a1 + 4) ) // I1
+    *(_DWORD *)(a1 + 4) = OCSP_SIGNATURE_new(); // I1
+  v3 = *(_DWORD *)(a1 + 4); // I1
+  if ( !v3 )
+    return 0;
+  if ( !a2 )
+    return 1;
+  if ( !*(_DWORD *)(v3 + 8) ) // I1
+  {
+    *(_DWORD *)(v3 + 8) = sk_new_null(); // I1
+    if ( !*(_DWORD *)(v3 + 8) ) // I1
+      return 0;
+  }
+  if ( !sk_push(*(int **)(v3 + 8), a2) ) // I1
+    return 0;
+  CRYPTO_add_lock((_DWORD *)(a2 + 16), 1, 3, (int)ocsp_cl.c, 133); // I1
+  return 1;
+}
+/////
+__cdecl OCSP_resp_count(int a1)
+{
+  int result; // I4
+  if ( a1 )
+    result = sk_num(*(int **)(*(_DWORD *)a1 + 12)); // I1
+  else
+    result = -1;
+  return result;
+}
+/////
+__cdecl OCSP_resp_find(int a1, int a2, int a3)
+{
+  int i;
+  int v5; // I4
+  int *v6;
+  int *v7;
+  int v8; // I4
+  if ( !a1 )
+    return -1;
+  if ( a3 >= 0 )
+    v8 = a3 + 1;
+  else
+    v8 = 0;
+  v6 = *(int **)(*(_DWORD *)a1 + 12); // I1
+  v5 = v8;
+  for ( i = sk_num(v6); v5 < i; i = sk_num(v6) ) // I1
+  {
+    v7 = (int *)sk_value(v6, v5);
+    if ( !OCSP_id_cmp(a2, *v7) ) // I1
+      return v5;
+    ++v5;
+  }
+  return -1;
+}
+/////
+__cdecl OCSP_single_get0_status(_DWORD *a1, int *a2, _DWORD *a3, _DWORD *a4, _DWORD *a5)
+{
+  int *v6;
+  int v7;
+  int v8;
+  if ( !a1 )
+    return -1;
+  v6 = (int *)a1[1]; // I1
+  v7 = *v6;
+  if ( *v6 == 1 )
+  {
+    v8 = v6[1]; // I1
+    if ( a3 )
+      *a3 = *(_DWORD *)v8; // I1
+    if ( a2 )
+    {
+      if ( *(_DWORD *)(v8 + 4) ) // I1
+        *a2 = ASN1_ENUMERATED_get(*(int **)(v8 + 4)); // I1
+      else
+        *a2 = -1;
+    }
+  }
+  if ( a4 )
+    *a4 = a1[2]; // I1
+  if ( a5 )
+    *a5 = a1[3]; // I1
+  return v7;
+}
+/////
+__cdecl OCSP_id_issuer_cmp(int a1, int a2)
+{
+  int result;
+  int v3; // I4
+  int v4; // I4
+  v3 = OBJ_cmp(**(_DWORD **)a1, **(_DWORD **)a2); // I1
+  if ( v3 )
+    return v3;
+  v4 = ASN1_OCTET_STRING_cmp(*(_DWORD *)(a1 + 4), *(_DWORD *)(a2 + 4)); // I1
+  if ( v4 )
+    result = v4;
+  else
+    result = ASN1_OCTET_STRING_cmp(*(_DWORD *)(a1 + 8), *(_DWORD *)(a2 + 8)); // I1
+  return result;
+}
+/////
+__cdecl list_cipher_fn(int a1, const char *a2, const char *a3, _DWORD *a4)
+{
+  int v4; // I4
+  char *v5; // I4
+  int result; // I4
+  if ( a1 )
+  {
+    v4 = EVP_CIPHER_nid(a1);
+    v5 = OBJ_nid2sn(v4);
+    result = BIO_printf(a4, byte_1E54E4, v5);
+  }
+  else
+  {
+    if ( !a2 )
+      a2 = <undefined>;
+    if ( !a3 )
+      a3 = <undefined>;
+    result = BIO_printf(a4, %s => %s\n, a2, a3);
+  }
+  return result; // I5
+}
+/////
+__cdecl list_md_fn(int a1, const char *a2, const char *a3, _DWORD *a4)
+{
+  int v4; // I4
+  char *v5; // I4
+  int result; // I4
+  if ( a1 )
+  {
+    v4 = EVP_MD_type(a1);
+    v5 = OBJ_nid2sn(v4);
+    result = BIO_printf(a4, byte_1E54E4, v5);
+  }
+  else
+  {
+    if ( !a2 )
+      a2 = <undefined>;
+    if ( !a3 )
+      a3 = <undefined>;
+    result = BIO_printf(a4, %s => %s\n, a2, a3);
+  }
+  return result; // I5
+}
+/////
+__cdecl obj_name_cmp(int a1, int a2)
+{
+  int v2;
+  int v4; // I4
+  v4 = *(_DWORD *)a1 - *(_DWORD *)a2; // I1
+  if ( !v4 )
+  {
+    if ( name_funcs_stack && sk_num((int *)name_funcs_stack) > *(_DWORD *)a1 ) // I1
+    {
+      v2 = sk_value((int *)name_funcs_stack, *(_DWORD *)a1); // I1
+      v4 = (*(int (__cdecl **)(_DWORD, _DWORD))(v2 + 4))(*(_DWORD *)(a1 + 8), *(_DWORD *)(a2 + 8)); // I1
+    }
+    else
+    {
+      v4 = strcmp(*(const char **)(a1 + 8), *(const char **)(a2 + 8)); // I1
+    }
+  }
+  return v4;
+}
+/////
+__cdecl do_all_sorted_fn(_DWORD *a1, _DWORD *a2)
+{
+  _DWORD *result;
+  int v3; // I4
+  int v4; // I4
+  _DWORD *v5; // I4
+  result = (_DWORD *)*a2; // I1
+  if ( *a1 == *a2 )
+  {
+    v3 = a2[2]; // I1
+    v4 = a2[1]; // I1
+    a2[1] = v4 + 1; // I1
+    v5 = (_DWORD *)(v3 + 4 * v4); // I1
+    result = a1; // I1
+    *v5 = a1; // I1
+  }
+  return result; // I5
+}
+/////
+__cdecl copy_bag_attr(int a1, int a2, int a3)
+{
+  int v4;
+  int *v5;
+  v4 = EVP_PKEY_get_attr_by_NID(a2, a3, -1);
+  if ( v4 < 0 )
+    return 1;
+  v5 = (int *)EVP_PKEY_get_attr(a2, v4);
+  return X509at_add1_attr((int **)(a1 + 8), v5) != 0;
+}
+/////
+__cdecl PKCS12_add_safe(int **a1, int *a2, int a3, int a4, int a5)
+{
+  Elf32_Dyn *v6;
+  int v7;
+  if ( *a1 )
+  {
+    v7 = 0;
+  }
+  else
+  {
+    *a1 = sk_new_null();
+    if ( !*a1 )
+      return 0;
+    v7 = 1;
+  }
+  if ( !a3 )
+    a3 = 149; // I2
+  if ( a3 == -1 )
+    v6 = PKCS12_pack_p7data(a2);
+  else
+    v6 = PKCS12_pack_p7encdata(a3, a5, -1, 0, 0, a4, (int)a2);
+  if ( v6 && sk_push(*a1, (int)v6) )
+    return 1;
+  if ( v7 )
+  {
+    sk_free((int)*a1);
+    *a1 = 0;
+  }
+  if ( v6 )
+    PKCS7_free((int)v6);
+  return 0;
+}
+/////
+__cdecl parse_bags(int *a1, int a2, int a3, _DWORD *a4, int *a5)
+{
+  int v5; // I4
+  int i;
+  for ( i = 0; i < sk_num(a1); ++i )
+  {
+    v5 = sk_value(a1, i); // I4
+    if ( !parse_bag(v5, a2, a3, a4, a5) )
+      return 0;
+  }
+  return 1;
+}
+/////
+__cdecl OPENSSL_uni2asc(int a1, int a2)
+{
+  int v3;
+  int i;
+  _BYTE *v5;
+  int v6; // I4
+  v3 = a2 / 2;
+  if ( !a2 || *(_BYTE *)(a2 - 1 + a1) ) // I1
+    ++v3;
+  v6 = a1 + 1;
+  v5 = CRYPTO_malloc(v3, (int)p12_utl.c, 92); // I2
+  if ( !v5 )
+    return 0;
+  for ( i = 0; i < a2; i += 2 )
+    v5[i >> 1] = *(_BYTE *)(i + v6); // I1
+  v5[v3 - 1] = 0;
+  return v5;
+}
+/////
+__cdecl PKCS8_pkey_set0(int a1, int a2, int a3, int a4, int a5, __int32 a6, __int32 a7)
+{
+  Elf32_Dyn *v8;
+  Elf32_Dyn *v9;
+  v8 = 0;
+  if ( a3 >= 0 && !ASN1_INTEGER_set(*(int **)(a1 + 4), a3) ) // I1
+    return 0;
+  if ( a6 )
+  {
+    v9 = ASN1_OCTET_STRING_new();
+    if ( !v9 )
+      return 0;
+    v9[1].d_tag = a6; // I1
+    v8 = v9 + 1;
+    v9->d_tag = a7; // I1
+    if ( *(_DWORD *)a1 == 1 ) // I1
+      ASN1_TYPE_set(*(_DWORD **)(a1 + 12), 16, (int)v9); // I1
+    else
+      ASN1_TYPE_set(*(_DWORD **)(a1 + 12), 4, (int)v9); // I1
+  }
+  if ( X509_ALGOR_set0(*(_DWORD *)(a1 + 8), a2, a4, a5) ) // I1
+    return 1;
+  if ( v8 )
+    v8->d_tag = 0; // I1
+  return 0;
+}
+/////
+__cdecl policy_cache_create(int a1, int *a2, int a3)
+{
+  int v3; // I4
+  int i;
+  int v6;
+  _DWORD *v7;
+  _DWORD *v8;
+  _DWORD *v9;
+  v6 = 0;
+  v8 = *(_DWORD **)(a1 + 64); // I1
+  v7 = 0;
+  if ( sk_num(a2) )
+  {
+    v8[1] = sk_new((int)policy_data_cmp);
+    if ( v8[1] ) // I1
+    {
+      for ( i = 0; i < sk_num(a2); ++i )
+      {
+        v9 = (_DWORD *)sk_value(a2, i); // I1
+        v7 = policy_data_new(v9, 0, a3);
+        if ( !v7 )
+          goto LABEL_15;
+        if ( OBJ_obj2nid(v7[1]) == 746 ) // I1 I2
+        {
+          if ( *v8 )
+          {
+            v6 = -1;
+            goto LABEL_15;
+          }
+          *v8 = v7;
+        }
+        else
+        {
+          if ( sk_find(v8[1], (int)v7) != -1 ) // I1
+          {
+            v6 = -1;
+            goto LABEL_15;
+          }
+          if ( !sk_push((int *)v8[1], (int)v7) ) // I1
+            goto LABEL_15;
+        }
+        v7 = 0;
+      }
+      v6 = 1;
+    }
+  }
+LABEL_15:
+  if ( v6 == -1 )
+  {
+    v3 = *(_DWORD *)(a1 + 40); // I1
+    BYTE1(v3) |= 8u;
+    *(_DWORD *)(a1 + 40) = v3; // I1
+  }
+  if ( v7 )
+    policy_data_free((int)v7);
+  sk_pop_free(a2, (void (__cdecl *)(_DWORD))POLICYINFO_free);
+  if ( v6 <= 0 )
+  {
+    sk_pop_free((_DWORD *)v8[1], (void (__cdecl *)(_DWORD))policy_data_free); // I1
+    v8[1] = 0; // I1
+  }
+  return v6;
+}
+/////
+__cdecl policy_data_cmp(int a1, int a2)
+{
+  return OBJ_cmp(*(_DWORD *)(*(_DWORD *)a1 + 4), *(_DWORD *)(*(_DWORD *)a2 + 4)); // I1
+}
+/////
+__cdecl policy_data_free(int a1)
+{
+  ASN1_OBJECT_free(*(int **)(a1 + 4)); // I1
+  if ( (*(_DWORD *)a1 & 4) == 0 ) // I1
+    sk_pop_free(*(_DWORD **)(a1 + 8), (void (__cdecl *)(_DWORD))POLICYQUALINFO_free); // I1
+  sk_pop_free(*(_DWORD **)(a1 + 12), (void (__cdecl *)(_DWORD))ASN1_OBJECT_free); // I1
+  return CRYPTO_free(a1); // I5
+}
+/////
+__cdecl tree_evaluate(_DWORD *a1)
+{
+  int i;
+  int *v3;
+  int *v4;
+  int v5;
+  v3 = (int *)(*a1 + 16); // I1
+  for ( i = 1; i < a1[1]; ++i ) // I1
+  {
+    v4 = (int *)policy_cache_set(*v3); // I1
+    if ( !tree_link_nodes((int)v3, (int)v4) )
+      return 0;
+    if ( (v3[3] & 0x200) == 0 && !tree_link_any((int)v3, v4, (int)a1) ) // I1
+      return 0;
+    v5 = tree_prune(a1, v3);
+    if ( v5 != 1 )
+      return v5;
+    v3 += 4;
+  }
+  return 1;
+}
+/////
+__cdecl exnode_free(_DWORD **a1)
+{
+  Elf32_Dyn **result; // I4
+  result = &GLOBAL_OFFSET_TABLE_;
+  if ( *a1 )
+  {
+    if ( (**a1 & 8) != 0 )
+      result = (Elf32_Dyn **)CRYPTO_free((int)a1); // I1
+  }
+  return result; // I5
+}
+/////
+__cdecl pem_check_suffix(char *s, char *s2)
+{
+  signed int v3;
+  size_t v4;
+  v3 = strlen(s);
+  v4 = strlen(s2);
+  if ( v3 <= (int)(v4 + 1) )
+    return 0;
+  if ( strcmp(&s[v3 - v4], s2) )
+    return 0;
+  if ( s[v3 - v4 - 1] == 32 ) // I2
+    return v3 - v4 - 1;
+  return 0;
+}
+/////
+__cdecl PKCS7_bio_add_digest(_DWORD **a1, int *a2)
+{
+  void *v2; // I4
+  int v3; // I4
+  char *v4; // I4
+  _BYTE *v6;
+  int v7;
+  v2 = BIO_f_md(); // I4
+  v6 = BIO_new((int)v2);
+  if ( v6 )
+  {
+    v3 = OBJ_obj2nid(*a2); // I4
+    v4 = OBJ_nid2sn(v3); // I4
+    v7 = EVP_get_digestbyname((int)v4);
+    if ( v7 )
+    {
+      BIO_ctrl(v6, 111, 0, v7);
+      if ( *a1 )
+      {
+        if ( !BIO_push(*a1, (int)v6) )
+        {
+          ERR_put_error(0x21u, 125, 32, (int)pk7_doit.c, 127); // I2
+          goto LABEL_10;
+        }
+      }
+      else
+      {
+        *a1 = v6;
+      }
+      return 1;
+    }
+    ERR_put_error(0x21u, 125, 109, (int)pk7_doit.c, 118); // I2
+  }
+  else
+  {
+    ERR_put_error(0x21u, 125, 32, (int)pk7_doit.c, 111); // I2
+  }
+LABEL_10:
+  if ( v6 )
+    BIO_free((int)v6);
+  return 0;
+}
+/////
+__cdecl PKCS7_find_digest(int **a1, int *a2, int a3)
+{
+  int v4; // I4
+  int **v5; // I4
+  while ( 1 ) // I3
+  {
+    v5 = BIO_find_type(a2, 520); // I2
+    if ( !v5 )
+    {
+      ERR_put_error(0x21u, 127, 108, (int)pk7_doit.c, 687); // I2
+      return 0;
+    }
+    BIO_ctrl(v5, 120, 0, (int)a1); // I2
+    if ( !*a1 )
+    {
+      ERR_put_error(0x21u, 127, 68, (int)pk7_doit.c, 693); // I2
+      return 0;
+    }
+    v4 = EVP_MD_CTX_md(*a1); // I4
+    if ( a3 == EVP_MD_type(v4) )
+      break;
+    a2 = (int *)BIO_next((int)v5);
+  }
+  return v5;
+}
+/////
+__cdecl get_attribute(int *a1, int a2)
+{
+  int result; // I4
+  int i;
+  char **v4;
+  int v5;
+  v4 = OBJ_nid2obj(a2);
+  if ( !v4 || !a1 )
+    return 0;
+  for ( i = 0; ; ++i )
+  {
+    if ( i >= sk_num(a1) ) // I1
+      return 0;
+    v5 = sk_value(a1, i);
+    if ( !OBJ_cmp(*(_DWORD *)v5, (int)v4) ) // I1
+      break;
+  }
+  if ( *(_DWORD *)(v5 + 4) || !sk_num(*(int **)(v5 + 8)) ) // I1
+    result = 0;
+  else
+    result = sk_value(*(int **)(v5 + 8), 0); // I1
+  return result;
+}
+/////
+__cdecl dump_certs_pkeys_bags(_DWORD *a1, int *a2, int a3, int a4, int a5, char *a6)
+{
+  int v6; // I4
+  int i;
+  for ( i = 0; i < sk_num(a2); ++i )
+  {
+    v6 = sk_value(a2, i); // I4
+    if ( !dump_certs_pkeys_bag(a1, v6, a3, a4, a5, a6) )
+      return 0;
+  }
+  return 1;
+}
+/////
+__cdecl get_cert_chain(int *a1, int *a2, int **a3)
+{
+  int *v4;
+  int v5;
+  int *v6[38];
+  v6[34] = (int *)__readgsdword(0x14u); // I6
+  v5 = 0;
+  X509_STORE_CTX_init(v6, a2, a1, 0);
+  if ( X509_verify_cert((int)v6) > 0 )
+  {
+    v4 = X509_STORE_CTX_get1_chain((int)v6);
+  }
+  else
+  {
+    v5 = X509_STORE_CTX_get_error((int)v6);
+    if ( !v5 )
+      v5 = -1;
+    v4 = 0;
+  }
+  X509_STORE_CTX_cleanup((int)v6);
+  *a3 = v4;
+  return v5;
+}
+/////
+__cdecl ssl3_send_server_hello(_DWORD *a1)
+{
+  _BYTE *v2;
+  _BYTE *dest;
+  _BYTE *desta;
+  _BYTE *v5;
+  _BYTE *v6;
+  int n;
+  if ( a1[13] == 8496 ) // I1
+  {
+    v5 = *(_BYTE **)(a1[15] + 4); // I1
+    v6 = v5 + 4; // I1
+    v5[4] = BYTE1(*a1); // I1
+    v5[5] = *a1; // I1
+    memcpy(v5 + 6, (const void *)(a1[22] + 160), 0x20u); // I2
+    if ( (*(_DWORD *)(a1[57] + 32) & 2) == 0 && !a1[27] ) // I1
+      *(_DWORD *)(a1[48] + 68) = 0; // I1
+    n = *(_DWORD *)(a1[48] + 68); // I1
+    if ( n > 32 )
+    {
+      ERR_put_error(0x14u, 242, 68, (int)s3_srvr.c, 1477); // I2
+      return -1;
+    }
+    v5[38] = n; // I1
+    memcpy(v5 + 39, (const void *)(a1[48] + 72), n); // I1
+    v2 = &v5[n + 39 + ssl3_put_cipher_by_char(*(_DWORD *)(a1[22] + 836), &v5[n + 39])]; // I1
+    dest = v2 + 1;
+    if ( *(_DWORD *)(a1[22] + 908) ) // I1
+      *v2 = **(_DWORD **)(a1[22] + 908); // I1
+    else
+      *v2 = 0;
+    if ( ssl_prepare_serverhello_tlsext(a1) <= 0 )
+    {
+      ERR_put_error(0x14u, 242, 275, (int)s3_srvr.c, 1500); // I2
+      return -1;
+    }
+    desta = ssl_add_serverhello_tlsext((int)a1, dest, (unsigned int)(v5 + 0x4000)); // I1
+    if ( !desta )
+    {
+      ERR_put_error(0x14u, 242, 68, (int)s3_srvr.c, 1505);
+      return -1;
+    }
+    *v5 = 2;
+    v5[1] = (unsigned int)(desta - v6) >> 16;
+    v5[2] = (unsigned __int16)((_WORD)desta - (_WORD)v6) >> 8;
+    v5[3] = (_BYTE)desta - (_BYTE)v6; // I1
+    a1[13] = 8497; // I1
+    a1[17] = desta - v5; // I1
+    a1[18] = 0; // I1
+  }
+  return ssl3_do_write((int)a1, 22);
+}
+/////
+__cdecl ssl3_get_client_hello(int a1)
+{
+  unsigned __int8 *v2; // I4
+  unsigned __int8 *v3; // I4
+  int v4; // I4
+  unsigned __int8 *v5; // I4
+  int v6; // I4
+  int v7; // I4
+  int v8; // I4
+  int v9; // I4
+  int v10;// I4
+  int v11;// I4
+  int v12;// I4
+  int v13;// I4
+  int v14;// I4
+  int v15;// I4
+  int v17;// I4
+  _DWORD *v18;
+  int v19;// I4
+  int v20;// I4
+  int v21;// I4
+  void*src;// I4
+  int *v23;
+  int v24;// I4
+  int i;
+  size_t j;
+  int v27;// I4
+  int*v28;
+  int k;
+  int l;
+  int m;
+  int*v32;
+  _DWORD *v33;
+  _DWORD *v34;
+  int v35; // I4
+  char *v36;// I4
+  int v37;// I4
+  size_t n;  // I4
+  int v40;// I4
+  _DWORD *v41;
+  unsigned __int8 *v42;// I4
+  _BYTE     *v43;// I4
+  int v44;// I4
+  int v45;// I4
+  int v46;// I4
+  int*v47;// I1
+  unsigned int  v48;// I4
+  v48 = __readgsdword(0x14u); // I6
+  v27 = -1;
+  v28 = 0;
+  v23 = 0;
+  if ( *(_DWORD *)(a1 + 52) == 8464 ) // I1
+    *(_DWORD *)(a1 + 52) = 8465; // I1
+  *(_DWORD *)(a1 + 268) = 1; // I1
+  v35 = (*(int (__cdecl **)(int, int, int, int, int, int *))(*(_DWORD *)(a1 + 8) + 48))(a1, 8465, 8466, 1, 0x4000, &v20); // I1
+  if ( !v20 )
+    return v35;
+  *(_DWORD *)(a1 + 268) = 0; // I1
+  src = *(void **)(a1 + 64); // I1
+  v36 = (char *)src;
+  *(_DWORD *)(a1 + 272) = *((unsigned __int8 *)src + 1) | (*(unsigned __int8 *)src << 8); // I1
+  src = (char *)src + 2;
+  if ( *(_DWORD *)a1 == 65279 && *(_DWORD *)(a1 + 272) > *(_DWORD *)a1 // I1
+    || *(_DWORD *)a1 != 65279 && *(_DWORD *)(a1 + 272) < *(_DWORD *)a1 ) // I1
+  {
+    ERR_put_error(0x14u, 138, 267, (int)"s3_srvr.c", 960); // I6
+    if ( *(int *)(a1 + 272) >> 8 == 3 && !*(_DWORD *)(a1 + 140) && !*(_DWORD *)(a1 + 144) ) // I1
+      *(_DWORD *)a1 = *(_DWORD *)(a1 + 272); // I1
+    v21 = 70;
+    goto LABEL_148;
+  }
+  if ( (SSL_ctrl((_DWORD *)a1, 32, 0, 0) & 0x2000) != 0 ) // I6
+  {
+    v37 = *((unsigned __int8 *)src + 32); // I1
+    if ( !*((unsigned __int8 *)src + v37 + 33) ) // I1
+      return 1;
+  }
+  memcpy((void *)(*(_DWORD *)(a1 + 88) + 192), src, 0x20u); // I1
+  src = (char *)src + 32;
+  v2 = (unsigned __int8 *)src;
+  src = (char *)src + 1;
+  j = *v2;
+  *(_DWORD *)(a1 + 108) = 0; // I1
+  if ( *(_DWORD *)(a1 + 40) && (*(_DWORD *)(a1 + 256) & 0x10000) != 0 ) // I1
+  {
+    if ( !ssl_get_new_session(a1, 1) )
+      goto LABEL_149;
+  }
+  else
+  {
+    i = ssl_get_prev_session(a1, (int)src, j, (int)&v36[v35]); // I1
+    if ( i == 1 )
+    {
+      *(_DWORD *)(a1 + 108) = 1; // I1
+    }
+    else if ( i == -1 || !ssl_get_new_session(a1, 1) )
+    {
+      goto LABEL_149;
+    }
+  }
+  src = (char *)src + j;
+  if ( *(_DWORD *)a1 == 65279 || *(_DWORD *)a1 == 256 ) // I1
+  {
+    v3 = (unsigned __int8 *)src;
+    src = (char *)src + 1;
+    n = *v3;
+    if ( (SSL_ctrl((_DWORD *)a1, 32, 0, 0) & 0x2000) != 0 && n )
+    {
+      memcpy((void *)(*(_DWORD *)(a1 + 92) + 260), src, n); // I1
+      if ( *(_DWORD *)(*(_DWORD *)(a1 + 228) + 124) ) // I1
+      {
+        if ( !(*(int (__cdecl **)(int, int, size_t))(*(_DWORD *)(a1 + 228) + 124))(a1, *(_DWORD *)(a1 + 92) + 260, n) ) // I1
+        {
+          v21 = 40;
+          ERR_put_error(0x14u, 138, 308, (int)"s3_srvr.c", 1059);
+          goto LABEL_148;
+        }
+      }
+      else if ( memcmp(
+                  (const void *)(*(_DWORD *)(a1 + 92) + 260),
+                  (const void *)(*(_DWORD *)(a1 + 92) + 4),
+                  *(_DWORD *)(*(_DWORD *)(a1 + 92) + 516)) ) // I1
+      {
+        v21 = 40;
+        ERR_put_error(0x14u, 138, 308, (int)"s3_srvr.c", 1069);
+        goto LABEL_148;
+      }
+      v27 = 2;
+    }
+    src = (char *)src + n;
+  }
+  i = (*(unsigned __int8 *)src << 8) | *((unsigned __int8 *)src + 1);
+  src = (char *)src + 2;
+  if ( !i && j )
+  {
+    v21 = 47;
+    ERR_put_error(0x14u, 138, 183, (int)"s3_srvr.c", 1084);
+    goto LABEL_148;
+  }
+  if ( (char *)src + i >= &v36[v35] ) // I1
+  {
+    v21 = 50;
+    ERR_put_error(0x14u, 138, 159, (int)"s3_srvr.c", 1091);
+    goto LABEL_148;
+  }
+  if ( i <= 0 || ssl_bytes_to_cipher_list((_DWORD *)a1, src, i, (int *)&v23) ) // I1
+  {
+    src = (char *)src + i;
+    if ( *(_DWORD *)(a1 + 108) && i > 0 ) // I1
+    {
+      j = 0;
+      v40 = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 180) + 8); // I1
+      for ( i = 0; ; ++i )
+      {
+        v4 = sk_num(v23);
+        if ( i >= v4 )
+          break;
+        v41 = (_DWORD *)sk_value(v23, i);
+        if ( v40 == v41[2] ) // I1
+        {
+          j = 1;
+          break;
+        }
+      }
+      if ( !j )
+      {
+        v21 = 47;
+        ERR_put_error(0x14u, 138, 215, (int)"s3_srvr.c", 1147);
+        goto LABEL_148;
+      }
+    }
+    v5 = (unsigned __int8 *)src;
+    src = (char *)src + 1;
+    i = *v5;
+    if ( (char *)src + i > &v36[v35] ) // I1
+    {
+      v21 = 50;
+      ERR_put_error(0x14u, 138, 159, (int)"s3_srvr.c", 1158);
+      goto LABEL_148;
+    }
+    v42 = (unsigned __int8 *)src;
+    for ( j = 0; (int)j < i && *((_BYTE *)src + j); ++j )
+      ;
+    src = (char *)src + i;
+    if ( (int)j >= i )
+    {
+      v21 = 50;
+      ERR_put_error(0x14u, 138, 187, (int)"s3_srvr.c", 1172);
+      goto LABEL_148;
+    }
+    if ( *(int *)a1 > 767 && !ssl_parse_clienthello_tlsext(a1, &src, (int)v36, v35, &v21) )
+    {
+      ERR_put_error(0x14u, 138, 227, (int)"s3_srvr.c", 1183);
+      goto LABEL_148;
+    }
+    if ( ssl_check_clienthello_tlsext_early((_DWORD *)a1) > 0 ) // I1
+    {
+      v43 = (_BYTE *)(*(_DWORD *)(a1 + 88) + 160); // I1
+      if ( ssl_fill_hello_random(a1, 1, v43, 32) > 0 )
+      {
+        if ( !*(_DWORD *)(a1 + 108) && *(int *)a1 > 768 ) // I1
+        {
+          if ( *(_DWORD *)(a1 + 360) ) // I1
+          {
+            v24 = 0; // I4
+            *(_DWORD *)(*(_DWORD *)(a1 + 192) + 16) = 48; // I1
+            if ( (*(int (__cdecl **)(int, int, int, int *, int *, _DWORD))(a1 + 360))(
+                   a1,
+                   *(_DWORD *)(a1 + 192) + 20,
+                   *(_DWORD *)(a1 + 192) + 16,
+                   v23,
+                   &v24,
+                   *(_DWORD *)(a1 + 364)) ) // I1
+            {
+              *(_DWORD *)(a1 + 108) = 1; // I1
+              *(_DWORD *)(*(_DWORD *)(a1 + 192) + 188) = v23; // I1
+              *(_DWORD *)(*(_DWORD *)(a1 + 192) + 160) = 0; // I1
+              v23 = 0;
+              if ( v24 )
+              {
+                v7 = v24;
+              }
+              else
+              {
+                v6 = SSL_get_ciphers(a1);
+                v7 = ssl3_choose_cipher(
+                       a1,
+                       *(_DWORD *)(*(_DWORD *)(a1 + 192) + 188),
+                       v6,
+                       v12,
+                       v13,
+                       v14,
+                       v15,
+                       a1,
+                       v17,
+                       v18,
+                       v19,
+                       v20,
+                       v21,
+                       (int)src,
+                       (int)v23,
+                       v24,
+                       i,
+                       j,
+                       v27,
+                       (int)v28,
+                       k,
+                       l,
+                       m,
+                       v32); // I1
+              }
+              v24 = v7;
+              if ( !v7 )
+              {
+                v21 = 40;
+                ERR_put_error(0x14u, 138, 193, (int)"s3_srvr.c", 1225);
+                goto LABEL_148;
+              }
+              *(_DWORD *)(*(_DWORD *)(a1 + 192) + 180) = v24; // I1
+              if ( *(_DWORD *)(a1 + 116) ) // I1
+                sk_free(*(_DWORD *)(a1 + 116)); // I1
+              if ( *(_DWORD *)(a1 + 120) ) // I1
+                sk_free(*(_DWORD *)(a1 + 120)); // I1
+              *(_DWORD *)(a1 + 116) = sk_dup(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 188)); // I1
+              *(_DWORD *)(a1 + 120) = sk_dup(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 188)); // I1
+            }
+          }
+        }
+        *(_DWORD *)(*(_DWORD *)(a1 + 88) + 908) = 0; // I1
+        if ( *(_DWORD *)(*(_DWORD *)(a1 + 192) + 176) ) // I1
+        {
+          v46 = *(_DWORD *)(*(_DWORD *)(a1 + 192) + 176); // I1
+          if ( (*(_DWORD *)(a1 + 256) & 0x20000) != 0 ) // I1
+          {
+            v21 = 80; // I4
+            ERR_put_error(0x14u, 138, 340, (int)"s3_srvr.c", 1257);
+            goto LABEL_148;
+          }
+          for ( k = 0; ; ++k )
+          {
+            v8 = sk_num(*(int **)(*(_DWORD *)(a1 + 228) + 152)); // I1
+            if ( k >= v8 )
+              break;
+            v28 = (int *)sk_value(*(int **)(*(_DWORD *)(a1 + 228) + 152), k); // I1
+            if ( v46 == *v28 )
+            {
+              *(_DWORD *)(*(_DWORD *)(a1 + 88) + 908) = v28; // I1
+              break;
+            }
+          }
+          if ( !*(_DWORD *)(*(_DWORD *)(a1 + 88) + 908) ) // I1
+          {
+            v21 = 80; // I4
+            ERR_put_error(0x14u, 138, 341, (int)"s3_srvr.c", 1273);
+            goto LABEL_148;
+          }
+          for ( k = 0; k < i && v46 != v42[k]; ++k )
+            ;
+          if ( k >= i )
+          {
+            v21 = 47;
+            ERR_put_error(0x14u, 138, 342, (int)"s3_srvr.c", 1285);
+            goto LABEL_148;
+          }
+        }
+        else if ( *(_DWORD *)(a1 + 108) ) // I1
+        {
+          v28 = 0; // I1
+        }
+        else if ( (*(_DWORD *)(a1 + 256) & 0x20000) == 0 && *(_DWORD *)(*(_DWORD *)(a1 + 228) + 152) ) // I1
+        {
+          v32 = 0;
+          v44 = sk_num(*(int **)(*(_DWORD *)(a1 + 228) + 152)); // I1
+          for ( l = 0; l < v44; ++l )
+          {
+            v28 = (int *)sk_value(*(int **)(*(_DWORD *)(a1 + 228) + 152), l); // I1
+            v45 = *v28;
+            for ( m = 0; m < i; ++m )
+            {
+              if ( v45 == v42[m] ) // I1
+              {
+                v32 = dword_0 + 1;
+                break;
+              }
+            }
+            if ( v32 )
+              break;
+          }
+          if ( v32 )
+            *(_DWORD *)(*(_DWORD *)(a1 + 88) + 908) = v28; // I1
+          else
+            v28 = 0;
+        }
+        if ( *(_DWORD *)(a1 + 108) ) // I1
+        {
+          v33 = 0;
+          v34 = 0;
+          if ( (*(_DWORD *)(a1 + 256) & 0x40000000) != 0 ) // I1
+          {
+            v47 = *(int **)(*(_DWORD *)(a1 + 192) + 188); // I1
+            for ( i = 0; ; ++i )
+            {
+              v11 = sk_num(v47);
+              if ( i >= v11 )
+                break;
+              v41 = (_DWORD *)sk_value(v47, i);
+              if ( (v41[5] & 0x20) != 0 ) // I1
+                v33 = v41;
+              if ( (v41[8] & 2) != 0 ) // I1
+                v34 = v41;
+            }
+            if ( v33 )
+            {
+              *(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) = v33; // I1
+            }
+            else if ( v34 )
+            {
+              *(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) = v34; // I1
+            }
+            else
+            {
+              *(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) = *(_DWORD *)(*(_DWORD *)(a1 + 192) + 180); // I1
+            }
+          }
+          else
+          {
+            *(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) = *(_DWORD *)(*(_DWORD *)(a1 + 192) + 180); // I1
+          }
+        }
+        else
+        {
+          if ( v28 )
+            v9 = *v28;
+          else
+            v9 = 0;
+          *(_DWORD *)(*(_DWORD *)(a1 + 192) + 176) = v9; // I1
+          if ( *(_DWORD *)(*(_DWORD *)(a1 + 192) + 188) ) // I1
+            sk_free(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 188)); // I1
+          *(_DWORD *)(*(_DWORD *)(a1 + 192) + 188) = v23; // I1
+          if ( !v23 )
+          {
+            v21 = 47;
+            ERR_put_error(0x14u, 138, 182, (int)"s3_srvr.c", 1343);
+            goto LABEL_148;
+          }
+          v23 = 0;
+          v10 = SSL_get_ciphers(a1);
+          v41 = (_DWORD *)ssl3_choose_cipher(
+                            a1,
+                            *(_DWORD *)(*(_DWORD *)(a1 + 192) + 188),
+                            v10,
+                            v12,
+                            v13,
+                            v14,
+                            v15,
+                            a1,
+                            v17,
+                            v18,
+                            v19,
+                            v20,
+                            v21,
+                            (int)src,
+                            (int)v23,
+                            v24,
+                            i,
+                            j,
+                            v27,
+                            (int)v28,
+                            k,
+                            l,
+                            m,
+                            v32);
+          if ( !v41 )
+          {
+            v21 = 40;
+            ERR_put_error(0x14u, 138, 193, (int)"s3_srvr.c", 1353);
+            goto LABEL_148;
+          }
+          *(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) = v41; // I1
+        }
+        if ( *(int *)a1 >> 8 == 3 && *(int *)a1 > 770 && (*(_DWORD *)(a1 + 200) & 1) != 0 // I1
+          || ssl3_digest_cached_records(a1) )
+        {
+          if ( *(int *)a1 <= 767 || ssl_check_clienthello_tlsext_late(a1) > 0 )
+          {
+            if ( v27 < 0 )
+              v27 = 1;
+          }
+          else
+          {
+            ERR_put_error(0x14u, 138, 226, (int)"s3_srvr.c", 1414);
+          }
+          goto LABEL_149;
+        }
+        v21 = 80;
+        goto LABEL_148;
+      }
+      v21 = 80;
+LABEL_148:
+      ssl3_send_alert((_DWORD *)a1, 2, v21);
+      goto LABEL_149;
+    }
+    ERR_put_error(0x14u, 138, 226, (int)"s3_srvr.c", 1188);
+  }
+LABEL_149:
+  if ( v23 )
+    sk_free((int)v23);
+  return v27; // I5
+}
+/////
+__cdecl EVP_CipherInit_ex(int s, int a2, int a3, int a4, void *src, int a6)
+{
+  int v7;  // I4
+  int v8;  // I4
+  int v9;  // I4
+  int v10; // I4
+  int v11; // I4
+  int v12; // I4
+  if ( a6 == -1 )
+  {
+    v12 = *(_DWORD *)(s + 8); // I1
+  }
+  else
+  {
+    v12 = a6 != 0;
+    *(_DWORD *)(s + 8) = v12; // I1
+  }
+  if ( !*(_DWORD *)(s + 4) || !*(_DWORD *)s || a2 && *(_DWORD *)a2 != **(_DWORD **)s ) // I1
+  {
+    if ( a2 )
+    {
+      if ( *(_DWORD *)s ) // I1
+      {
+        v10 = *(_DWORD *)(s + 92); // I1
+        EVP_CIPHER_CTX_cleanup((void *)s);
+        *(_DWORD *)(s + 8) = v12; // I1
+        *(_DWORD *)(s + 92) = v10; // I1
+      }
+      if ( a3 )
+      {
+        if ( !ENGINE_init(a3) )
+        {
+          ERR_put_error(6u, 123, 134, (int)"evp_enc.c", 141);
+          return 0;
+        }
+      }
+      else
+      {
+        a3 = ENGINE_get_cipher_engine(*(_DWORD *)a2); // I1
+      }
+      if ( a3 )
+      {
+        v11 = ENGINE_get_cipher(a3, *(_DWORD *)a2); // I1
+        if ( !v11 )
+        {
+          ERR_put_error(6u, 123, 134, (int)"evp_enc.c", 158);
+          return 0;
+        }
+        a2 = v11;
+        *(_DWORD *)(s + 4) = a3; // I1
+      }
+      else
+      {
+        *(_DWORD *)(s + 4) = 0; // I1
+      }
+      *(_DWORD *)s = a2; // I1
+      if ( *(_DWORD *)(*(_DWORD *)s + 32) ) // I1
+      {
+        *(_DWORD *)(s + 96) = CRYPTO_malloc(*(_DWORD *)(*(_DWORD *)s + 32), (int)"evp_enc.c", 179); // I1
+        if ( !*(_DWORD *)(s + 96) ) // I1
+        {
+          ERR_put_error(6u, 123, 65, (int)"evp_enc.c", 182);
+          return 0;
+        }
+      }
+      else
+      {
+        *(_DWORD *)(s + 96) = 0; // I1
+      }
+      *(_DWORD *)(s + 88) = *(_DWORD *)(a2 + 8); // I1
+      *(_DWORD *)(s + 92) = 0; // I1
+      if ( (*(_DWORD *)(*(_DWORD *)s + 16) & 0x40) != 0 && !EVP_CIPHER_CTX_ctrl(s, 0, 0, 0) ) // I1
+      {
+        ERR_put_error(6u, 123, 134, (int)"evp_enc.c", 196);
+        return 0;
+      }
+    }
+    else if ( !*(_DWORD *)s ) // I1
+    {
+      ERR_put_error(6u, 123, 131, (int)"evp_enc.c", 203);
+      return 0;
+    }
+  }
+  if ( *(_DWORD *)(*(_DWORD *)s + 4) != 1 && *(_DWORD *)(*(_DWORD *)s + 4) != 8 && *(_DWORD *)(*(_DWORD *)s + 4) != 16 ) // I1
+    OpenSSLDie(
+      "evp_enc.c",
+      216,
+      "ctx->cipher->block_size == 1 || ctx->cipher->block_size == 8 || ctx->cipher->block_size == 16");
+  if ( (EVP_CIPHER_CTX_flags(s) & 0x10) == 0 )
+  {
+    switch ( EVP_CIPHER_CTX_flags(s) & 0xF0007 )
+    {
+      case 0:
+      case 1:
+        break;
+      case 2:
+      case 3:
+      case 4:
+        *(_DWORD *)(s + 80) = 0; // I1
+        if ( EVP_CIPHER_CTX_iv_length(s) > 16 )
+          OpenSSLDie("evp_enc.c", 234, "EVP_CIPHER_CTX_iv_length(ctx) <= (int)sizeof(ctx->iv)");
+        if ( src )
+        {
+          v7 = EVP_CIPHER_CTX_iv_length(s);
+          memcpy((void *)(s + 16), src, v7);
+        }
+        v8 = EVP_CIPHER_CTX_iv_length(s);
+        memcpy((void *)(s + 32), (const void *)(s + 16), v8);
+        break;
+      case 5:
+        *(_DWORD *)(s + 80) = 0; // I1
+        if ( src )
+        {
+          v9 = EVP_CIPHER_CTX_iv_length(s);
+          memcpy((void *)(s + 32), src, v9);
+        }
+        break;
+      default:
+        return 0;
+    }
+  }
+  if ( (a4 || (*(_DWORD *)(*(_DWORD *)s + 16) & 0x20) != 0) // I1
+    && !(*(int (__cdecl **)(int, int, void *, int))(*(_DWORD *)s + 20))(s, a4, src, v12) ) // I1
+  {
+    return 0;
+  }
+  *(_DWORD *)(s + 12) = 0; // I1
+  *(_DWORD *)(s + 100) = 0; // I1
+  *(_DWORD *)(s + 104) = *(_DWORD *)(*(_DWORD *)s + 4) - 1; // I1
+  return 1; // I5
+}
+/////
+__cdecl ssl3_get_client_key_exchange(int a1)
+{
+  int v2; // I4
+  int v3; // I4
+  _DWORD   *v4;
+  int v5; // I4
+  int v6; // I4
+  int v7; // I4
+  int v8; // I4
+  int v9; // I4
+  int v10; // I4
+  int v11; // I4
+  int v12; // I4
+  int v13; // I4
+  unsigned int     v14; // I4
+  size_t    n;  // I4
+  int v16; // I4
+  int v17; // I4
+  void     *src; // I4
+  int v19; // I4
+  void     *v20; // I4
+  _DWORD   *v21;
+  _DWORD   *v22;
+  int*v23;
+  int v24; // I4
+  int v25; // I4
+  int v26; // I4
+  int v27; // I4
+  _DWORD    *v28;
+  int v29; // I4
+  int v30; // I4
+  _DWORD    *v31;
+  void*v32; // I4
+  int v33; // I4
+  _DWORD    *v34;
+  int v35; // I4
+  int*v36;
+  size_t     v37; // I4
+  void*s;   // I4
+  size_t     v39; // I4
+  size_t     v40; // I4
+  int v41; // I4
+  int *v42;
+  int *v43;
+  int v44; // I4
+  char dest[129]; // I4
+  char v46[516];  // I4
+  unsigned int     v47; // I4
+  v47 = __readgsdword(0x14u); // I6
+  v19 = 0;
+  v31 = 0;
+  v32 = 0;
+  v20 = 0;
+  v21 = 0;
+  v22 = 0;
+  v23 = 0;
+  v17 = (*(int (__cdecl **)(int, int, int, int, int, int *))(*(_DWORD *)(a1 + 8) + 48))(a1, 8592, 8593, 16, 2048, &v13); // I1
+  if ( !v13 )
+    return v17;
+  src = *(void **)(a1 + 64); // I1
+  v33 = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) + 12); // I1
+  if ( (v33 & 1) != 0 )
+  {
+    if ( *(_DWORD *)(*(_DWORD *)(a1 + 88) + 880) ) // I1
+    {
+      if ( *(_DWORD *)(a1 + 152) && *(_DWORD *)(*(_DWORD *)(a1 + 152) + 24) ) // I1
+        v19 = *(_DWORD *)(*(_DWORD *)(a1 + 152) + 24); // I1
+      if ( !v19 )
+      {
+        v16 = 40;
+        ERR_put_error(0x14u, 139, 173, (int)"s3_srvr.c", 2169);
+LABEL_141:
+        ssl3_send_alert((_DWORD *)a1, 2, v16); // I1
+        goto LABEL_142;
+      }
+    }
+    else
+    {
+      v31 = *(_DWORD **)(*(_DWORD *)(a1 + 152) + 52); // I1
+      if ( !v31 || *v31 != 6 || !v31[5] ) // I1, I3
+      {
+        v16 = 40;
+        ERR_put_error(0x14u, 139, 168, (int)"s3_srvr.c", 2182);
+        goto LABEL_141;
+      }
+      v19 = v31[5]; // I1
+    }
+    if ( *(int *)a1 > 768 && *(_DWORD *)a1 != 256 ) // I1, I3
+    {
+      n = (*(unsigned __int8 *)src << 8) | *((unsigned __int8 *)src + 1);
+      src = (char *)src + 2;
+      if ( v17 == n + 2 )
+      {
+        v17 = n;
+      }
+      else
+      {
+        if ( (*(_DWORD *)(a1 + 256) & 0x100) == 0 ) // I1
+        {
+          ERR_put_error(0x14u, 139, 234, (int)"s3_srvr.c", 2196); // I2
+          goto LABEL_142;
+        }
+        src = (char *)src - 2;
+      }
+    }
+    n = RSA_private_decrypt(v17, (int)src, (int)src, v19, 1);
+    v16 = -1;
+    if ( n != 48 )
+      v16 = 50;
+    if ( v16 == -1
+      && (*(unsigned __int8 *)src != *(int *)(a1 + 272) >> 8
+       || *((unsigned __int8 *)src + 1) != (unsigned __int8)*(_DWORD *)(a1 + 272))
+      && ((*(_DWORD *)(a1 + 256) & 0x800000) == 0
+       || *(unsigned __int8 *)src != *(int *)a1 >> 8
+       || *((unsigned __int8 *)src + 1) != (unsigned __int8)*(_DWORD *)a1) ) // I1, I3
+    {
+      v16 = 50;
+    }
+    if ( v16 != -1 )
+    {
+      ERR_clear_error();
+      n = 48;
+      *(_BYTE *)src = BYTE1(*(_DWORD *)(a1 + 272)); // I1
+      *((_BYTE *)src + 1) = *(_DWORD *)(a1 + 272); // I1
+      if ( RAND_pseudo_bytes((int)src + 2, n - 2) <= 0 )
+        goto LABEL_142;
+    }
+    v2 = *(_DWORD *)(a1 + 192); // I1
+    *(_DWORD *)(v2 + 16) = (*(int (__cdecl **)(int, int, void *, size_t))(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 100) + 12))(
+                             a1,
+                             v2 + 20,
+                             src,
+                             n); // I1, I6
+    OPENSSL_cleanse(src, n);
+    return 1;
+  }
+  if ( (v33 & 0xE) != 0 )
+  {
+    n = (*(unsigned __int8 *)src << 8) | *((unsigned __int8 *)src + 1);
+    src = (char *)src + 2;
+    if ( v17 != n + 2 )
+    {
+      if ( (*(_DWORD *)(a1 + 256) & 0x80) == 0 ) // I1
+      {
+        ERR_put_error(0x14u, 139, 148, (int)"s3_srvr.c", 2270); // I2
+        goto LABEL_142;
+      }
+      src = (char *)src - 2;
+      n = v17;
+    }
+    if ( !v17 )
+    {
+      v16 = 40;
+      ERR_put_error(0x14u, 139, 236, (int)"s3_srvr.c", 2283); // I2
+      goto LABEL_141;
+    }
+    if ( !*(_DWORD *)(*(_DWORD *)(a1 + 88) + 840) ) // I1
+    {
+      v16 = 40;
+      ERR_put_error(0x14u, 139, 171, (int)"s3_srvr.c", 2291); // I2
+      goto LABEL_141;
+    }
+    v44 = *(_DWORD *)(*(_DWORD *)(a1 + 88) + 840); // I1
+    v32 = BN_bin2bn((unsigned __int8 *)src, n, 0);
+    if ( !v32 )
+    {
+      ERR_put_error(0x14u, 139, 130, (int)"s3_srvr.c", 2301); // I1
+      goto LABEL_142;
+    }
+    n = DH_compute_key((int)src, (int)v32, v44);
+    if ( (int)n <= 0 )
+    {
+      ERR_put_error(0x14u, 139, 5, (int)"s3_srvr.c", 2309); // I1
+      BN_clear_free(v32);
+      goto LABEL_142;
+    }
+    DH_free(*(_DWORD *)(*(_DWORD *)(a1 + 88) + 840)); // I1
+    *(_DWORD *)(*(_DWORD *)(a1 + 88) + 840) = 0; // I1
+    BN_clear_free(v32);
+    v32 = 0;
+    v3 = *(_DWORD *)(a1 + 192); // I1
+    *(_DWORD *)(v3 + 16) = (*(int (__cdecl **)(int, int, void *, size_t))(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 100) + 12))(
+                             a1,
+                             v3 + 20,
+                             src,
+                             n); // I1, I6
+    OPENSSL_cleanse(src, n);
+    return 1;
+  }
+  if ( (v33 & 0xE0) == 0 )
+  {
+    if ( (v33 & 0x100) != 0 )
+    {
+      s = 0;
+      v39 = 0;
+      v40 = 0;
+      v26 = 1;
+      v16 = 40;
+      n = (*(unsigned __int8 *)src << 8) | *((unsigned __int8 *)src + 1);
+      src = (char *)src + 2;
+      if ( v17 == n + 2 )
+      {
+        if ( (int)n <= 128 )
+        {
+          if ( *(_DWORD *)(a1 + 224) ) // I1
+          {
+            memcpy(dest, src, n);
+            memset(&dest[n], 0, 129 - n);
+            v40 = (*(int (__cdecl **)(int, char *, char *, int))(a1 + 224))(a1, dest, v46, 516); // I1, I6
+            OPENSSL_cleanse(dest, 0x81u);
+            if ( v40 <= 0x100 )
+            {
+              if ( v40 )
+              {
+                v39 = 2 * (v40 + 2);
+                s = v46;
+                memmove(&v46[v40 + 4], v46, v40);
+                *(_BYTE *)s = BYTE1(v40); // I1
+                *((_BYTE *)s + 1) = v40; // I1
+                s = (char *)s + 2; // I1
+                memset(s, 0, v40);
+                s = (char *)s + v40; // I1
+                *(_BYTE *)s = BYTE1(v40); // I1
+                *((_BYTE *)s + 1) = v40; // I1
+                s = (char *)s + 2; // I1
+                if ( *(_DWORD *)(*(_DWORD *)(a1 + 192) + 144) ) // I1
+                  CRYPTO_free(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 144)); // I1
+                v7 = *(_DWORD *)(a1 + 192); // I1
+                *(_DWORD *)(v7 + 144) = BUF_strdup((char *)src); // I1
+                if ( *(_DWORD *)(*(_DWORD *)(a1 + 192) + 144) ) // I1
+                {
+                  if ( *(_DWORD *)(*(_DWORD *)(a1 + 192) + 140) ) // I1
+                    CRYPTO_free(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 140)); // I1
+                  v8 = *(_DWORD *)(a1 + 192); // I1
+                  *(_DWORD *)(v8 + 140) = BUF_strdup(*(char **)(*(_DWORD *)(a1 + 228) + 332)); // I1, I6
+                  if ( !*(_DWORD *)(*(_DWORD *)(a1 + 228) + 332) || *(_DWORD *)(*(_DWORD *)(a1 + 192) + 140) ) // I1
+                  {
+                    v9 = *(_DWORD *)(a1 + 192); // I1
+                    *(_DWORD *)(v9 + 16) = (*(int (__cdecl **)(int, int, char *, size_t))(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 100)
+                                                                                        + 12))(
+                                             a1,
+                                             v9 + 20,
+                                             v46,
+                                             v39); // I1, I6
+                    v26 = 0;
+                  }
+                  else
+                  {
+                    ERR_put_error(0x14u, 139, 65, (int)"s3_srvr.c", 2755); // I2
+                  }
+                }
+                else
+                {
+                  ERR_put_error(0x14u, 139, 65, (int)"s3_srvr.c", 2744); // I2
+                }
+              }
+              else
+              {
+                ERR_put_error(0x14u, 139, 223, (int)"s3_srvr.c", 2724); // I2
+                v16 = 115;
+              }
+            }
+            else
+            {
+              ERR_put_error(0x14u, 139, 68, (int)"s3_srvr.c", 2717); // I2
+            }
+          }
+          else
+          {
+            ERR_put_error(0x14u, 139, 225, (int)"s3_srvr.c", 2702); // I2
+          }
+        }
+        else
+        {
+          ERR_put_error(0x14u, 139, 146, (int)"s3_srvr.c", 2696); // I2
+        }
+      }
+      else
+      {
+        ERR_put_error(0x14u, 139, 159, (int)"s3_srvr.c", 2690); // I2
+      }
+      OPENSSL_cleanse(v46, 0x204u);
+      if ( v26 )
+        goto LABEL_141;
+      return 1;
+    }
+    if ( (v33 & 0x400) != 0 )
+    {
+      n = (*(unsigned __int8 *)src << 8) | *((unsigned __int8 *)src + 1);
+      src = (char *)src + 2;
+      v37 = n + 2;
+      if ( (int)(n + 2) > v17 )
+      {
+        v16 = 50;
+        ERR_put_error(0x14u, 139, 347, (int)"s3_srvr.c", 2780); // I2
+        goto LABEL_141;
+      }
+      *(_DWORD *)(a1 + 440) = BN_bin2bn((unsigned __int8 *)src, n, 0); // I1, I6
+      if ( !*(_DWORD *)(a1 + 440) ) // I1
+      {
+        ERR_put_error(0x14u, 139, 3, (int)"s3_srvr.c", 2785); // I2
+        goto LABEL_142;
+      }
+      if ( *(_DWORD *)(*(_DWORD *)(a1 + 192) + 240) ) // I1
+        CRYPTO_free(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 240)); // I1
+      v10 = *(_DWORD *)(a1 + 192); // I1
+      *(_DWORD *)(v10 + 240) = BUF_strdup(*(char **)(a1 + 420)); // I1, I6
+      if ( !*(_DWORD *)(*(_DWORD *)(a1 + 192) + 240) ) // I1
+      {
+        ERR_put_error(0x14u, 139, 65, (int)"s3_srvr.c", 2794); // I1
+        goto LABEL_142;
+      }
+      v11 = *(_DWORD *)(a1 + 192); // I1
+      *(_DWORD *)(v11 + 16) = SRP_generate_server_master_secret(a1, v11 + 20); // I1, I6
+      if ( *(int *)(v11 + 16) < 0 ) // I1
+      {
+        ERR_put_error(0x14u, 139, 68, (int)"s3_srvr.c", 2800); // I1
+        goto LABEL_142;
+      }
+      src = (char *)src + n;
+      return 1;
+    }
+    if ( (v33 & 0x200) == 0 )
+    {
+      v16 = 40;
+      ERR_put_error(0x14u, 139, 249, (int)"s3_srvr.c", 2884); // I1
+      goto LABEL_141;
+    }
+    v27 = 0;
+    v34 = 0;
+    v28 = 0;
+    v14 = 32;
+    v35 = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 88) + 836) + 16); // I1
+    if ( (v35 & 0x100) != 0 )
+    {
+      v28 = *(_DWORD **)(*(_DWORD *)(a1 + 152) + 124); // I1
+    }
+    else if ( (v35 & 0x200) != 0 )
+    {
+      v28 = *(_DWORD **)(*(_DWORD *)(a1 + 152) + 136); // I1
+    }
+    v36 = EVP_PKEY_CTX_new(v28, 0);
+    EVP_PKEY_decrypt_init(v36);
+    v34 = X509_get_pubkey(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 156)); // I1
+    if ( v34 && EVP_PKEY_derive_set_peer(v36, v34) <= 0 )
+      ERR_clear_error();
+    if ( *(_BYTE *)src != 48 )
+    {
+      ERR_put_error(0x14u, 139, 147, (int)"s3_srvr.c", 2839); // I2
+      goto LABEL_137;
+    }
+    if ( *((_BYTE *)src + 1) == 0x81 )  // I1
+    {
+      v29 = (int)src + 3;
+      v30 = *((unsigned __int8 *)src + 2);
+    }
+    else
+    {
+      if ( *((char *)src + 1) < 0 )
+      {
+        ERR_put_error(0x14u, 139, 147, (int)"s3_srvr.c", 2854); // I2
+        goto LABEL_137;
+      }
+      v29 = (int)src + 2;
+      v30 = *((unsigned __int8 *)src + 1);
+    }
+    if ( EVP_PKEY_decrypt(v36, (int)v46, &v14, v29, v30) > 0 )
+    {
+      v12 = *(_DWORD *)(a1 + 192); // I1
+      *(_DWORD *)(v12 + 16) = (*(int (__cdecl **)(int, int, char *, int))(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 100) + 12))(
+                                a1,
+                                v12 + 20,
+                                v46,
+                                32); // I1, I6
+      if ( EVP_PKEY_CTX_ctrl(v36, -1, -1, 2, 2, 0) <= 0 )
+        v27 = 1;
+      else
+        v27 = 2;
+    }
+    else
+    {
+      ERR_put_error(0x14u, 139, 147, (int)"s3_srvr.c", 2860); // I1
+    }
+LABEL_137:
+    EVP_PKEY_free((int)v34);
+    EVP_PKEY_CTX_free(v36);
+    if ( v27 )
+      return v27;
+    goto LABEL_142;
+  }
+  v24 = 1;
+  v41 = 0;
+  v20 = EC_KEY_new();
+  if ( v20 )
+  {
+    if ( (v33 & 0x60) != 0 )
+      v25 = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 152) + 112) + 20); // I1
+    else
+      v25 = *(_DWORD *)(*(_DWORD *)(a1 + 88) + 844); // I1
+    v42 = (int *)EC_KEY_get0_group(v25);
+    v43 = (int *)EC_KEY_get0_private_key(v25);
+    if ( EC_KEY_set_group((int)v20, v42) && EC_KEY_set_private_key((int)v20, v43) )
+    {
+      v22 = EC_POINT_new((int)v42);
+      if ( v22 )
+      {
+        if ( v17 )
+        {
+          v23 = BN_CTX_new();
+          if ( !v23 )
+          {
+            ERR_put_error(0x14u, 139, 65, (int)"s3_srvr.c", 2617); // I1
+            goto LABEL_142;
+          }
+          n = *(unsigned __int8 *)src;
+          src = (char *)src + 1;
+          if ( v17 != n + 1 )
+          {
+            ERR_put_error(0x14u, 139, 16, (int)"s3_srvr.c", 2627); // I1
+            goto LABEL_142;
+          }
+          if ( !EC_POINT_oct2point(v42, v22, (unsigned __int8 *)src, n, v23) )
+          {
+            ERR_put_error(0x14u, 139, 16, (int)"s3_srvr.c", 2634); // I1
+            goto LABEL_142;
+          }
+          src = *(void **)(*(_DWORD *)(a1 + 60) + 4); // I1
+        }
+        else
+        {
+          if ( (v33 & 0x80) != 0 )
+          {
+            v16 = 40;
+            ERR_put_error(0x14u, 139, 311, (int)"s3_srvr.c", 2576); // I2
+            goto LABEL_141;
+          }
+          v21 = X509_get_pubkey(*(_DWORD *)(*(_DWORD *)(a1 + 192) + 156)); // I1
+          if ( !v21 || *v21 != 408 )
+          {
+            v16 = 40;
+            ERR_put_error(0x14u, 139, 313, (int)"s3_srvr.c", 2596); // I2
+            goto LABEL_141;
+          }
+          v4 = (_DWORD *)EC_KEY_get0_public_key(v21[5]); // I1
+          if ( !EC_POINT_copy(v22, v4) )
+          {
+            ERR_put_error(0x14u, 139, 16, (int)"s3_srvr.c", 2604); // I1
+            goto LABEL_142;
+          }
+          v24 = 2;
+        }
+        v41 = EC_GROUP_get_degree((int)v42);
+        if ( v41 > 0 )
+        {
+          v5 = v41 + 7;
+          if ( v41 + 7 < 0 )
+            v5 = v41 + 14;
+          n = ECDH_compute_key((int)src, v5 >> 3, (int)v22, (int)v20, 0);
+          if ( (int)n > 0 )
+          {
+            EVP_PKEY_free((int)v21);
+            EC_POINT_free((int)v22);
+            EC_KEY_free(v20);
+            BN_CTX_free(v23);
+            EC_KEY_free(*(void **)(*(_DWORD *)(a1 + 88) + 844)); // I1
+            *(_DWORD *)(*(_DWORD *)(a1 + 88) + 844) = 0; // I1
+            v6 = *(_DWORD *)(a1 + 192); // I1
+            *(_DWORD *)(v6 + 16) = (*(int (__cdecl **)(int, int, void *, size_t))(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 100)
+                                                                                + 12))(
+                                     a1,
+                                     v6 + 20,
+                                     src,
+                                     n); // I1, I6
+            OPENSSL_cleanse(src, n);
+            return v24;
+          }
+          ERR_put_error(0x14u, 139, 43, (int)"s3_srvr.c", 2655); // I2
+        }
+        else
+        {
+          ERR_put_error(0x14u, 139, 43, (int)"s3_srvr.c", 2648); // I2
+        }
+        goto LABEL_142;
+      }
+      ERR_put_error(0x14u, 139, 65, (int)"s3_srvr.c", 2565); // I2
+    }
+    else
+    {
+      ERR_put_error(0x14u, 139, 16, (int)"s3_srvr.c", 2557); // I2
+    }
+  }
+  else
+  {
+    ERR_put_error(0x14u, 139, 65, (int)"s3_srvr.c", 2532); // I2
+  }
+LABEL_142:
+  EVP_PKEY_free((int)v21);
+  EC_POINT_free((int)v22);
+  if ( v20 )
+    EC_KEY_free(v20);
+  BN_CTX_free(v23);
+  return -1; // I5
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

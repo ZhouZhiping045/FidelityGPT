@@ -1,0 +1,304 @@
+__fastcall decode(_WORD *a1, _BYTE *a2, unsigned __int64 a3)
+{
+  _BYTE *v3;
+  int v4;
+  char v5;
+  int v6;
+  _WORD *v7;
+  unsigned __int64 result;
+  unsigned __int8 v11;
+  int v12;
+  int v13;
+  unsigned __int64 i;
+  for ( i = 0LL; ; ++i )
+  {
+    result = i;
+    if ( i >= a3 )
+      break;
+    v3 = a2++;
+    v11 = *v3 ^ 0xD5;
+    if ( (((int)v11 >> 4) & 7) != 0 )
+      v4 = 256;
+    else
+      v4 = 0;
+    v12 = v4 + ((unsigned __int8)(16 * v11) | 8);
+    v5 = 1;
+    if ( (((int)v11 >> 4) & 7) != 0 )
+      v5 = ((int)v11 >> 4) & 7;
+    v13 = v12 << (v5 - 1);
+    if ( (v11 & 0x80) != 0 )
+      v6 = -v13;
+    else
+      LOWORD(v6) = v13;
+    v7 = a1++;
+    *v7 = v6;
+  }
+  return result;
+}
+/////
+__fastcall BucketSort(__int64 a1)
+{
+  int v1;
+  int i;
+  int j;
+  int k;
+  int l;
+  int m;
+  int n;
+  int jj;
+  int v9;
+  int v10;
+  __int64 ii;
+  _QWORD *v12;
+  _QWORD *v13;
+  void *ptr;
+  _QWORD *v15;
+  v13 = malloc(0x28uLL);
+  for ( i = 0; i <= 4; ++i )
+    v13[i] = 0LL;
+  for ( j = 0; j <= 7; ++j )
+  {
+    v10 = getBucketIndex(*(_DWORD *)(4LL * j + a1));
+    v15 = malloc(0x10uLL);
+    *(_DWORD *)v15 = *(_DWORD *)(4LL * j + a1);
+    v15[1] = v13[v10];
+    v13[v10] = v15;
+  }
+  for ( k = 0; k <= 4; ++k )
+  {
+    printf("Bucket[\"%d\"] : ", (unsigned int)k);
+    printBuckets((unsigned int *)v13[k]);
+    putchar(10);
+  }
+  for ( l = 0; l <= 4; ++l )
+    v13[l] = InsertionSort(v13[l]);
+  puts("--------------");
+  puts("Buckets after sorted");
+  for ( m = 0; m <= 4; ++m )
+  {
+    printf("Bucket[\"%d\"] : ", (unsigned int)m);
+    printBuckets((unsigned int *)v13[m]);
+    putchar(10);
+  }
+  v9 = 0;
+  for ( n = 0; n <= 4; ++n )
+  {
+    for ( ii = v13[n]; ii; ii = *(_QWORD *)(ii + 8) )
+    {
+      if ( v9 > 7 )
+        __assert_fail("j < NARRAY", "github/C-master/sorting/bucket_sort", 0x53u, "BucketSort");
+      v1 = v9++;
+      *(_DWORD *)(a1 + 4LL * v1) = *(_DWORD *)ii;
+    }
+  }
+  for ( jj = 0; jj <= 4; ++jj )
+  {
+    v12 = (_QWORD *)v13[jj];
+    while ( v12 )
+    {
+      ptr = v12;
+      v12 = (_QWORD *)v12[1];
+      free(ptr);
+    }
+  }
+  free(v13);
+}
+/////
+__fastcall printEPS(__int64 a1, unsigned __int64 a2, __int64 a3, int a4)
+{
+  int i;
+  int k;
+  double v8;
+  double v9;
+  double v10;
+  double v11;
+  double v12;
+  unsigned __int64 j;
+  unsigned __int64 l;
+  double v15;
+  double v16;
+  double *ptr;
+  double v18;
+  v8 = 1.797693134862316e308;
+  v9 = 2.225073858507201e-308;
+  v10 = 1.797693134862316e308;
+  v11 = 2.225073858507201e-308;
+  ptr = (double *)malloc(24LL * a4);
+  v18 = (double)a4;
+  for ( i = 0; i < a4; ++i )
+  {
+    ptr[3 * i] = (double)(3 * (i + 1) % a4) / v18;
+    ptr[3 * i + 1] = (double)(7 * i % a4) / v18;
+    ptr[3 * i + 2] = (double)(9 * i % a4) / v18;
+  }
+  for ( j = 0LL; j < a2; ++j )
+  {
+    if ( *(double *)(24 * j + a1) > v9 )
+      v9 = *(double *)(24 * j + a1);
+    if ( v8 > *(double *)(24 * j + a1) )
+      v8 = *(double *)(24 * j + a1);
+    if ( *(double *)(24 * j + a1 + 8) > v11 )
+      v11 = *(double *)(24 * j + a1 + 8);
+    if ( v10 > *(double *)(24 * j + a1 + 8) )
+      v10 = *(double *)(24 * j + a1 + 8);
+  }
+  v12 = (double)400 / (v9 - v8);
+  if ( v12 > (double)400 / (v11 - v10) )
+    v12 = (double)400 / (v11 - v10);
+  v15 = (v9 + v8) / 2.0;
+  v16 = (v11 + v10) / 2.0;
+  printf("%%!PS-Adobe-3.0 EPSF-3.0\n%%%%BoundingBox: -5 -5 %d %d\n", 410LL, 410LL);
+  puts(
+    "/l {rlineto} def /m {rmoveto} def\n"
+    "/c { .25 sub exch .25 sub exch .5 0 360 arc fill } def\n"
+    "/s { moveto -2 0 m 2 2 l 2 -2 l -2 -2 l closepath \tgsave 1 setgray fill grestore gsave 3 setlinewidth 1 setgray str"
+    "oke grestore 0 setgray stroke }def");
+  for ( k = 0; k < a4; ++k )
+  {
+    printf("%g %g %g setrgbcolor\n", ptr[3 * k], ptr[3 * k + 1], ptr[3 * k + 2]);
+    for ( l = 0LL; l < a2; ++l )
+    {
+      if ( k == *(_DWORD *)(24 * l + a1 + 16) )
+        printf(
+          "%.3f %.3f c\n",
+          (double)200 + (*(double *)(24 * l + a1) - v15) * v12,
+          (*(double *)(24 * l + a1 + 8) - v16) * v12 + (double)200);
+    }
+    printf(
+      "\n0 setgray %g %g s\n",
+      (double)200 + (*(double *)(24LL * k + a3) - v15) * v12,
+      (*(double *)(24LL * k + a3 + 8) - v16) * v12 + (double)200);
+  }
+  printf("\n%%%%EOF");
+  free(ptr);
+  }
+/////
+__fastcall kohonen_update_weights(__int64 a1, __int64 a2, __int64 a3, int a4, int a5, int a6, double a7)
+{
+  int v8;
+  int v9;
+  int v10;
+  int v11;
+  int v12;
+  int v13;
+  double *v14;
+  int v15;
+  unsigned int v16;
+  int v17;
+  int v18;
+  int v19;
+  int v20;
+  int v21;
+  int v22;
+  int v23;
+  int v24;
+  int v25;
+  int v26;
+  int v31;
+  unsigned int v35;
+  int v36;
+  int i;
+  int j;
+  int v39;
+  int v40;
+  int v41;
+  int v42;
+  int v43;
+  int v44;
+  __int64 v45;
+  double *v46;
+  double v47;
+  double v48;
+  double *v49;
+  unsigned __int64 v50;
+  v31 = a4;
+  v50 = __readfsqword(0x28u);
+  v45 = 0LL;
+  v8 = omp_get_num_threads();
+  v9 = omp_get_thread_num();
+  v10 = a4 / v8;
+  v11 = a4 % v8;
+  if ( v9 < a4 % v8 )
+  {
+    v11 = 0;
+    ++v10;
+  }
+  v12 = v10 * v9 + v11;
+  v13 = v12 + v10;
+  if ( v12 < v12 + v10 )
+  {
+    v39 = v12;
+    do
+    {
+      for ( i = 0; i < v31; ++i )
+      {
+        *(_QWORD *)(8LL * i + *(_QWORD *)(8LL * v39 + a3)) = 0LL;
+        for ( j = 0; j < a5; ++j )
+        {
+          v46 = (double *)kohonen_data_3d(a2, v39, i, j);
+          *(double *)(8LL * i + *(_QWORD *)(8LL * v39 + a3)) = (*v46 - *(double *)(8LL * j + a1))
+                                                             * (*v46 - *(double *)(8LL * j + a1))
+                                                             + *(double *)(8LL * i + *(_QWORD *)(8LL * v39 + a3));
+        }
+        v14 = (double *)(*(_QWORD *)(8LL * v39 + a3) + 8LL * i);
+        *v14 = sqrt(*v14);
+      }
+      ++v39;
+    }
+    while ( v39 < v13 );
+  }
+  GOMP_barrier();
+  get_min_2d(a3, v31, (double *)&v45, &v35, &v36);
+  v15 = v35 - a6;
+  if ( (int)(v35 - a6) < 0 )
+    v15 = 0;
+  v41 = v15;
+  if ( v31 <= (int)(v35 + a6) )
+    v16 = v31;
+  else
+    v16 = v35 + a6 + 1;
+  v42 = v16;
+  v17 = v36 - a6;
+  if ( v36 - a6 < 0 )
+    v17 = 0;
+  v43 = v17;
+  if ( v31 <= v36 + a6 )
+    v18 = v31;
+  else
+    v18 = v36 + a6 + 1;
+  v44 = v18;
+  v19 = v41;
+  v20 = v42;
+  v21 = omp_get_num_threads();
+  v22 = omp_get_thread_num();
+  v23 = (v20 - v19) / v21;
+  v24 = (v20 - v19) % v21;
+  if ( v22 < v24 )
+  {
+    v24 = 0;
+    ++v23;
+  }
+  v25 = v23 * v22 + v24;
+  if ( v25 < v25 + v23 )
+  {
+    v40 = v19 + v25;
+    v26 = v25 + v23 + v19;
+    do
+    {
+      for ( i = v43; i < v44; ++i )
+      {
+        v47 = (double)(int)((v35 - v40) * (v35 - v40) + (v36 - i) * (v36 - i));
+        v48 = exp(-v47 / ((a7 + a7) * a7));
+        for ( j = 0; j < a5; ++j )
+        {
+          v49 = (double *)kohonen_data_3d(a2, v40, i, j);
+          *v49 = (*(double *)(8LL * j + a1) - *v49) * (a7 * v48) + *v49;
+        }
+      }
+      ++v40;
+    }
+    while ( v40 < v26 );
+  }
+  GOMP_barrier();
+  return __readfsqword(0x28u) ^ v50;
+}
