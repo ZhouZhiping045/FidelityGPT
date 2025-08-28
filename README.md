@@ -69,12 +69,17 @@ python FidelityGPT.py
 - Functions are separated using `/////`
 
 > ℹ️ For functions longer than 50 lines, the system uses **chunk-based detection** with a 5-line overlap.  
-> After detection:
-> - **Manually merge** chunked functions
-> - **Remove overlapping duplicate lines**
-> - **Preserve** the `/////` separator
+After detection (before running Correction or Evaluation):
 
-### 3. Run Correction (Optional)
+After detection:
+- Manually merge chunked functions
+- Remove overlapping duplicate lines
+- Preserve the ///// separator
+
+⚠️ Ensure line alignment: each line in model_output.txt should correspond exactly to the same function segment in ground_truth.txt. Since functions longer than 50 lines were split into chunks during preprocessing, manual alignment may be required.
+👉 In our practice, we place ground_truth.txt and model_output.txt in two columns of an Excel sheet to ensure proper alignment before running Correction or Evaluation.
+
+### 3. Run Correction
 
 ```bash
 python Correction.py
@@ -90,8 +95,8 @@ Then run:
 
 ```bash
 python Evaluation/Evaluation.py
-```
-For the correction phase,  manual evaluation is required. Please refer to Table I in the paper as the guideline for manual assessment.
+
+For the correction phase, manual evaluation is required. Please refer to Table I in the paper as the guideline for manual assessment.
 
 ## 🧠 Key Components
 
