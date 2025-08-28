@@ -83,7 +83,7 @@ LABEL_12:
     }
   }
 }
-
+```
 ### Query 1, Block 2:
 ```c
       if ( v13 != 122 ) //I4
@@ -121,7 +121,7 @@ LABEL_12:
     perform_basename((char *)argv[rpl_optind], v6, v11); //I1
   }
   return 0;
-
+```
 ✅ Merged Function
 ```c
 __cdecl main(int argc, const char **argv, const char **envp)
@@ -205,7 +205,7 @@ LABEL_12:
   }
   return 0;
 }
-
+```
 Key Notes:
 
 - Always merge before running Correction and Evaluation.
