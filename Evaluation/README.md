@@ -1,16 +1,3 @@
-\usepackage{listings}
-\usepackage{xcolor} % 可以加颜色
-
-\lstset{
-  basicstyle=\ttfamily\small, % 字体
-  breaklines=true,            % 自动换行
-  numbers=left,               % 行号
-  numberstyle=\tiny\color{gray},
-  keywordstyle=\color{blue},
-  commentstyle=\color{green!50!black},
-  stringstyle=\color{orange},
-  showstringspaces=false
-}
 # Manual Alignment Guide for Evaluation
 
 During **distortion detection**, functions longer than 50 lines are automatically split into **chunks** with a 5-line overlap.  
@@ -44,7 +31,7 @@ This ensures line-alignment with the ground truth.
 ## Example
 
 ### Query 1, Block 1:
-\begin{lstlisting}[language=C]
+```c
 __cdecl main(int argc, const char **argv, const char **envp)
 {
   char *v3; //I4
@@ -96,9 +83,9 @@ LABEL_12:
     }
   }
 }
-\end{lstlisting}
+
 ### Query 1, Block 2:
-\begin{lstlisting}[language=C]
+```c
       if ( v13 != 122 ) //I4
         goto LABEL_16;
       v11 = 1;
@@ -134,9 +121,9 @@ LABEL_12:
     perform_basename((char *)argv[rpl_optind], v6, v11); //I1
   }
   return 0;
-\end{lstlisting}
+
 ✅ Merged Function
-\begin{lstlisting}[language=C]
+```c
 __cdecl main(int argc, const char **argv, const char **envp)
 {
   char *v3; //I4
@@ -218,7 +205,7 @@ LABEL_12:
   }
   return 0;
 }
-\end{lstlisting}
+
 Key Notes:
 
 - Always merge before running Correction and Evaluation.
