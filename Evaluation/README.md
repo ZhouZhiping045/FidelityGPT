@@ -86,7 +86,7 @@ LABEL_12:
 ```
 ### Query 1, Block 2:
 ```c
-      if ( v13 != 122 ) //I4
+      if ( v13 != 122 ) //I2
         goto LABEL_16;
       v11 = 1;
     }
