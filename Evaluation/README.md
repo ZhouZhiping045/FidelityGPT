@@ -17,10 +17,7 @@ This ensures line-alignment with the ground truth.
    - **Remove overlapping duplicate lines** caused by the chunking.
 
 3. **Preserve Function Separator**
-   - After merging, ensure that functions are still separated by  
-     ```
-     /////
-     ```
+   - After merging, ensure that functions are still separated by   `/////`
 
 4. **Check Alignment with Ground Truth**
    - The merged function should correspond line-by-line with the ground truth.
