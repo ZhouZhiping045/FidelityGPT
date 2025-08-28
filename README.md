@@ -1,4 +1,4 @@
-# FidelityGPT Artifact README
+# FidelityGPT: Correcting Decompilation Distortions with Retrieval Augmented Generation
 <img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/3f369878-e56e-4fe5-9f19-be37c34fe90c" />
 
 ## 📁 Artifact Structure
