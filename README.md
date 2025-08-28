@@ -77,6 +77,7 @@ After detection:
 - Preserve the ///// separator
 
 ⚠️ Ensure line alignment: each line in model_output.txt should correspond exactly to the same function segment in ground_truth.txt. Since functions longer than 50 lines were split into chunks during preprocessing, manual alignment may be required.
+
 👉 In our practice, we place ground_truth.txt and model_output.txt in two columns of an Excel sheet to ensure proper alignment before running Correction or Evaluation.
 
 ### 3. Run Correction
