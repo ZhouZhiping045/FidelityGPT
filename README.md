@@ -96,6 +96,7 @@ Then run:
 
 ```bash
 python Evaluation/Evaluation.py
+```
 
 For the correction phase, manual evaluation is required. Please refer to Table I in the paper as the guideline for manual assessment.
 
