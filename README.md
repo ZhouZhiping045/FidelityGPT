@@ -1,7 +1,14 @@
-<div style="display: flex; align-items: center;">
-  <img src="https://github.com/user-attachments/assets/3f369878-e56e-4fe5-9f19-be37c34fe90c" alt="FidelityGPT Logo" width="180" style="margin-right: 20px;"/>
-  <h1>FidelityGPT: Correcting Decompilation Distortions with Retrieval Augmented Generation</h1>
-</div>
+<table>
+  <tr>
+    <td width="220">
+      <img src="https://github.com/user-attachments/assets/3f369878-e56e-4fe5-9f19-be37c34fe90c" alt="FidelityGPT Logo" width="200"/>
+    </td>
+    <td>
+      <h1>FidelityGPT: Correcting Decompilation Distortions with Retrieval Augmented Generation</h1>
+    </td>
+  </tr>
+</table>
+
 
 
 ## 📁 Artifact Structure
