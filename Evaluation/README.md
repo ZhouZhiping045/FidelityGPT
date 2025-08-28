@@ -29,7 +29,7 @@ This ensures line-alignment with the ground truth.
 ---
 
 ## Example
-
+\begin{verbatim}
 ### Query 1, Block 1:
 
 __cdecl main(int argc, const char **argv, const char **envp)
@@ -203,7 +203,7 @@ LABEL_12:
   }
   return 0;
 }
-
+\end{verbatim}
 Key Notes:
 
 - Always merge before running Correction and Evaluation.
