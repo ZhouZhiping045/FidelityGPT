@@ -91,7 +91,7 @@ After detection:
 
 👉 In our practice, we place ground_truth.txt and model_output.txt in two columns of an Excel sheet to ensure proper alignment before running Correction or Evaluation.
 
-### 3. Run Correction
+### 3. Run Correction (Optional)
 
 ```bash
 python Correction.py
